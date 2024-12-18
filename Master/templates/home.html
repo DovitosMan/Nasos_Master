@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Калькулятор рабочего колеса</title>
+</head>
+<body>
+{{greeting}}
+<div class="Window">
+    <div class="Main menu">Главное меню
+        <div class="Wheel calc link">Расчет колеса</div>
+        <div class="Inlet calc"> Расчет подвода</div>
+        <div class="Outlet calc"> Расчет отвода</div>
+        <div class="Plotting">Построение характеристик</div>
+        <div class="Selection pump">Подбор насоса</div>
+        <div class="Energy calc">Расчет энергозатрат</div>
+        <div class="Hour calc"> Расчет трудозатрат</div>
+        <div class="User">Личный кабинет</div>
+    </div>
+    <form action="{% url 'wheel_calc' %}">
+        <input type="text" name="usertext">
+        <br><br>
+        <input type="submit" value="{{ button3 }}">
+    </form>
+</div>
+
+</body>
+</html>
