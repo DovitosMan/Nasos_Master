@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Калькулятор рабочего колеса</title>
+</head>
+<body>
+
+<div class="Window">
+      <div class="Wheel calc">{{ title }}</div>
+        <form action="{% url 'wheel_calc' %}" method="post">
+            {% csrf_token %}
+            {% for input in inputs %}
+            <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
+            <br>
+            {% endfor %}
+            <input type="submit" value="{{ button1 }}">
+        </form>
+    {% if pump_speed_coef is not None %}
+    <p>Коэффициент быстроходности насоса: {{ pump_speed_coef }}</p>
+    {% endif %}
+    <div class="Exit">
+        <form action="{% url 'home' %}">
+            <input type="submit" value="{{ button2 }}">
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
