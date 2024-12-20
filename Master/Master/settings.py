@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'calculations',
+    'Pump_selection',
+
 ]
 
 MIDDLEWARE = [
