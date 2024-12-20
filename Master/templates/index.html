@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="style.css">
+    <title>Pump Website</title>
+</head>
+<body>
+    <div class="Container">
+        <div class="wrapper">
+            <div class="Pump-mode">
+                <span>Режим расчёта:</span>
+                <select class="Pump_mode" id="">
+                    <option value="The_purpose_of_the_system">Назначение системы</option>
+                    <option value="Pump_family">Семейство насосов</option>
+                </select>
+            </div>
+    
+            <div class="Appointment">
+                <span>Назначение:</span>
+                <select class="Appointment_1" id="">
+                    <option value="HVS">ХВС</option>
+                    <option value="SV">СВ</option>
+                    <option value="SO">СО</option>
+                    <option value="Recharge">Подпитка</option>
+                    <option value="GVS">ГВС</option>
+                </select>
+            </div>
+            
+            <div class="Region">
+                <span>Регион:</span>
+                <select class="Region_1" id="">
+                    <option value="Any">Любой</option>
+                    <option value="Anapa">Анапа</option>
+                    <option value="Barnayl">Барнаул</option>
+                    <option value="Belgorod">Белгород</option>
+                    <option value="Bryansk">Брянск</option>
+                </select>
+            </div>
+            
+            <div class="consumption">
+                <span>Расход, м <sup>3</sup>/ч:</span>
+                <input class="Select_a_value" type="number" min="1" max="250" step="1">
+            </div>
+    
+            <div class="Pressure">
+                <span>Напор, м.вод.ст.:</span>
+                <input class="Select_a_value_2" type="number" min="1" max="250" step="1">
+            </div>
+            
+            <div class="Environment">
+                <span>Среда:</span>
+                <select class="Environment_1" id="">
+                    <option value="Water">Вода</option>
+                    <option value="Ethylene_Glycol">Этиленгликоль</option>
+                    <option value="Propylene_Glycol">Пропиленгликоль</option>
+                </select>
+            </div>
+                
+            <div class="temperature_environment">
+                <span>T среды, <sup>o</sup>C:</span>
+                <input class="Select_a_value_3" type="number" min="1" max="250" step="1">
+            </div>
+            
+            <div class="temperature_environment_and_preassure_max">
+                <span>Tmax среды, <sup>o</sup>C:</span>
+                <input class="Select_a_value_4" type="number" min="1" max="250" step="1">
+                <span>Pmax среды, бар:</span>
+                <input class="Select_a_value_5" type="number" min="1" max="250" step="1">
+            </div>
+            <div class="button">
+                <button>Подобрать</button>
+            </div>
+        </div>
+        <div class="chart"></div>
+    </div>
+</body>
+</html>

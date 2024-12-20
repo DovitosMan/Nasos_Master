@@ -1,0 +1,38 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background-color: rgb(190, 192, 198);
+}
+.Container{
+    display: flex;
+    margin: 0 auto;
+    justify-content: center;
+}
+.wrapper{
+    margin-block-start: 50vh;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+    gap: 10px;
+}
+.Pump_mode,.Appointment_1,.Region_1,.Select_a_value,.Select_a_value_2,.Select_a_value_3,.Environment_1{
+    width: 155px;
+}
+.Select_a_value_4,.Select_a_value_5{
+    width: 45px;
+}
+.button{
+    margin: 0 auto;
+}
+.chart{
+    border-bottom: 2px solid black;
+    border-left: 2px solid black;
+    margin-block-start: 50vh;
+    transform: translateY(-50%);
+    margin-left: 100px;
+    height: 250px;
+    width:250px;
+    position: relative;
+}
