@@ -10,6 +10,3 @@ def home(request):
     return render(request, 'home.html', context)
 
 
-def pump_selection(request):
-    return HttpResponse('This is pump_selection page')
-

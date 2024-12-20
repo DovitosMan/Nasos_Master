@@ -1,6 +1,6 @@
 from django.shortcuts import render
 import math
-from Pump_selection.models import Pumps, PumpFamily
+from .models import Pumps, PumpFamily
 import matplotlib.pyplot as plt
 import io
 import urllib, base64
@@ -74,6 +74,7 @@ def pump_selection(request):
         'calc_h2_all': None,
         'calc_a_all': None,
         'not_filter_pumps': None,
+        'graph_url': None,
     }
 
     graph_url = ''
@@ -134,30 +135,29 @@ def pump_selection(request):
         x.insert(-1, float(context['calc_q2']))
         print(x)
 
-        y = []
+        y1 = []
         for num_1 in range(len(x)):
-            y.append(float(context['calc_a'] * math.pow(x[num_1], 2)))
-        print(y)
+            y1.append(float(a_0_list[0] * math.pow(x[num_1], 2) + b_0_list[0] * x[num_1] + c_0_list[0]))
+        print(y1)
+
+        y2 = []
+        for num_2 in range(len(x)):
+            y2.append(float(context['calc_a'] * math.pow(x[num_2], 2)))
+        print(y2)
 
         plt.figure()
-        plt.plot(x, y)
+        plt.plot(x, y1)
+        plt.plot(x, y2)
         plt.title('Для 1-го насоса')
         plt.xlabel('Q, м3/ч')
         plt.ylabel('H, м')
 
         buffer = io.BytesIO()
         plt.savefig(buffer, format='png')
+        plt.close()
         buffer.seek(0)
         graph_url = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        plt.close()
+        context['graph_url'] = graph_url
 
-    return render(request, 'Pump_selection/pump_selection.html', context, {'graph_url': graph_url})
+    return render(request, 'pump_selection.html', context)
 
-
-def module_main(request):
-    buttons = ['К подбору']
-    context = {
-        'button2': buttons[0],
-
-    }
-    return render(request, 'Pump_selection/module_main.html', context)

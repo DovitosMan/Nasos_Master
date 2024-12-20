@@ -13,6 +13,9 @@
         <div class="Outlet calc"> Расчет отвода</div>
         <div class="Plotting">Построение характеристик</div>
         <div class="Selection pump">Подбор насоса</div>
+        <form action="{% url 'pump_selection' %}">
+            <input type="submit" value="{{ button2 }}">
+        </form>
         <div class="Energy calc">Расчет энергозатрат</div>
         <div class="Hour calc"> Расчет трудозатрат</div>
         <div class="User">Личный кабинет</div>
