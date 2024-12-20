@@ -13,6 +13,7 @@ def wheel_calc(request):
         'button1': 'Получить размеры',
         'button2': 'Вернуться домой',
         'pump_speed_coef': None,
+        'outer_diam_of_work_wheel': None,
         'inputs': [
             {
                 'placeholder': 'Расход, м3/ч',
@@ -44,10 +45,14 @@ def wheel_calc(request):
         def two_side(a, b, c):
             return (3.65 * c * math.sqrt(a / 2)) / (b ** (3 / 4))
 
-        def pump_speed_coef(a, b, c):
-            return round((3.65 * c * math.sqrt(a)) / (b ** (3 / 4)))
+        def pump_speed_coef(flow_rate, pressure, speed):
+            return round((3.65 * speed * math.sqrt(flow_rate/60/60)) / (pressure ** (3 / 4)))
+
+        def outer_diam_of_work_wheel(flow_rate, speed):
+            Kww = 9.35 * math.sqrt(100 / context['pump_speed_coef'])
+            return round(( Kww * (flow_rate /60/60/ speed) ** (1 / 3)),4)
 
         # Результат вычисления
         context['pump_speed_coef'] = pump_speed_coef(flow_rate, pressure, speed)
+        context['outer_diam_of_work_wheel'] = outer_diam_of_work_wheel(flow_rate, speed)
     return render(request, 'calculations.html', context)
-

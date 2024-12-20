@@ -18,6 +18,7 @@
         </form>
     {% if pump_speed_coef is not None %}
     <p>Коэффициент быстроходности насоса: {{ pump_speed_coef }}</p>
+    <p>Наружный диаметр рабочего колеса: {{ outer_diam_of_work_wheel }} мм</p>
     {% endif %}
     <div class="Exit">
         <form action="{% url 'home' %}">
