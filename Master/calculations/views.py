@@ -53,6 +53,7 @@ def wheel_calc(request):
         pressure = float(request.POST.get("pressure", 0))
         speed = float(request.POST.get("speed", 0))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         calculated_values = calculations(flow_rate, pressure, speed)  # Получаем расчёты
         update_context(context, calculated_values)  # Обновляем context
@@ -61,10 +62,15 @@ def wheel_calc(request):
         # Результат вычисления
         context['calculations'] = calculations(flow_rate, pressure, speed)
 >>>>>>> Stashed changes
+=======
+        # Результат вычисления
+        context['calculations'] = calculations(flow_rate, pressure, speed)
+>>>>>>> Stashed changes
     return render(request, 'calculations.html', context)
 
 
 def calculations(flow_rate, pressure, speed):
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     # Коэффициент быстроходности насоса
     pump_speed_coef = round((3.65 * speed * math.sqrt(flow_rate / 60 / 60)) / (pressure ** (3 / 4)))
@@ -85,6 +91,8 @@ def update_context(context, values):
     for calculation, value in zip(context['calculations'], values):
         calculation['value'] = value
 =======
+=======
+>>>>>>> Stashed changes
     pump_speed_coef = round((3.65 * speed * math.sqrt(flow_rate / 60 / 60)) / (pressure ** (3 / 4)))
 
     Kod = 9.35 * math.sqrt(100 / pump_speed_coef)
@@ -97,4 +105,7 @@ def update_context(context, values):
     width_in_enter_of_work_wheel = round(Kw*(flow_rate/speed)**(1/3))
 
     return (pump_speed_coef, outer_diam_of_work_wheel, width_in_enter_of_work_wheel)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
