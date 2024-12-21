@@ -188,7 +188,20 @@ def pump_selection_index(request):
             'value': 'GVS',
         },
     ]
-    selects4 = ['Вода', 'Этиленгликоль', 'Пропиленгликоль']
+    selects4 = [
+        {
+            'name': 'Вода',
+            'value': 'Water',
+        },
+        {
+            'name': 'Этиленгликоль',
+            'value': 'Ethylene_Glycol',
+        },
+        {
+            'name': 'Пропиленгликоль',
+            'value': 'Propylene_Glycol',
+        },
+    ]
     selects5 = ['Насосы консольные "К"', 'Насосы консольные моноблочные "КМ"', 'Насосы линейные циркуляционные',
                 'Насосы двухстороннего входа', 'Насосы секционные', 'Насосы "КГВ" специальные',
                 'Насосы "НКУ" специальные']
@@ -233,32 +246,62 @@ def pump_selection_index(request):
 
 
     ]
-    inputs1 = [
+    inputs11 = [
         {
-            'placeholder': 'Расход, м3/ч',
-            'type': 'float',
+            'placeholder': 'Расход,',
             'name': 'flow_rate',
-            'value': '',
-        },
-        {
-            'placeholder': 'Напор, м',
-            'type': 'float',
-            'name': 'pressure',
-            'value': '',
-        },
-        {
-            'placeholder': 'Температура, C',
-            'type': 'float',
-            'name': 'temperature',
-            'value': '',
-        },
-        {
-            'placeholder': 'Давление, бар',
-            'type': 'float',
-            'name': 'max_pressure',
-            'value': ''
         },
     ]
+    inputs12 = [
+        {
+            'placeholder': 'Напор,',
+            'name': 'pressure',
+        },
+    ]
+    inputs13 = [
+        {
+            'placeholder': 'Т среды,',
+            'name': 'temperature',
+        },
+    ]
+    inputs14 = [
+        {
+            'placeholder': 'Тmax среды, C',
+            'name': 'max_temperature',
+            'class': 'Select_a_value_4'
+        },
+        {
+            'placeholder': 'Pmax среды, бар',
+            'name': 'max_pressure',
+            'class': 'Select_a_value_5'
+        },
+    ]
+    # inputs1 = [
+    #     {
+    #         'placeholder': 'Расход,',
+    #         'type': 'float',
+    #         'name': 'flow_rate',
+    #         'value': '',
+    #     },
+    #     {
+    #         'placeholder': 'Напор, м',
+    #         'type': 'float',
+    #         'name': 'pressure',
+    #         'value': '',
+    #     },
+    #     {
+    #         'placeholder': 'Температура, C',
+    #         'type': 'float',
+    #         'name': 'temperature',
+    #         'value': '',
+    #     },
+    #     {
+    #         'placeholder': 'Давление, бар',
+    #         'type': 'float',
+    #         'name': 'max_pressure',
+    #         'value': ''
+    #     },
+    # ]
     buttons = ['Вернуться домой', 'Подобрать насос']
     context = {
         'select1': selects1,
@@ -266,7 +309,11 @@ def pump_selection_index(request):
         'select5': selects5,
         'select3': selects3,
         'select4': selects4,
-        'input1': inputs1,
+        'input11': inputs11,
+        'input12': inputs12,
+        'input13': inputs13,
+        'input14': inputs14,
+        # 'input1': inputs1,
         'button1': buttons[0],
         'button2': buttons[1],
         'user_pressure': None,

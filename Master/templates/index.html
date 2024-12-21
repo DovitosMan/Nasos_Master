@@ -36,42 +36,87 @@
                     {% endfor %}
                 </select>
             </div>
-            
+            <form action="{% url 'pump_selection_index' %}" method="post">
+                {% csrf_token %}
             <div class="consumption">
-                <span>Расход, м<sup>3</sup>/ч:</span>
-                <input class="Select_a_value" type="number" min="1" max="250" step="1">
+                {% for input in input11 %}
+                <span>{{ input.placeholder }} м<sup>3</sup>/ч:</span>
+                <input class="Select_a_value" type="number" name="{{ input.name }}">
+                {% endfor %}
             </div>
     
             <div class="Pressure">
-                <span>Напор, м.вод.ст.:</span>
-                <input class="Select_a_value_2" type="number" min="1" max="250" step="1">
+                {% for input in input12 %}
+                <span>{{ input.placeholder }} м.вод.ст.:</span>
+                <input class="Select_a_value_2" type="number" name="{{ input.name }}">
+                {% endfor %}
             </div>
             
             <div class="Environment">
                 <span>Среда:</span>
                 <select class="Environment_1" id="">
-                    <option value="Water">Вода</option>
-                    <option value="Ethylene_Glycol">Этиленгликоль</option>
-                    <option value="Propylene_Glycol">Пропиленгликоль</option>
+                    {% for select in select4 %}
+                    <option value="{{ select.value }}">{{ select.name }}</option>
+                    {% endfor %}
                 </select>
             </div>
                 
             <div class="temperature_environment">
-                <span>T среды, <sup>o</sup>C:</span>
-                <input class="Select_a_value_3" type="number" min="1" max="250" step="1">
+                {% for input in input13 %}
+                <span>{{ input.placeholder }} <sup>o</sup>C:</span>
+                <input class="Select_a_value_3" type="number" name="{{ input.name }}">
+                {% endfor %}
             </div>
             
             <div class="temperature_environment_and_preassure_max">
-                <span>Tmax среды, <sup>o</sup>C:</span>
-                <input class="Select_a_value_4" type="number" min="1" max="250" step="1">
-                <span>Pmax среды, бар:</span>
-                <input class="Select_a_value_5" type="number" min="1" max="250" step="1">
+                {% for input in input14 %}
+                <span>{{ input.placeholder }}</span>
+                <input class="{{ input.class }}" type="number"name="{{ input.name }}">
+                {% endfor %}
             </div>
             <div class="button">
-                <button>Подобрать</button>
+                <input type="submit" value="{{ button2 }}">
             </div>
+            </form>
+            <div>
+            <h2>Из базы данных</h2>
+            <table border="1">
+                <tr>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Family</th>
+                    <th>Feed</th>
+                    <th>Pressure</th>
+                    <th>Cavitation</th>
+                    <th>Rotation_speed</th>
+                    <th>Power</th>
+                    <th>Mass</th>
+                    <th>Mass_all</th>
+                </tr>
+                {% for item in not_filter_pumps %}
+                    <tr>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.price }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.family }}</td>
+                        <td>{{ item.feed }}</td>
+                        <td>{{ item.pressure }}</td>
+                        <td>{{ item.cavitation }}</td>
+                        <td>{{ item.rotation_speed }}</td>
+                        <td>{{ item.power }}</td>
+                        <td>{{ item.mass }}</td>
+                        <td>{{ item.mass_all }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
         </div>
-        <div class="chart"></div>
+        </div>
+        <div class="chart">
+            {% if graph_url %}
+            <img src="data:image/png;base64,{{ graph_url }}" alt="Graph">
+        {% endif %}
+        </div>
     </div>
 </body>
 </html>
