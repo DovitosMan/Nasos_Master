@@ -15,35 +15,30 @@
             <div class="Pump-mode">
                 <span>Режим расчёта:</span>
                 <select class="Pump_mode" id="">
-                    <option value="The_purpose_of_the_system">Назначение системы</option>
-                    <option value="Pump_family">Семейство насосов</option>
+                    <option value="The_purpose_of_the_system">{{ select1 }}</option>
                 </select>
             </div>
     
             <div class="Appointment">
                 <span>Назначение:</span>
                 <select class="Appointment_1" id="">
-                    <option value="HVS">ХВС</option>
-                    <option value="SV">СВ</option>
-                    <option value="SO">СО</option>
-                    <option value="Recharge">Подпитка</option>
-                    <option value="GVS">ГВС</option>
+                    {% for select in select2 %}
+                    <option value="{{ select.value }}">{{ select.name }}</option>
+                    {% endfor %}
                 </select>
             </div>
             
             <div class="Region">
                 <span>Регион:</span>
                 <select class="Region_1" id="">
-                    <option value="Any">Любой</option>
-                    <option value="Anapa">Анапа</option>
-                    <option value="Barnayl">Барнаул</option>
-                    <option value="Belgorod">Белгород</option>
-                    <option value="Bryansk">Брянск</option>
+                    {% for select in select3 %}
+                    <option value="{{ select.value }}">{{ select.name }}</option>
+                    {% endfor %}
                 </select>
             </div>
             
             <div class="consumption">
-                <span>Расход, м <sup>3</sup>/ч:</span>
+                <span>Расход, м<sup>3</sup>/ч:</span>
                 <input class="Select_a_value" type="number" min="1" max="250" step="1">
             </div>
     
