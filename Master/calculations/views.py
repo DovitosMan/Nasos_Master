@@ -12,9 +12,20 @@ def wheel_calc(request):
         'title': 'Расчет рабочего колеса',
         'button1': 'Получить размеры',
         'button2': 'Вернуться домой',
-        'pump_speed_coef': None,
-        'outer_diam_of_work_wheel': None,
-        'width_in_enter_of_work_wheel': None,
+        'calculations': [
+            {
+                'name': 'Коэффициент быстроходности насоса: ',
+                'value': None,
+            },
+            {
+                'name': 'Наружный диаметр рабочего колеса: ',
+                'value': None,
+            },
+            {
+                'name': 'Ширина лопастного канала рабочего колеса на входе: ',
+                'value': None,
+            },
+        ],
         'inputs': [
             {
                 'placeholder': 'Расход, м3/ч',
@@ -35,7 +46,6 @@ def wheel_calc(request):
                 'value': '',
             },
         ],
-
     }
     if request.method == "POST":
         # Получаем данные из формы
@@ -43,23 +53,28 @@ def wheel_calc(request):
         pressure = float(request.POST.get("pressure", 0))
         speed = float(request.POST.get("speed", 0))
 
-        def two_side(a, b, c):
-            return (3.65 * c * math.sqrt(a / 2)) / (b ** (3 / 4))
+        calculated_values = calculations(flow_rate, pressure, speed)  # Получаем расчёты
+        update_context(context, calculated_values)  # Обновляем context
 
-        def pump_speed_coef(flow_rate, pressure, speed):
-            return round((3.65 * speed * math.sqrt(flow_rate/60/60)) / (pressure ** (3 / 4)))
-
-        def outer_diam_of_work_wheel(flow_rate, speed):
-            Kww = 9.35 * math.sqrt(100 / context['pump_speed_coef'])
-            return round(( Kww * (flow_rate /60/60/ speed) ** (1 / 3)), 4)
-
-        def width_in_enter_of_work_wheel():
-            if flow_rate <= 200:
-                K=0,8*math.sqrt(flow_rate/100)
-            else:
-                K=0.635*(flow_rate/100)**(5/6)
-            return rou
-        # Результат вычисления
-        context['pump_speed_coef'] = pump_speed_coef(flow_rate, pressure, speed)
-        context['outer_diam_of_work_wheel'] = outer_diam_of_work_wheel(flow_rate, speed)
     return render(request, 'calculations.html', context)
+
+
+def calculations(flow_rate, pressure, speed):
+    # Коэффициент быстроходности насоса
+    pump_speed_coef = round((3.65 * speed * math.sqrt(flow_rate / 60 / 60)) / (pressure ** (3 / 4)))
+    # Наружный диаметр рабочего колеса
+    kod = 9.35 * math.sqrt(100 / pump_speed_coef)
+    outer_diam_of_work_wheel = round((kod * (flow_rate / 3600 / speed) ** (1 / 3)), 4)
+    # Ширина лопастного канала рабочего колеса на входе
+    if pump_speed_coef <= 200:
+        kw = 0.8 * math.sqrt(pump_speed_coef / 100)
+    else:
+        kw = 0.635 * (pump_speed_coef / 100) ** (5 / 6)
+    width_in_enter_of_work_wheel = round(kw * (flow_rate / 3600 / speed) ** (1 / 3),4)
+    # width_in_enter_of_work_wheel = round(kw,4)
+    return pump_speed_coef, outer_diam_of_work_wheel, width_in_enter_of_work_wheel
+
+
+def update_context(context, values):
+    for calculation, value in zip(context['calculations'], values):
+        calculation['value'] = value
