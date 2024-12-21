@@ -2,7 +2,14 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    background-color: rgb(190, 192, 198);
+    background-color: rgb(51, 156, 204);
+    font-family: "Montserrat", serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 16px;
+}
+body{
 }
 .Container{
     display: flex;
@@ -18,7 +25,7 @@
     gap: 10px;
 }
 .Pump_mode,.Appointment_1,.Region_1,.Select_a_value,.Select_a_value_2,.Select_a_value_3,.Environment_1{
-    width: 155px;
+    width: 210px;
 }
 .Select_a_value_4,.Select_a_value_5{
     width: 45px;
