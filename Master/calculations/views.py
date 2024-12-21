@@ -25,6 +25,14 @@ def wheel_calc(request):
                 'name': 'Ширина лопастного канала рабочего колеса на входе: ',
                 'value': None,
             },
+            {
+                'name': 'Приведенный диаметр входа в рабочее колесо 1: ',
+                'value': None,
+            },
+            {
+                'name': 'Приведенный диаметр входа в рабочее колесо 2: ',
+                'value': None,
+            },
         ],
         'inputs': [
             {
@@ -71,8 +79,15 @@ def calculations(flow_rate, pressure, speed):
     else:
         kw = 0.635 * (pump_speed_coef / 100) ** (5 / 6)
     width_in_enter_of_work_wheel = round(kw * (flow_rate / 3600 / speed) ** (1 / 3),4)
-    # width_in_enter_of_work_wheel = round(kw,4)
-    return pump_speed_coef, outer_diam_of_work_wheel, width_in_enter_of_work_wheel
+    # Приведенный диаметр входа в рабочее колесо
+    kin = 4.5
+    inner_diam_of_work_wheel_1 = round(kin*(flow_rate/60/speed)**(2/3),4)
+    z = 7
+    alpha = 0.1
+    v0 = alpha*(flow_rate/3600*speed**2)**(1/3)
+    inner_diam_of_work_wheel_2 = round((4*flow_rate/3600/(math.pi*v0))**(1/2),4)
+    #
+    return pump_speed_coef, outer_diam_of_work_wheel, width_in_enter_of_work_wheel,inner_diam_of_work_wheel_1, inner_diam_of_work_wheel_2
 
 
 def update_context(context, values):
