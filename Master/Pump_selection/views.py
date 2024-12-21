@@ -165,46 +165,143 @@ def pump_selection(request):
 
 
 def pump_selection_index(request):
-    selects1 = ['Назначение системы', 'Семейство насосов']
-    selects2 = ['ХВС', 'СВ', 'СО', 'Подпитка', 'ГВС']
-    selects3 = ['Любой', 'Астрахань', 'Барнаул', 'Белгород', 'Бийск',
-                'Владивосток', 'Волгоград', 'Вологда', 'Воронеж',
-                'Екатеринбург', 'Ижевск', 'Казань', 'Калуга', 'Кемерово',
-                'Киров', 'Краснодар', 'Красноярск', 'Курган', 'Курск',
-                'Москва', 'Набережные Челны', 'Нижний Новгород', 'Новосибирск',
-                'Омск', 'Оренбург', 'Ростов-на-Дону', 'Самара', 'Санкт-Петербург',
-                'Саратов', 'Тамбов', 'Тверь', 'Томск', 'Уфа', 'Хабаровск', 'Челябинск',
-                'Чебоксары', 'Ярославль']
-    selects4 = ['Вода', 'Этиленгликоль', 'Пропиленгликоль']
+    selects1 = 'Назначение системы'
+    selects2 = [
+        {
+            'name': 'ХВС',
+            'value': 'HVS',
+        },
+        {
+            'name': 'СВ',
+            'value': 'SV',
+        },
+        {
+            'name': 'СО',
+            'value': 'SO',
+        },
+        {
+            'name': 'Подпитка',
+            'value': 'Recharge',
+        },
+        {
+            'name': 'ГВС',
+            'value': 'GVS',
+        },
+    ]
+    selects4 = [
+        {
+            'name': 'Вода',
+            'value': 'Water',
+        },
+        {
+            'name': 'Этиленгликоль',
+            'value': 'Ethylene_Glycol',
+        },
+        {
+            'name': 'Пропиленгликоль',
+            'value': 'Propylene_Glycol',
+        },
+    ]
     selects5 = ['Насосы консольные "К"', 'Насосы консольные моноблочные "КМ"', 'Насосы линейные циркуляционные',
                 'Насосы двухстороннего входа', 'Насосы секционные', 'Насосы "КГВ" специальные',
                 'Насосы "НКУ" специальные']
-    inputs1 = [
+    selects3 = [
+        {'name': 'Любой', 'value': 'Any'},
+        {'name': 'Астрахань', 'value': 'Astrakhan'},
+        {'name': 'Барнаул', 'value': 'Barnaul'},
+        {'name': 'Белгород', 'value': 'Belgorod'},
+        {'name': 'Бийск', 'value': 'Biysk'},
+        {'name': 'Владивосток', 'value': 'Vladivostok'},
+        {'name': 'Волгоград', 'value': 'Volgograd'},
+        {'name': 'Вологда', 'value': 'Vologda'},
+        {'name': 'Воронеж', 'value': 'Voronezh'},
+        {'name': 'Екатеринбург', 'value': 'Yekaterinburg'},
+        {'name': 'Ижевск', 'value': 'Izhevsk'},
+        {'name': 'Казань', 'value': 'Kazan'},
+        {'name': 'Калуга', 'value': 'Kaluga'},
+        {'name': 'Кемерово', 'value': 'Kemerovo'},
+        {'name': 'Киров', 'value': 'Kirov'},
+        {'name': 'Краснодар', 'value': 'Krasnodar'},
+        {'name': 'Красноярск', 'value': 'Krasnoyarsk'},
+        {'name': 'Курган', 'value': 'Kurgan'},
+        {'name': 'Курск', 'value': 'Kursk'},
+        {'name': 'Москва', 'value': 'Moscow'},
+        {'name': 'Набережные Челны', 'value': 'Naberezhnye Chelny'},
+        {'name': 'Нижний Новгород', 'value': 'Nizhny Novgorod'},
+        {'name': 'Новосибирск', 'value': 'Novosibirsk'},
+        {'name': 'Омск', 'value': 'Omsk'},
+        {'name': 'Оренбург', 'value': 'Orenburg'},
+        {'name': 'Ростов-на-Дону', 'value': 'Rostov-on-Don'},
+        {'name': 'Самара', 'value': 'Samara'},
+        {'name': 'Санкт-Петербург', 'value': 'Saint Petersburg'},
+        {'name': 'Саратов', 'value': 'Saratov'},
+        {'name': 'Тамбов', 'value': 'Tambov'},
+        {'name': 'Тверь', 'value': 'Tver'},
+        {'name': 'Томск', 'value': 'Tomsk'},
+        {'name': 'Уфа', 'value': 'Ufa'},
+        {'name': 'Хабаровск', 'value': 'Khabarovsk'},
+        {'name': 'Челябинск', 'value': 'Chelyabinsk'},
+        {'name': 'Чебоксары', 'value': 'Cheboksary'},
+        {'name': 'Ярославль', 'value': 'Yaroslavl'},
+
+
+    ]
+    inputs11 = [
         {
-            'placeholder': 'Расход, м3/ч',
-            'type': 'float',
+            'placeholder': 'Расход,',
             'name': 'flow_rate',
-            'value': '',
-        },
-        {
-            'placeholder': 'Напор, м',
-            'type': 'float',
-            'name': 'pressure',
-            'value': '',
-        },
-        {
-            'placeholder': 'Температура, C',
-            'type': 'float',
-            'name': 'temperature',
-            'value': '',
-        },
-        {
-            'placeholder': 'Давление, бар',
-            'type': 'float',
-            'name': 'max_pressure',
-            'value': ''
         },
     ]
+    inputs12 = [
+        {
+            'placeholder': 'Напор,',
+            'name': 'pressure',
+        },
+    ]
+    inputs13 = [
+        {
+            'placeholder': 'Т среды,',
+            'name': 'temperature',
+        },
+    ]
+    inputs14 = [
+        {
+            'placeholder': 'Тmax среды, C',
+            'name': 'max_temperature',
+            'class': 'Select_a_value_4'
+        },
+        {
+            'placeholder': 'Pmax среды, бар',
+            'name': 'max_pressure',
+            'class': 'Select_a_value_5'
+        },
+    ]
+    # inputs1 = [
+    #     {
+    #         'placeholder': 'Расход,',
+    #         'type': 'float',
+    #         'name': 'flow_rate',
+    #         'value': '',
+    #     },
+    #     {
+    #         'placeholder': 'Напор, м',
+    #         'type': 'float',
+    #         'name': 'pressure',
+    #         'value': '',
+    #     },
+    #     {
+    #         'placeholder': 'Температура, C',
+    #         'type': 'float',
+    #         'name': 'temperature',
+    #         'value': '',
+    #     },
+    #     {
+    #         'placeholder': 'Давление, бар',
+    #         'type': 'float',
+    #         'name': 'max_pressure',
+    #         'value': ''
+    #     },
+    # ]
     buttons = ['Вернуться домой', 'Подобрать насос']
     context = {
         'select1': selects1,
@@ -212,7 +309,11 @@ def pump_selection_index(request):
         'select5': selects5,
         'select3': selects3,
         'select4': selects4,
-        'input1': inputs1,
+        'input11': inputs11,
+        'input12': inputs12,
+        'input13': inputs13,
+        'input14': inputs14,
+        # 'input1': inputs1,
         'button1': buttons[0],
         'button2': buttons[1],
         'user_pressure': None,
