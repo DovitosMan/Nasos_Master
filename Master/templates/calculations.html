@@ -12,13 +12,17 @@
             {% csrf_token %}
             {% for input in inputs %}
             <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
-            <br>
+                <br>
             {% endfor %}
             <input type="submit" value="{{ button1 }}">
         </form>
     {% for calculation in calculations %}
         {% if calculation.value is not None %}
+<<<<<<< Updated upstream
             <div>{{ calculation.name }}{{ calculation.value }}</div><br>
+=======
+        <div>{{ calculation.name }}{{ calculation.value }}</div><br>
+>>>>>>> Stashed changes
         {% endif %}
     {% endfor %}
     <div class="Exit">
