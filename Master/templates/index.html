@@ -15,16 +15,10 @@
 <body>
     <div class="Container">
         <div class="header">
-
+            Pump Master
         </div>
 
         <div class="chart_and_wrapper">
-
-            <div class="chart">
-            {% if graph_url %}
-            <img src="data:image/png;base64,{{ graph_url }}" alt="Graph" width="500">
-        {% endif %}
-        </div>
 
         <div class="wrapper">
 
@@ -99,6 +93,13 @@
             </button>
             </form>
         </div>
+
+        <div class="chart">
+            {% if graph_url %}
+            <img src="data:image/png;base64,{{ graph_url }}" alt="Graph" width="500">
+        {% endif %}
+        </div>
+
         </div>
 
                     <div class="table">

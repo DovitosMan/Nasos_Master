@@ -19,13 +19,15 @@
     background-color: #3500ff;
     display: flex;
     width: 100%;
+    justify-content: space-around;
+    align-items: center;
 }
 .chart_and_wrapper{
     display: flex;
     padding: 30px;
+    gap: 0px 50px;
 }
 .wrapper{
-
     display: flex;
     flex-direction: column;
     text-align: right;
@@ -42,6 +44,7 @@
     height: 30px;
     border-radius: 5px;
     background-color: #3500ff;
+    color:  #fff;
 }
 .chart{
 
@@ -54,7 +57,9 @@
 }
 .table{
     text-align: center;
+    padding-bottom: 30px;
 }
+
 .footer{
     height: 80px;
     background-color: #3500ff;
