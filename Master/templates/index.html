@@ -14,9 +14,18 @@
 </head>
 <body>
     <div class="Container">
-        <div class="chart+wrapper">
+        <div class="header">
 
         </div>
+
+        <div class="chart_and_wrapper">
+
+            <div class="chart">
+            {% if graph_url %}
+            <img src="data:image/png;base64,{{ graph_url }}" alt="Graph" width="500">
+        {% endif %}
+        </div>
+
         <div class="wrapper">
 
             <div class="Pump-mode">
@@ -25,7 +34,7 @@
                     <option value="The_purpose_of_the_system">{{ select1 }}</option>
                 </select>
             </div>
-    
+
             <div class="Appointment">
                 <span>Назначение:</span>
                 <select class="Appointment_1" id="">
@@ -34,7 +43,7 @@
                     {% endfor %}
                 </select>
             </div>
-            
+
             <div class="Region">
                 <span>Регион:</span>
                 <select class="Region_1" id="">
@@ -44,7 +53,7 @@
                 </select>
             </div>
 
-            <form action="{% url 'pump_selection_index' %}" method="post">
+            <form action="{% url 'pump_selection_index' %}" method="post" class="form">
                 {% csrf_token %}
 
             <div class="consumption">
@@ -53,14 +62,14 @@
                 <input class="Select_a_value" type="number" name="{{ input.name }}">
                 {% endfor %}
             </div>
-    
+
             <div class="Pressure">
                 {% for input in input12 %}
                 <span>{{ input.placeholder }} м.вод.ст.:</span>
                 <input class="Select_a_value_2" type="number" name="{{ input.name }}">
                 {% endfor %}
             </div>
-            
+
             <div class="Environment">
                 <span>Среда:</span>
                 <select class="Environment_1" id="">
@@ -69,14 +78,14 @@
                     {% endfor %}
                 </select>
             </div>
-                
+
             <div class="temperature_environment">
                 {% for input in input13 %}
                 <span>{{ input.placeholder }} <sup>o</sup>C:</span>
                 <input class="Select_a_value_3" type="number" name="{{ input.name }}">
                 {% endfor %}
             </div>
-            
+
             <div class="temperature_environment_and_preassure_max">
                 {% for input in input14 %}
                 <span>{{ input.placeholder }}</span>
@@ -84,10 +93,12 @@
                 {% endfor %}
             </div>
 
-            <div class="button">
-                <input type="submit" value="{{ button2 }}">
-            </div>
+            <button class="button">
+                Подобрать насос
+<!--                <input type="submit" value="{{ button2 }}">-->
+            </button>
             </form>
+        </div>
         </div>
 
                     <div class="table">
@@ -124,11 +135,10 @@
             </table>
         </div>
 
-        <div class="chart">
-            {% if graph_url %}
-            <img src="data:image/png;base64,{{ graph_url }}" alt="Graph">
-        {% endif %}
+        <div class="footer">
+
         </div>
+
     </div>
 </body>
 </html>
