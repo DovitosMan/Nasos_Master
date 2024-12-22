@@ -7,7 +7,7 @@
 <body>
     <div class="Exit">
         <form action="{% url 'home' %}">
-            <input type="submit" value="{{ button2 }}">
+            <input type="submit" value="{{ button.0}}">
         </form>
     </div>
 <div class="Window">
@@ -15,10 +15,12 @@
         <form action="{% url 'wheel_calc' %}" method="post">
             {% csrf_token %}
             {% for input in inputs %}
-            <input type="number" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
-            <br>
+                <label>
+                    <input type="number" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value|floatformat:1 }}">
+                </label>
+                <br>
             {% endfor %}
-            <input type="submit" value="{{ button1 }}">
+            <input type="submit" value="{{ button.1 }}">
         </form>
     {% for calculation in calculations %}
         {% if calculation.value is not None %}
