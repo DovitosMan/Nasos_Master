@@ -7,6 +7,7 @@ import urllib, base64
 
 
 def pump_selection(request):
+    index_button = 'Подбор насоса index'
     selects1 = ['Назначение системы', 'Семейство насосов']
     selects2 = ['ХВС', 'СВ', 'СО', 'Подпитка', 'ГВС']
     selects3 = ['Любой', 'Астрахань', 'Барнаул', 'Белгород', 'Бийск',
@@ -47,7 +48,7 @@ def pump_selection(request):
             'value': ''
         },
     ]
-    buttons = ['Вернуться домой', 'Подобрать насос']
+    buttons = ['Вернуться домой', 'Подобрать насос','Подбор насоса index']
     context = {
         'select1': selects1,
         'select2': selects2,
@@ -57,6 +58,7 @@ def pump_selection(request):
         'input1': inputs1,
         'button1': buttons[0],
         'button2': buttons[1],
+        'button3': buttons[2],
         'user_pressure': None,
         'user_flow_rate': None,
         'user_max_pressure': None,
@@ -165,6 +167,7 @@ def pump_selection(request):
 
 
 def pump_selection_index(request):
+
     selects1 = 'Назначение системы'
     selects2 = [
         {
