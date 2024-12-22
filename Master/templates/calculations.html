@@ -18,7 +18,7 @@
         </form>
     {% for calculation in calculations %}
         {% if calculation.value is not None %}
-            <div>{{ calculation.name }}{{ calculation.value }}</div><br>
+            <div>{{ calculation.name }}{{ calculation.value }}{{ calculation.unit }}</div><br>
         {% endif %}
     {% endfor %}
     <div class="Exit">
