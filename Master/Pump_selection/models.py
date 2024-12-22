@@ -2,14 +2,16 @@ from django.db import models
 
 
 class PumpFamily(models.Model):
+    objects = None
     name = models.CharField(max_length=128, unique=True)
     description = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f'Семейство: {self.name}'
+        return f'{self.name}'
 
 
 class Pumps(models.Model):
+    objects = None
     image = models.ImageField(upload_to='pumps images')
     name = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)

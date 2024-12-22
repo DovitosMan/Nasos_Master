@@ -84,13 +84,13 @@ def pump_selection(request):
         user_max_pressure = request.POST.get("max_pressure")
         user_temperature = request.POST.get("temperature")
 
-        not_filter_pumps = Pumps.objects.all()
-        a_0 = Pumps.objects.values_list('a0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        a_0 = Pumps.objects.values_list('a0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         a_0_list = list(a_0)
-        b_0 = Pumps.objects.values_list('b0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        b_0 = Pumps.objects.values_list('b0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         b_0_list = list(b_0)
-        c_0 = Pumps.objects.values_list('c0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        c_0 = Pumps.objects.values_list('c0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         c_0_list = list(c_0)
+        filter_pumps = Pumps.objects.all().filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
 
         def calc_q2(a_1, b_1, c_1, d_1, e_1):
             return round((-b_1 * math.pow(d_1, 2) - d_1 * math.sqrt(math.pow(d_1, 2) * (math.pow(b_1, 2) - (4 * a_1 * c_1)) + 4 * c_1 * e_1)) / (2 * (a_1 * math.pow(d_1, 2) - e_1)), 2)
@@ -123,7 +123,7 @@ def pump_selection(request):
         context['calc_q2_all'] = calcs_q2_all
         context['calc_h2_all'] = calcs_h2_all
         context['calc_a_all'] = calc_a_all
-        context['not_filter_pumps'] = not_filter_pumps
+        context['filter_pumps'] = filter_pumps
 
         context['calc_q2'] = calc_q2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]), float(user_flow_rate), float(user_pressure))
         context['calc_h2'] = calc_h2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]), context['calc_q2'])
@@ -188,7 +188,20 @@ def pump_selection_index(request):
             'value': 'GVS',
         },
     ]
-    selects4 = ['Вода', 'Этиленгликоль', 'Пропиленгликоль']
+    selects4 = [
+        {
+            'name': 'Вода',
+            'value': 'Water',
+        },
+        {
+            'name': 'Этиленгликоль',
+            'value': 'Ethylene_Glycol',
+        },
+        {
+            'name': 'Пропиленгликоль',
+            'value': 'Propylene_Glycol',
+        },
+    ]
     selects5 = ['Насосы консольные "К"', 'Насосы консольные моноблочные "КМ"', 'Насосы линейные циркуляционные',
                 'Насосы двухстороннего входа', 'Насосы секционные', 'Насосы "КГВ" специальные',
                 'Насосы "НКУ" специальные']
@@ -233,32 +246,62 @@ def pump_selection_index(request):
 
 
     ]
-    inputs1 = [
+    inputs11 = [
         {
-            'placeholder': 'Расход, м3/ч',
-            'type': 'float',
+            'placeholder': 'Расход,',
             'name': 'flow_rate',
-            'value': '',
-        },
-        {
-            'placeholder': 'Напор, м',
-            'type': 'float',
-            'name': 'pressure',
-            'value': '',
-        },
-        {
-            'placeholder': 'Температура, C',
-            'type': 'float',
-            'name': 'temperature',
-            'value': '',
-        },
-        {
-            'placeholder': 'Давление, бар',
-            'type': 'float',
-            'name': 'max_pressure',
-            'value': ''
         },
     ]
+    inputs12 = [
+        {
+            'placeholder': 'Напор,',
+            'name': 'pressure',
+        },
+    ]
+    inputs13 = [
+        {
+            'placeholder': 'Т среды,',
+            'name': 'temperature',
+        },
+    ]
+    inputs14 = [
+        {
+            'placeholder': 'Тmax среды, C',
+            'name': 'max_temperature',
+            'class': 'Select_a_value_4'
+        },
+        {
+            'placeholder': 'Pmax среды, бар',
+            'name': 'max_pressure',
+            'class': 'Select_a_value_5'
+        },
+    ]
+    # inputs1 = [
+    #     {
+    #         'placeholder': 'Расход,',
+    #         'type': 'float',
+    #         'name': 'flow_rate',
+    #         'value': '',
+    #     },
+    #     {
+    #         'placeholder': 'Напор, м',
+    #         'type': 'float',
+    #         'name': 'pressure',
+    #         'value': '',
+    #     },
+    #     {
+    #         'placeholder': 'Температура, C',
+    #         'type': 'float',
+    #         'name': 'temperature',
+    #         'value': '',
+    #     },
+    #     {
+    #         'placeholder': 'Давление, бар',
+    #         'type': 'float',
+    #         'name': 'max_pressure',
+    #         'value': ''
+    #     },
+    # ]
     buttons = ['Вернуться домой', 'Подобрать насос']
     context = {
         'select1': selects1,
@@ -266,7 +309,11 @@ def pump_selection_index(request):
         'select5': selects5,
         'select3': selects3,
         'select4': selects4,
-        'input1': inputs1,
+        'input11': inputs11,
+        'input12': inputs12,
+        'input13': inputs13,
+        'input14': inputs14,
+        # 'input1': inputs1,
         'button1': buttons[0],
         'button2': buttons[1],
         'user_pressure': None,
@@ -296,13 +343,13 @@ def pump_selection_index(request):
         user_max_pressure = request.POST.get("max_pressure")
         user_temperature = request.POST.get("temperature")
 
-        not_filter_pumps = Pumps.objects.all()
-        a_0 = Pumps.objects.values_list('a0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        a_0 = Pumps.objects.values_list('a0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         a_0_list = list(a_0)
-        b_0 = Pumps.objects.values_list('b0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        b_0 = Pumps.objects.values_list('b0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         b_0_list = list(b_0)
-        c_0 = Pumps.objects.values_list('c0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        c_0 = Pumps.objects.values_list('c0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         c_0_list = list(c_0)
+        filter_pumps = Pumps.objects.all().filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
 
         def calc_q2(a_1, b_1, c_1, d_1, e_1):
             return round((-b_1 * math.pow(d_1, 2) - d_1 * math.sqrt(math.pow(d_1, 2) * (math.pow(b_1, 2) - (4 * a_1 * c_1)) + 4 * c_1 * e_1)) / (2 * (a_1 * math.pow(d_1, 2) - e_1)), 2)
@@ -335,7 +382,7 @@ def pump_selection_index(request):
         context['calc_q2_all'] = calcs_q2_all
         context['calc_h2_all'] = calcs_h2_all
         context['calc_a_all'] = calc_a_all
-        context['not_filter_pumps'] = not_filter_pumps
+        context['filter_pumps'] = filter_pumps
 
         context['calc_q2'] = calc_q2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]), float(user_flow_rate), float(user_pressure))
         context['calc_h2'] = calc_h2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]), context['calc_q2'])
@@ -360,7 +407,7 @@ def pump_selection_index(request):
         plt.figure()
         plt.plot(x, y1)
         plt.plot(x, y2)
-        plt.title('Для 1-го насоса')
+        plt.title('Для 1-го насоса с наименьшей мощностью')
         plt.xlabel('Q, м3/ч')
         plt.ylabel('H, м')
 

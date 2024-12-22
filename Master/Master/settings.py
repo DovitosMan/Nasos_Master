@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'calculations',
     'Pump_selection',
+    'Q_H_plot',
 
 ]
 
