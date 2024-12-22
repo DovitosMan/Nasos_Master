@@ -16,38 +16,57 @@ def wheel_calc(request):
             {
                 'name': 'Коэффициент быстроходности насоса: ',
                 'value': None,
+                'unit': '',
             },
             {
                 'name': 'Наружный диаметр рабочего колеса: ',
                 'value': None,
+                'unit': ' мм',
             },
             {
                 'name': 'Ширина лопастного канала рабочего колеса на входе: ',
                 'value': None,
+                'unit': ' мм',
             },
             {
                 'name': 'Приведенный диаметр входа в рабочее колесо 1: ',
                 'value': None,
+                'unit': ' мм',
             },
             {
                 'name': 'Приведенный диаметр входа в рабочее колесо 2: ',
                 'value': None,
+                'unit': ' мм',
             },
             {
                 'name': 'Объемный КПД: ',
                 'value': None,
+                'unit': '',
             },
             {
                 'name': 'Гидравлический КПД: ',
                 'value': None,
+                'unit': '',
             },
             {
                 'name': 'Внутр. мех. КПД: ',
                 'value': None,
+                'unit': '',
             },
             {
                 'name': 'Полный ожидаемый КПД: ',
                 'value': None,
+                'unit': '',
+            },
+            {
+                'name': 'Мощность: ',
+                'value': None,
+                'unit': ' кВт',
+            },
+            {
+                'name': 'Мощность максимальная: ',
+                'value': None,
+                'unit': ' кВт',
             },
         ],
         'inputs': [
@@ -64,6 +83,12 @@ def wheel_calc(request):
                 'value': '',
             },
             {
+                'placeholder': 'Плотность, кг/м3',
+                'type': 'number',
+                'name': 'density',
+                'value': '',
+            },
+            {
                 'placeholder': 'Частота вр., об/мин',
                 'type': 'number',
                 'name': 'speed',
@@ -75,15 +100,16 @@ def wheel_calc(request):
         # Получаем данные из формы
         flow_rate = float(request.POST.get("flow_rate", 0))
         pressure = float(request.POST.get("pressure", 0))
+        density = float(request.POST.get("density", 0))
         speed = float(request.POST.get("speed", 0))
 
-        calculated_values = calculations(flow_rate, pressure, speed)  # Получаем расчёты
+        calculated_values = calculations(flow_rate, pressure, density, speed)  # Получаем расчёты
         update_context(context, calculated_values)  # Обновляем context
 
     return render(request, 'calculations.html', context)
 
 
-def calculations(flow_rate, pressure, speed):
+def calculations(flow_rate, pressure, density, speed):
     # Коэффициент быстроходности насоса
     pump_speed_coef = round((3.65 * speed * math.sqrt(flow_rate / 60 / 60)) / (pressure ** (3 / 4)))
     # Наружный диаметр рабочего колеса
@@ -110,7 +136,11 @@ def calculations(flow_rate, pressure, speed):
         nr = round(1 - (0.42 / (math.log10(inner_diam_of_work_wheel_2 * 1000) - 0.172) ** 2), 3)
     nm = round((1 + (28.6 / pump_speed_coef) ** 2) ** (-1), 3)
     n_a = round(n0 * nr * nm, 3)
-    return pump_speed_coef, outer_diam_of_work_wheel, width_in_enter_of_work_wheel, inner_diam_of_work_wheel_1, inner_diam_of_work_wheel_2, n0, nr, nm, n_a
+    # Максимальная мощность насоса
+    power = round(density*9.81*pressure*flow_rate/60/60/n_a/1000)
+    k_n = 1.1
+    power_max = round(power*k_n)
+    return pump_speed_coef, outer_diam_of_work_wheel, width_in_enter_of_work_wheel, inner_diam_of_work_wheel_1, inner_diam_of_work_wheel_2, n0, nr, nm, n_a, power, power_max
 
 
 def update_context(context, values):
