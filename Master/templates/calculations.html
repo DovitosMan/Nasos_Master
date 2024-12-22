@@ -16,7 +16,7 @@
             {% csrf_token %}
             {% for input in inputs %}
                 <label>
-                    <input type="number" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value|floatformat:1 }}">
+                    <input type="number" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
                 </label>
                 <br>
             {% endfor %}

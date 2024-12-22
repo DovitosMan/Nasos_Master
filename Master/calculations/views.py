@@ -18,66 +18,79 @@ def wheel_calc(request):
             {
                 'name': 'Коэффициент быстроходности насоса: ',
                 'value': None,
+                'round': 0,
                 'unit': '',
             },
             {
                 'name': 'Наружный диаметр рабочего колеса: ',
                 'value': None,
+                'round': 4,
                 'unit': ' мм',
             },
             {
                 'name': 'Ширина лопастного канала рабочего колеса на входе: ',
                 'value': None,
+                'round': 4,
                 'unit': ' мм',
             },
             {
                 'name': 'Приведенный диаметр входа в рабочее колесо 1: ',
                 'value': None,
+                'round': 4,
                 'unit': ' мм',
             },
             {
                 'name': 'Приведенный диаметр входа в рабочее колесо 2: ',
                 'value': None,
+                'round': 4,
                 'unit': ' мм',
             },
             {
                 'name': 'Объемный КПД: ',
                 'value': None,
-                'unit': '',
+                'round': 3,
+                'unit': ' %',
             },
             {
                 'name': 'Гидравлический КПД: ',
                 'value': None,
-                'unit': '',
+                'round': 3,
+                'unit': ' %',
             },
             {
                 'name': 'Внутр. мех. КПД: ',
                 'value': None,
-                'unit': '',
+                'round': 3,
+                'unit': ' %',
             },
             {
                 'name': 'Полный ожидаемый КПД: ',
                 'value': None,
-                'unit': '',
+                'round': 3,
+                'unit': ' %',
             },
             {
                 'name': 'Мощность: ',
                 'value': None,
+                'round': 0,
                 'unit': ' кВт',
             },
             {
                 'name': 'Мощность максимальная: ',
                 'value': None,
+                'round': 0,
                 'unit': ' кВт',
             },
             {
                 'name': 'Диаметр вала: ',
                 'value': None,
+                'round': 0,
                 'unit': ' мм',
             },
             {
                 'name': 'Диаметр входа в рабочее колесо: ',
                 'value': None,
+                'round': 0,
                 'unit': ' мм',
             },
         ],
@@ -117,6 +130,7 @@ def wheel_calc(request):
 
         calculated_values = calculations(flow_rate, pressure, density, speed)  # Получаем расчёты
         update_context(context, calculated_values)  # Обновляем context
+        format_context_list(context) # форматирование текста
 
     return render(request, 'calculations.html', context)
 
@@ -141,15 +155,15 @@ def calculations(flow_rate, pressure, density, speed):
     v_0 = alpha * (flow_rate / 3600 * speed ** 2) ** (1 / 3)
     inner_diam_of_work_wheel_2 = round((4 * flow_rate / 3600 / (math.pi * v_0)) ** (1 / 2), 4)
     # Предварительная оценка КПД
-    n_0 = round((1 + (0.68 / (pump_speed_coef ** (2 / 3)))) ** (-1), 3)
+    n_0 = (1 + (0.68 / (pump_speed_coef ** (2 / 3)))) ** (-1)*100
     if inner_diam_of_work_wheel_1 < inner_diam_of_work_wheel_2:
-        n_r = round(1 - (0.42 / (math.log10(inner_diam_of_work_wheel_1 * 1000) - 0.172) ** 2), 3)
+        n_r = (1 - (0.42 / (math.log10(inner_diam_of_work_wheel_1 * 1000) - 0.172) ** 2))*100
     else:
-        n_r = round(1 - (0.42 / (math.log10(inner_diam_of_work_wheel_2 * 1000) - 0.172) ** 2), 3)
-    n_m = round((1 + (28.6 / pump_speed_coef) ** 2) ** (-1), 3)
-    n_a = round(n_0 * n_r * n_m, 3)
+        n_r = (1 - (0.42 / (math.log10(inner_diam_of_work_wheel_2 * 1000) - 0.172) ** 2))*100
+    n_m = (1 + (28.6 / pump_speed_coef) ** 2) ** (-1)*100
+    n_a = n_0/100 * n_r/100 * n_m/100*100
     # Максимальная мощность насоса
-    power = density * 9.81 * pressure * flow_rate / 60 / 60 / n_a / 1000
+    power = density * 9.81 * pressure * flow_rate / 60 / 60 /( n_a /100)/1000
     k_n = 1.1
     power_max = power * k_n
     # Определение размеров вала и втулки (ступицы) колеса
@@ -160,14 +174,25 @@ def calculations(flow_rate, pressure, density, speed):
     k_inner = 1.3115
     k_inner_0 = 1
     if inner_diam_of_work_wheel_1 < inner_diam_of_work_wheel_2:
-        enter_diameter = round(((inner_diam_of_work_wheel_1*1000) ** 2 + (shaft_diameter * k_inner) ** 2) ** 0.5, 4)
+        enter_diameter = round(((inner_diam_of_work_wheel_1 * 1000) ** 2 + (shaft_diameter * k_inner) ** 2) ** 0.5, 4)
     else:
-        enter_diameter = round(((inner_diam_of_work_wheel_2*1000) ** 2 + (shaft_diameter * k_inner) ** 2) ** 0.5, 4)
-    enter_diameter_0 = enter_diameter*k_inner_0
+        enter_diameter = round(((inner_diam_of_work_wheel_2 * 1000) ** 2 + (shaft_diameter * k_inner) ** 2) ** 0.5, 4)
+    enter_diameter_0 = enter_diameter * k_inner_0
 
-    return pump_speed_coef, outer_diam_of_work_wheel, width_in_enter_of_work_wheel, inner_diam_of_work_wheel_1, inner_diam_of_work_wheel_2, n_0, n_r, n_m, n_a, power, power_max, shaft_diameter,enter_diameter
+    return pump_speed_coef, outer_diam_of_work_wheel, width_in_enter_of_work_wheel, inner_diam_of_work_wheel_1, inner_diam_of_work_wheel_2, n_0, n_r, n_m, n_a, power, power_max, shaft_diameter, enter_diameter
 
 
 def update_context(context, values):
     for calculation, value in zip(context['calculations'], values):
         calculation['value'] = value
+
+
+def format_context_list(data_list):
+    for item in data_list['calculations']:
+        if item['value'] is not None:
+            if item['value']<1:
+                item['value'] = round(item['value'], item['round'])
+            else:
+                item['value'] = int(item['value'])
+
+    return data_list
