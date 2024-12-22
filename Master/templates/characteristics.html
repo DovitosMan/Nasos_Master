@@ -5,10 +5,31 @@
     <title>Title</title>
 </head>
 <body>
-<h1>Построение характеристики рассчитанного насоса</h1>
-    <form action="{% url 'home' %}">
-        <input type="submit" value="Домой">
+    <div class="Exit">
+        <form action="{% url 'home' %}">
+            <input type="submit" value="Домой">
+        </form>
+    </div>
+<div>
+    <form action="{% url 'characteristics' %}" method="post">
+        {% csrf_token %}
+        {% for input in inputs %}
+        <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
         <br>
+        {% endfor%}
+        <input type="submit" value="{{ button1 }}">
     </form>
+    {% for calculation in calculations %}
+        {% if calculation.value is not None %}
+            <div>{{ calculation.name }}{{ calculation.value }}{{ calculation.unit }}</div><br>
+        {% endif %}
+    {% endfor %}
+</div>
+<div class="Plot">
+        {% if graph_url %}
+        <h2>Характеристика насоса </h2>
+        <img src="data:image/png;base64,{{ graph_url }}" alt="Graph">
+        {% endif %}
+    </div>
 </body>
 </html>

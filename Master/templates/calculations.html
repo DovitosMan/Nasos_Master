@@ -15,7 +15,7 @@
         <form action="{% url 'wheel_calc' %}" method="post">
             {% csrf_token %}
             {% for input in inputs %}
-            <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
+            <input type="number" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
             <br>
             {% endfor %}
             <input type="submit" value="{{ button1 }}">
