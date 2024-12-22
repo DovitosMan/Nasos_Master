@@ -5,7 +5,12 @@
     <title>Подбор насоса</title>
 </head>
 <body>
-
+<div>
+    <form action="{% url 'home' %}">
+        <input type="submit" value="{{ button1 }}">
+        <br>
+    </form>
+</div>
 <div class="MainWindow">
     <div class="InputField">
         <div>
@@ -64,12 +69,7 @@
             </form>
         </div>
 
-        <div>
-            <form action="{% url 'home' %}">
-                <input type="submit" value="{{ button1 }}">
-                <br>
-            </form>
-        </div>
+
             <div>
                 {% if user_data is not None %}
                     <p>Вы ввели: {{ user_data }}</p>

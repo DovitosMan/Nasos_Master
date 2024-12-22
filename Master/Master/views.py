@@ -5,7 +5,10 @@ from django.shortcuts import render
 def home(request):
     context = {
         'title': 'Расчет рабочего колеса',
-        'button3': 'К расчету!',
+        'button1': '',
+        'button2': 'Расчет колеса',
+        'button3': 'Построение характеристики рассчитанного насоса',
+        'button4': 'Подбор насоса',
     }
     return render(request, 'home.html', context)
 

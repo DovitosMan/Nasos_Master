@@ -5,7 +5,11 @@
     <title>Калькулятор рабочего колеса</title>
 </head>
 <body>
-
+    <div class="Exit">
+        <form action="{% url 'home' %}">
+            <input type="submit" value="{{ button2 }}">
+        </form>
+    </div>
 <div class="Window">
       <div class="Wheel calc">{{ title }}</div>
         <form action="{% url 'wheel_calc' %}" method="post">
@@ -21,11 +25,7 @@
             <div>{{ calculation.name }}{{ calculation.value }}{{ calculation.unit }}</div><br>
         {% endif %}
     {% endfor %}
-    <div class="Exit">
-        <form action="{% url 'home' %}">
-            <input type="submit" value="{{ button2 }}">
-        </form>
-    </div>
+
 </div>
 
 </body>
