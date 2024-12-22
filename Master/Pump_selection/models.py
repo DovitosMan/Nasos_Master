@@ -7,7 +7,7 @@ class PumpFamily(models.Model):
     description = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f'Семейство: {self.name}'
+        return f'{self.name}'
 
 
 class Pumps(models.Model):
