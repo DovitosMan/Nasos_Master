@@ -42,10 +42,15 @@
             <form action="{% url 'pump_selection_index' %}" method="post">
                 {% csrf_token %}
             <div class="consumption">
+<<<<<<< Updated upstream
                 {% for input in input11 %}
                 <span>{{ input.placeholder }} м<sup>3</sup>/ч:</span>
                 <input class="Select_a_value" type="number" name="{{ input.name }}">
                 {% endfor %}
+=======
+                <span>Расход, м<sup>3</sup>/ч:</span>
+                <input class="Select_a_value" type="float" min="1" step="1">
+>>>>>>> Stashed changes
             </div>
     
             <div class="Pressure">
