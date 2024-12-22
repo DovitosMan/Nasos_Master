@@ -82,7 +82,7 @@
             </div>
             </form>
             <div>
-            <h2>Из базы данных</h2>
+            <h2>Выборка из базы данных</h2>
             <table border="1">
                 <tr>
                     <th>Name</th>
@@ -97,7 +97,7 @@
                     <th>Mass</th>
                     <th>Mass_all</th>
                 </tr>
-                {% for item in not_filter_pumps %}
+                {% for item in filter_pumps %}
                     <tr>
                         <td>{{ item.name }}</td>
                         <td>{{ item.price }}</td>

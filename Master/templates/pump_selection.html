@@ -85,7 +85,7 @@
                 <p>Для 1-го насоса a: {{ calc_a }}</p>
             </div>
         <div>
-            <h2>Из базы данных</h2>
+            <h2>Выборка из базы данных</h2>
             <table border="1">
                 <tr>
                     <th>Name</th>
@@ -100,7 +100,7 @@
                     <th>Mass</th>
                     <th>Mass_all</th>
                 </tr>
-                {% for item in not_filter_pumps %}
+                {% for item in filter_pumps %}
                     <tr>
                         <td>{{ item.name }}</td>
                         <td>{{ item.price }}</td>
@@ -120,7 +120,7 @@
     </div>
     <div class="Plot">
         {% if graph_url %}
-        <h2>График для 1-го насоса</h2>
+        <h2>График для 1-го насоса с наименьшей мощностью </h2>
         <img src="data:image/png;base64,{{ graph_url }}" alt="Graph">
         {% endif %}
     </div>

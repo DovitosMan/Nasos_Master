@@ -84,13 +84,13 @@ def pump_selection(request):
         user_max_pressure = request.POST.get("max_pressure")
         user_temperature = request.POST.get("temperature")
 
-        not_filter_pumps = Pumps.objects.all()
-        a_0 = Pumps.objects.values_list('a0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        a_0 = Pumps.objects.values_list('a0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         a_0_list = list(a_0)
-        b_0 = Pumps.objects.values_list('b0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        b_0 = Pumps.objects.values_list('b0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         b_0_list = list(b_0)
-        c_0 = Pumps.objects.values_list('c0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        c_0 = Pumps.objects.values_list('c0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         c_0_list = list(c_0)
+        filter_pumps = Pumps.objects.all().filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
 
         def calc_q2(a_1, b_1, c_1, d_1, e_1):
             return round((-b_1 * math.pow(d_1, 2) - d_1 * math.sqrt(math.pow(d_1, 2) * (math.pow(b_1, 2) - (4 * a_1 * c_1)) + 4 * c_1 * e_1)) / (2 * (a_1 * math.pow(d_1, 2) - e_1)), 2)
@@ -123,7 +123,7 @@ def pump_selection(request):
         context['calc_q2_all'] = calcs_q2_all
         context['calc_h2_all'] = calcs_h2_all
         context['calc_a_all'] = calc_a_all
-        context['not_filter_pumps'] = not_filter_pumps
+        context['filter_pumps'] = filter_pumps
 
         context['calc_q2'] = calc_q2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]), float(user_flow_rate), float(user_pressure))
         context['calc_h2'] = calc_h2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]), context['calc_q2'])
@@ -343,13 +343,13 @@ def pump_selection_index(request):
         user_max_pressure = request.POST.get("max_pressure")
         user_temperature = request.POST.get("temperature")
 
-        not_filter_pumps = Pumps.objects.all()
-        a_0 = Pumps.objects.values_list('a0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        a_0 = Pumps.objects.values_list('a0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         a_0_list = list(a_0)
-        b_0 = Pumps.objects.values_list('b0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        b_0 = Pumps.objects.values_list('b0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         b_0_list = list(b_0)
-        c_0 = Pumps.objects.values_list('c0', flat=True)#.filter(pressure__gt=float(user_pressure))#
+        c_0 = Pumps.objects.values_list('c0', flat=True).filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
         c_0_list = list(c_0)
+        filter_pumps = Pumps.objects.all().filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by("power")
 
         def calc_q2(a_1, b_1, c_1, d_1, e_1):
             return round((-b_1 * math.pow(d_1, 2) - d_1 * math.sqrt(math.pow(d_1, 2) * (math.pow(b_1, 2) - (4 * a_1 * c_1)) + 4 * c_1 * e_1)) / (2 * (a_1 * math.pow(d_1, 2) - e_1)), 2)
@@ -382,7 +382,7 @@ def pump_selection_index(request):
         context['calc_q2_all'] = calcs_q2_all
         context['calc_h2_all'] = calcs_h2_all
         context['calc_a_all'] = calc_a_all
-        context['not_filter_pumps'] = not_filter_pumps
+        context['filter_pumps'] = filter_pumps
 
         context['calc_q2'] = calc_q2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]), float(user_flow_rate), float(user_pressure))
         context['calc_h2'] = calc_h2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]), context['calc_q2'])
@@ -407,7 +407,7 @@ def pump_selection_index(request):
         plt.figure()
         plt.plot(x, y1)
         plt.plot(x, y2)
-        plt.title('Для 1-го насоса')
+        plt.title('Для 1-го насоса с наименьшей мощностью')
         plt.xlabel('Q, м3/ч')
         plt.ylabel('H, м')
 
