@@ -5,21 +5,31 @@
 {% block home %}
 {{greeting}}
 <div class="Window">
-    <div class="Main menu">Главное меню
+    <div class="Menu_select">Главное меню
         <form action="{% url 'wheel_calc' %}">
             <input type="submit" value="{{ button2 }}">
             <br>
         </form>
-        <div class="Inlet calc"> Расчет подвода</div>
-        <div class="Outlet calc"> Расчет отвода</div>
+        <div class="Menu_select"> Расчет подвода</div>
+        <div class="Menu_select"> Расчет отвода</div>
         <form action="{% url 'characteristics' %}">
             <input type="submit" value="{{ button3 }}">
         </form>
         <form action="{% url 'pump_selection' %}">
             <input type="submit" value="{{ button4 }}">
         </form>
-        <div class="Energy calc">Расчет энергозатрат</div>
-        <div class="Hour calc"> Расчет трудозатрат</div>
+        <div class="Menu_select">Расчет энергозатрат</div>
+        <div class="Menu_select"> Расчет трудозатрат</div>
+<!--   пробую разное -->
+<!--    {% csrf_token %}-->
+<!--    {% for button in buttons %}-->
+<!--        <form action="{{ button.url_name }}">-->
+<!--            <input type="submit" value="{{ button.value }}">-->
+<!--            <br>-->
+<!--        </form>-->
+<!--    {% endfor %}-->
+<!--  end пробую разное  -->
+
         <div class="User">Личный кабинет</div>
     </div>
 
