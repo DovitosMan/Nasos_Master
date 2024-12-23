@@ -1,16 +1,28 @@
 {% extends 'head.html' %}
+{% load static %}
 {% block title %}
     Главная страница
 {% endblock %}
-{% block home %}
-{{greeting}}
+{% block characteristics %}
+{% block settings %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'home/css/home.css' %}" />
+    <title>Подбор насоса</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+{% endblock %}
 <div class="Window">
     <div class="Menu_select">Главное меню
         <form action="{% url 'wheel_calc' %}">
             <input type="submit" value="{{ button2 }}">
             <br>
         </form>
-        <div class="Menu_select"> Расчет подвода</div>
+        <div class="Menu_select">
+             <form action="{% url 'wheel_calc' %}">
+            <input type="submit" value="Расчёт подвода">
+            <br>
+        </form></div>
         <div class="Menu_select"> Расчет отвода</div>
         <form action="{% url 'characteristics' %}">
             <input type="submit" value="{{ button3 }}">
