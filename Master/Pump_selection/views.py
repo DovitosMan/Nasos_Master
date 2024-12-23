@@ -135,17 +135,17 @@ def pump_selection(request):
         for num in range(math.ceil(float(context['calc_q2']))+1):
             x.append(num)
         x.insert(-1, float(context['calc_q2']))
-        print(x)
+        # print(x)
 
         y1 = []
         for num_1 in range(len(x)):
             y1.append(float(a_0_list[0] * math.pow(x[num_1], 2) + b_0_list[0] * x[num_1] + c_0_list[0]))
-        print(y1)
+        # print(y1)
 
         y2 = []
         for num_2 in range(len(x)):
             y2.append(float(context['calc_a'] * math.pow(x[num_2], 2)))
-        print(y2)
+        # print(y2)
 
         plt.figure()
         plt.plot(x, y1)
@@ -395,17 +395,17 @@ def pump_selection_index(request):
         for num in range(math.ceil(float(context['calc_q2']))+1):
             x.append(num)
         x.insert(-1, float(context['calc_q2']))
-        print(x)
+        # print(x)
 
         y1 = []
         for num_1 in range(len(x)):
             y1.append(float(a_0_list[0] * math.pow(x[num_1], 2) + b_0_list[0] * x[num_1] + c_0_list[0]))
-        print(y1)
+        # print(y1)
 
         y2 = []
         for num_2 in range(len(x)):
             y2.append(float(context['calc_a'] * math.pow(x[num_2], 2)))
-        print(y2)
+        # print(y2)
 
         plt.figure()
         plt.plot(x, y1)
