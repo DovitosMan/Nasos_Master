@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Подбор насоса</title>
-</head>
-<body>
+{% extends 'head.html' %}
+{% block title %}
+    Построение характеристик
+{% endblock %}
+{% block pump_selection %}
 <div>
     <form action="{% url 'home' %}">
         <input type="submit" value="{{ button1 }}">
@@ -129,6 +127,4 @@
         {% endif %}
     </div>
 </div>
-
-</body>
-</html>
+{% endblock %}

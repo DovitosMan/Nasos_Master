@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Главная страница</title>
-</head>
-<body>
+{% extends 'head.html' %}
+{% block title %}
+    Главная страница
+{% endblock %}
+{% block home %}
 {{greeting}}
 <div class="Window">
     <div class="Main menu">Главное меню
@@ -26,6 +24,4 @@
     </div>
 
 </div>
-
-</body>
-</html>
+{% endblock %}

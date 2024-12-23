@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Построение характеристик</title>
-</head>
-<body>
+{% extends 'head.html' %}
+{% block title %}
+    Подбор насоса
+{% endblock %}
+{% block characteristics %}
     <div class="Exit">
         <form action="{% url 'home' %}">
             <input type="submit" value="Домой">
@@ -31,5 +29,4 @@
         <img src="data:image/png;base64,{{ graph_url }}" alt="Graph">
         {% endif %}
     </div>
-</body>
-</html>
+{% endblock %}
