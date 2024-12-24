@@ -1,3 +1,37 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Montserrat", serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 16px;
+    height: 100%;
+}
+body{
+    min-height: 100%;
+    position: relative
+}
+.Window{
+    display: flex;
+    margin: 0 auto;
+    flex-direction: column;
+    align-items: center;
+}
+.header{
+    height: 80px;
+    background-color: #002845;
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+    align-items: center;
+}
+.Pump_Master{
+    color:  #fff;
+    font-size: 32px;
+    font-style:oblique;
+}
 input[type=button], input[type=submit] {
   background-color: #62529c;
   border: none;
@@ -6,4 +40,11 @@ input[type=button], input[type=submit] {
   text-decoration: none;
   margin: 4px 2px;
   cursor: pointer;
+}
+.footer{
+
+    height: 80px;
+    background-color: #002845;
+    display: flex;
+    width: 100%;
 }
