@@ -16,16 +16,16 @@
 }
 .header{
     height: 80px;
-    background-color: #3500ff;
-    display: flex;
+    background-color: #002845;
     width: 100%;
-    justify-content: space-around;
+    display: flex;
     align-items: center;
 }
 .Pump_Master{
     color:  #fff;
     font-size: 32px;
     font-style:oblique;
+    margin-left: 50px;
 }
 .chart_and_wrapper{
     display: flex;
@@ -45,11 +45,13 @@
     width: 45px;
 }
 .button{
+    background-color: #002845;
+    color: #fff;
+    text-decoration: underline;
+    cursor: pointer;
     text-align: center;
-    height: 30px;
-    border-radius: 5px;
-    background-color: #3500ff;
-    color:  #fff;
+    height: 40px;
+    border-radius: 10px;
 }
 .chart{
 
@@ -66,8 +68,10 @@
 }
 
 .footer{
+    position: absolute;
+    bottom: 0 ;
     height: 80px;
-    background-color: #3500ff;
+    background-color: #002845;
     display: flex;
     width: 100%;
 }

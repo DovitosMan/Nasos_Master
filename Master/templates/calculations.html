@@ -1,22 +1,37 @@
 {% extends 'head.html' %}
+{% load static %}
 {% block title %}
     Калькулятор рабочего колеса
 {% endblock %}
-{% block calculations %}
-    <div class="Exit">
-        <form action="{% url 'home' %}">
-            <input type="submit" value="{{ button.0}}">
-        </form>
-    </div>
+{% block characteristics %}
+{% block settings %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'calculations/css/calculations.css' %}" />
+    <title>Подбор насоса</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+{% endblock %}
+
 <div class="Window">
-      <div class="Wheel calc">{{ title }}</div>
-        <form action="{% url 'wheel_calc' %}" method="post">
+    <div class="header">
+        <div class="Pump_Master">
+             Pump Master
+            </div>
+    </div>
+
+    <div class="main">
+              <div class="Wheel calc">{{ title }}
+          <select class="Type_Pump">
+              <option value="Type_Pump">Тип насоса</option>
+          </select>
+      </div>
+        <form action="{% url 'wheel_calc' %}" method="post" class="values">
             {% csrf_token %}
             {% for input in inputs %}
                 <label>
                     <input type="number" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
                 </label>
-                <br>
             {% endfor %}
             <input type="submit" value="{{ button.1 }}">
         </form>
@@ -25,7 +40,15 @@
             <div>{{ calculation.name }}{{ calculation.value }}{{ calculation.unit }}</div><br>
         {% endif %}
     {% endfor %}
+    </div>
 
+    <div class="footer">
+        <div class="Exit">
+        <form action="{% url 'home' %}">
+            <input type="submit" value="{{ button.0}}">
+        </form>
+        </div>
+    </div>
 </div>
 
 {% endblock %}

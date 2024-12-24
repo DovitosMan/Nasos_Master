@@ -13,25 +13,48 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
 {% endblock %}
 <div class="Window">
-    <div class="Menu_select">Главное меню
+    <div class="header">
+        <div class="Pump_Master">
+             Pump Master
+            </div>
+    </div>
+    <div class="Menu_select">
+
+        <form action="">
+            <input type="submit" value="{{ button1 }}">
+            <br>
+        </form>
+
         <form action="{% url 'wheel_calc' %}">
             <input type="submit" value="{{ button2 }}">
             <br>
         </form>
-        <div class="Menu_select">
-             <form action="{% url 'wheel_calc' %}">
-            <input type="submit" value="Расчёт подвода">
-            <br>
-        </form></div>
-        <div class="Menu_select"> Расчет отвода</div>
-        <form action="{% url 'characteristics' %}">
+
+        <form action="">
             <input type="submit" value="{{ button3 }}">
+            <br>
         </form>
-        <form action="{% url 'pump_selection' %}">
+
+        <form action="">
             <input type="submit" value="{{ button4 }}">
+            <br>
         </form>
-        <div class="Menu_select">Расчет энергозатрат</div>
-        <div class="Menu_select"> Расчет трудозатрат</div>
+
+        <form action="{% url 'characteristics' %}">
+            <input type="submit" value="{{ button5 }}">
+        </form>
+
+        <form action="{% url 'pump_selection' %}">
+            <input type="submit" value="{{ button6 }}">
+        </form>
+
+        <form action="">
+            <input type="submit" value="{{ button7 }}">
+        </form>
+
+        <form action="">
+            <input type="submit" value="{{ button8 }}">
+        </form>
 <!--   пробую разное -->
 <!--    {% csrf_token %}-->
 <!--    {% for button in buttons %}-->
@@ -42,7 +65,11 @@
 <!--    {% endfor %}-->
 <!--  end пробую разное  -->
 
-        <div class="User">Личный кабинет</div>
+        <form action="">
+            <input type="submit" value="{{ button9 }}">
+        </form>
+    </div>
+    <div class="footer">
     </div>
 
 </div>
