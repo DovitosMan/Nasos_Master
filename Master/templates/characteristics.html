@@ -20,18 +20,12 @@
             </div>
         </div>
 
-            <button class="Exit">
-                Домой
-<!--        <form action="{% url 'home' %}" class="Exit">-->
-<!--            <input type="submit" value="Домой">-->
-<!--        </form>-->
-            </button>
 <div>
     <form action="{% url 'characteristics' %}" method="post" class="values">
         {% csrf_token %}
         {% for input in inputs %}
         <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
-        <br>
+
         {% endfor%}
 
         <button class="Get_a_feature">
@@ -54,6 +48,12 @@
     </div>
 
         <div class="footer">
+            <button class="Exit">
+                Домой
+<!--        <form action="{% url 'home' %}" class="Exit">-->
+<!--            <input type="submit" value="Домой">-->
+<!--        </form>-->
+            </button>
 
         </div>
 

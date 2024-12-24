@@ -68,6 +68,8 @@
 }
 
 .footer{
+    position: absolute;
+    bottom: 0 ;
     height: 80px;
     background-color: #002845;
     display: flex;

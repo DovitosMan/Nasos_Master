@@ -17,22 +17,22 @@
 }
 .header{
     height: 80px;
-    background-color: #3500ff;
-    display: flex;
+    background-color: #002845;
     width: 100%;
-    justify-content: space-around;
+    display: flex;
     align-items: center;
 }
 .Pump_Master{
     color:  #fff;
     font-size: 32px;
     font-style:oblique;
+    margin-left: 50px;
 }
 .Exit{
     text-align: center;
     height: 40px;
     border-radius: 5px;
-    background-color: #3500ff;
+    background-color: #002845;
     color:  #fff;
     width: 100px;
     gap: 5px;
@@ -42,23 +42,23 @@
     display: flex;
     flex-direction: column;
     text-align: right;
-    gap: 5px;
-    padding-bottom: 30px;
+    gap: 20px;
+    padding: 20px;
     width: 400px;
 }
 .Get_a_feature{
     text-align: center;
     height: 50px;
     border-radius: 10px;
-    background-color: #3500ff;
+    background-color: #002845;
     color:  #fff;
     gap: 5px;
 }
 .footer{
     position: absolute;
-    bottom:0;
+    bottom: 0 ;
     height: 80px;
-    background-color: #3500ff;
+    background-color: #002845;
     display: flex;
     width: 100%;
 }

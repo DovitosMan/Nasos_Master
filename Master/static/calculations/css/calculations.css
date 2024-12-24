@@ -19,15 +19,29 @@
 .header{
     height: 80px;
     background-color: #002845;
-    display: flex;
     width: 100%;
-    justify-content: space-around;
+    display: flex;
     align-items: center;
 }
 .Pump_Master{
     color:  #fff;
     font-size: 32px;
     font-style:oblique;
+    margin-left: 50px;
+}
+.main{
+    padding: 20px;
+}
+.values{
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+    gap: 20px;
+    padding: 20px;
+    width: 400px;
+}
+input[type=number], input[type=submit] {
+    width: 100%;
 }
 .footer{
     position: absolute;
