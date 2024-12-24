@@ -21,7 +21,8 @@
             </div>
         </div>
 
-        <div class="chart_and_wrapper">
+        <div class="main">
+            <div class="chart_and_wrapper">
 
             <div class="wrapper">
 
@@ -59,20 +60,19 @@
         </div>
 
         <div class="table">
-            <h2>Выборка из базы данных</h2>
             <table border="1">
                 <tr>
-                    <th>Name</th>
-                    <th>Price</th>
-                    <th>Quantity</th>
-                    <th>Family</th>
-                    <th>Feed</th>
-                    <th>Pressure</th>
-                    <th>Cavitation</th>
-                    <th>Rotation_speed</th>
-                    <th>Power</th>
-                    <th>Mass</th>
-                    <th>Mass_all</th>
+                    <th>Название</th>
+                    <th>Цена</th>
+                    <th>Количество</th>
+                    <th>Семейство</th>
+                    <th>Подача</th>
+                    <th>Давление</th>
+                    <th>Кавитация</th>
+                    <th>Частота вращения</th>
+                    <th>Мощность</th>
+                    <th>Масса</th>
+                    <th>Общая массаl</th>
                 </tr>
                 {% for item in calculations.filter_pumps %}
                     <tr>
@@ -91,6 +91,9 @@
                 {% endfor %}
             </table>
         </div>
+        </div>
+
+
 
         <div class="footer">
             <div class="Exit">
