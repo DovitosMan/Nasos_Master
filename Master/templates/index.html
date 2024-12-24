@@ -16,12 +16,9 @@
 {% block index %}
     <div class="Container">
         <div class="header">
-            <div class="Exit">
-                <form action="{% url 'home' %}">
-                    <input type="submit" value="{{ button.0 }}">
-                </form>
+            <div class="Pump_Master">
+                Pump Master
             </div>
-            Pump Master
         </div>
 
         <div class="chart_and_wrapper">
@@ -96,7 +93,11 @@
         </div>
 
         <div class="footer">
-
+            <div class="Exit">
+                <form action="{% url 'home' %}">
+                    <input type="submit" value="{{ button.0 }}">
+                </form>
+            </div>
         </div>
 
     </div>

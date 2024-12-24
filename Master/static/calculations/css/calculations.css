@@ -29,22 +29,6 @@
     font-size: 32px;
     font-style:oblique;
 }
-.Menu_select{
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding-top: 20px;
-}
-input[type=button], input[type=submit] {
-  background-color: #002845;
-  color: #fff;
-  padding: 15px 30px;
-  text-decoration: underline;
-  cursor: pointer;
-  text-align: center;
-  height: 50px;
-  border-radius: 10px;
-}
 .footer{
     position: absolute;
     bottom: 0 ;
