@@ -5,106 +5,63 @@
 {% endblock %}
 {% block settings %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'Pump_selection/css/style.css' %}" />
+    <link rel="stylesheet" href="{% static 'Pump_selection/css/style.css' %}"/>
     <title>Подбор насоса</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap"
+          rel="stylesheet">
 {% endblock %}
 
 {% block index %}
     <div class="Container">
         <div class="header">
-            <div class="Pump_Master">
-             Pump Master
+            <div class="Exit">
+                <form action="{% url 'home' %}">
+                    <input type="submit" value="{{ button.0 }}">
+                </form>
             </div>
+            Pump Master
         </div>
 
         <div class="chart_and_wrapper">
 
-        <div class="wrapper">
+            <div class="wrapper">
 
-            <div class="Pump-mode">
-                <span>Режим расчёта:</span>
-                <select class="Pump_mode" id="">
-                    <option value="The_purpose_of_the_system">{{ select1 }}</option>
-                </select>
+                <div class="menu">
+                    <form action="{% url 'pump_selection_index' %}" method="post" class="form">
+                        {% csrf_token %}
+                        {% for select in selects %}
+                            <div class="menu_select">
+                                {% if select.type == 'option' %}
+                                    <span>{{ select.name }}</span>
+                                    <select class="Region_1">
+                                        {% for key in select.keys %}
+                                            <option value="{{ key.value }}">{{ key.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                {% elif select.type == 'input' %}
+                                    <span>{{ select.placeholder }} </span>
+                                    <label>
+                                        <input class="Select_a_value" type="number" name="{{ select.name }}">
+                                    </label>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        <input class="button" type="submit" value="{{ button.1 }}">
+                    </form>
+                </div>
             </div>
 
-            <div class="Appointment">
-                <span>Назначение:</span>
-                <select class="Appointment_1" id="">
-                    {% for select in select2 %}
-                    <option value="{{ select.value }}">{{ select.name }}</option>
-                    {% endfor %}
-                </select>
+            <div class="chart">
+                {% if calculations.graph_url %}
+                    <img src="data:image/png;base64,{{ calculations.graph_url }}" alt="Graph" width="500">
+                {% endif %}
             </div>
-
-            <div class="Region">
-                <span>Регион:</span>
-                <select class="Region_1" id="">
-                    {% for select in select3 %}
-                    <option value="{{ select.value }}">{{ select.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <form action="{% url 'pump_selection_index' %}" method="post" class="form">
-                {% csrf_token %}
-
-            <div class="consumption">
-                {% for input in input11 %}
-                <span>{{ input.placeholder }} м<sup>3</sup>/ч:</span>
-                <input class="Select_a_value" type="number" name="{{ input.name }}">
-                {% endfor %}
-            </div>
-
-            <div class="Pressure">
-                {% for input in input12 %}
-                <span>{{ input.placeholder }} м.вод.ст.:</span>
-                <input class="Select_a_value_2" type="number" name="{{ input.name }}">
-                {% endfor %}
-            </div>
-
-            <div class="Environment">
-                <span>Среда:</span>
-                <select class="Environment_1" id="">
-                    {% for select in select4 %}
-                    <option value="{{ select.value }}">{{ select.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="temperature_environment">
-                {% for input in input13 %}
-                <span>{{ input.placeholder }} <sup>o</sup>C:</span>
-                <input class="Select_a_value_3" type="number" name="{{ input.name }}">
-                {% endfor %}
-            </div>
-
-            <div class="temperature_environment_and_preassure_max">
-                {% for input in input14 %}
-                <span>{{ input.placeholder }}</span>
-                <input class="{{ input.class }}" type="number"name="{{ input.name }}">
-                {% endfor %}
-            </div>
-
-            <button class="button">
-                Подобрать насос
-<!--                <input type="submit" value="{{ button2 }}">-->
-            </button>
-            </form>
-        </div>
-
-        <div class="chart">
-            {% if graph_url %}
-            <img src="data:image/png;base64,{{ graph_url }}" alt="Graph" width="500">
-        {% endif %}
-        </div>
 
         </div>
 
-                    <div class="table">
+        <div class="table">
             <h2>Выборка из базы данных</h2>
             <table border="1">
                 <tr>
@@ -120,7 +77,7 @@
                     <th>Mass</th>
                     <th>Mass_all</th>
                 </tr>
-                {% for item in filter_pumps %}
+                {% for item in calculations.filter_pumps %}
                     <tr>
                         <td>{{ item.name }}</td>
                         <td>{{ item.price }}</td>
@@ -143,4 +100,5 @@
         </div>
 
     </div>
+
 {% endblock %}
