@@ -13,6 +13,7 @@
     margin: 0 auto;
     flex-direction: column;
     align-items: center;
+    justify-content: space-between;
 }
 .header{
     height: 80px;
@@ -27,45 +28,35 @@
     font-size: 32px;
     font-style:oblique;
 }
-.chart_and_wrapper{
-    display: flex;
-    padding: 30px;
-    gap: 0px 50px;
-}
-.wrapper{
-    display: flex;
-    flex-direction: column;
-    text-align: right;
-    gap: 20px;
-}
-.Pump_mode,.Appointment_1,.Region_1,.Select_a_value,.Select_a_value_2,.Select_a_value_3,.Environment_1{
-    width: 210px;
-}
-.Select_a_value_4,.Select_a_value_5{
-    width: 45px;
-}
-.button{
+.Exit{
     text-align: center;
-    height: 30px;
+    height: 40px;
     border-radius: 5px;
     background-color: #3500ff;
     color:  #fff;
+    width: 100px;
+    gap: 5px;
+    margin: 19.2px;
 }
-.chart{
-
-}
-.form{
+.values{
     display: flex;
     flex-direction: column;
     text-align: right;
-    gap: 20px;
-}
-.table{
-    text-align: center;
+    gap: 5px;
     padding-bottom: 30px;
+    width: 400px;
 }
-
+.Get_a_feature{
+    text-align: center;
+    height: 50px;
+    border-radius: 10px;
+    background-color: #3500ff;
+    color:  #fff;
+    gap: 5px;
+}
 .footer{
+    position: absolute;
+    bottom:0;
     height: 80px;
     background-color: #3500ff;
     display: flex;

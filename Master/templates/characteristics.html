@@ -1,21 +1,44 @@
 {% extends 'head.html' %}
+{% load static %}
 {% block title %}
     Подбор насоса
 {% endblock %}
 {% block characteristics %}
-    <div class="Exit">
-        <form action="{% url 'home' %}">
-            <input type="submit" value="Домой">
-        </form>
-    </div>
+{% block settings %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'Q_H_plot/css/characteristics.css' %}" />
+    <title>Подбор насоса</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+{% endblock %}
+    <div class="Container">
+
+        <div class="header">
+            <div class="Pump_Master">
+                Pump Master
+            </div>
+        </div>
+
+            <button class="Exit">
+                Домой
+<!--        <form action="{% url 'home' %}" class="Exit">-->
+<!--            <input type="submit" value="Домой">-->
+<!--        </form>-->
+            </button>
 <div>
-    <form action="{% url 'characteristics' %}" method="post">
+    <form action="{% url 'characteristics' %}" method="post" class="values">
         {% csrf_token %}
         {% for input in inputs %}
         <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
         <br>
         {% endfor%}
-        <input type="submit" value="{{ button1 }}">
+
+        <button class="Get_a_feature">
+                Получить характеристику
+            </button>
+
+<!--        <input type="submit" value="{{ button1 }}">-->
     </form>
     {% for calculation in calculations %}
         {% if calculation.value is not None %}
@@ -29,4 +52,11 @@
         <img src="data:image/png;base64,{{ graph_url }}" alt="Graph">
         {% endif %}
     </div>
+
+        <div class="footer">
+
+        </div>
+
+    </div>
+
 {% endblock %}
