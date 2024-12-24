@@ -28,6 +28,9 @@
     font-style:oblique;
     margin-left: 50px;
 }
+.main{
+
+}
 .Exit{
     text-align: center;
     height: 40px;
@@ -37,6 +40,7 @@
     width: 100px;
     gap: 5px;
     margin: 19.2px;
+    display: flex;
 }
 .values{
     display: flex;
