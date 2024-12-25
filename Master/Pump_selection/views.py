@@ -6,7 +6,7 @@ import io
 import urllib, base64
 
 
-def pump_selection(request):
+def pump_selection_index(request):
     index_button = 'Подбор насоса index'
     selects1 = ['Назначение системы', 'Семейство насосов']
     selects2 = ['ХВС', 'СВ', 'СО', 'Подпитка', 'ГВС']
@@ -169,13 +169,13 @@ def pump_selection(request):
         graph_url = base64.b64encode(buffer.getvalue()).decode('utf-8')
         context['graph_url'] = graph_url
 
-    return render(request, 'pump_selection.html', context)
+    return render(request, 'index.html', context)
 
 
 # копирую функцию вызова страницы расчета, дублирую на файл index.html
 
 
-def pump_selection_index(request):
+def pump_selection(request):
     context = {
         'button': ['Вернуться домой', 'Подобрать насос'],
         'selects': [
@@ -281,9 +281,10 @@ def pump_selection_index(request):
             {
                 'type': 'hz',
                 'name': 'Список насосов',
-                'keys': ['Насосы консольные "К"', 'Насосы консольные моноблочные "КМ"', 'Насосы линейные циркуляционные',
-                        'Насосы двухстороннего входа', 'Насосы секционные', 'Насосы "КГВ" специальные',
-                        'Насосы "НКУ" специальные'],
+                'keys': ['Насосы консольные "К"', 'Насосы консольные моноблочные "КМ"',
+                         'Насосы линейные циркуляционные',
+                         'Насосы двухстороннего входа', 'Насосы секционные', 'Насосы "КГВ" специальные',
+                         'Насосы "НКУ" специальные'],
             },
 
         ],
@@ -385,6 +386,7 @@ def pump_selection_index(request):
             'not_filter_pumps': None,
             'graph_url': None,
         },
+        'columns': None
     }
 
     graph_url = ''
@@ -430,9 +432,12 @@ def pump_selection_index(request):
         context['calculations']['calc_a_all'] = calc_a_all
         context['calculations']['filter_pumps'] = filter_pumps
 
-        context['calculations']['calc_q2'] = calc_q2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]), float(user_flow_rate),float(user_pressure))
-        context['calculations']['calc_h2'] = calc_h2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]), context['calculations']['calc_q2'])
-        context['calculations']['calc_a'] = calc_a(context['calculations']['calc_h2'], context['calculations']['calc_q2'])
+        context['calculations']['calc_q2'] = calc_q2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]),
+                                                     float(user_flow_rate), float(user_pressure))
+        context['calculations']['calc_h2'] = calc_h2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]),
+                                                     context['calculations']['calc_q2'])
+        context['calculations']['calc_a'] = calc_a(context['calculations']['calc_h2'],
+                                                   context['calculations']['calc_q2'])
 
         x = []
         for num in range(math.ceil(float(context['calculations']['calc_q2'])) + 1):
@@ -463,8 +468,27 @@ def pump_selection_index(request):
         buffer.seek(0)
         graph_url = base64.b64encode(buffer.getvalue()).decode('utf-8')
         context['calculations']['graph_url'] = graph_url
+        column_mapping = {
+            'name': 'Марка насоса',
+            'price': 'Цена',
+            'quantity': 'Количество',
+            'family': 'Семейство',
+            'feed': 'Подача',
+            'pressure': 'Напор',
+            'cavitation': 'Кав. запас',
+            'rotation_speed': 'Частота вращения',
+            'power': 'Мощность',
+            'mass': 'Масса насоса',
+            'mass_all': 'Масса агрегата',
+        }
+        column_names = ['name', 'price', 'quantity', 'family', 'feed', 'pressure', 'cavitation', 'rotation_speed',
+                        'power',
+                        'mass', 'mass_all']
+        # Переименование
+        renamed_columns = [column_mapping.get(col, col) for col in column_names]
+        context['columns'] = renamed_columns
 
-    return render(request, 'index.html', context)
+    return render(request, 'pump_selection.html', context)
 
 
 def calc_q2(a_1, b_1, c_1, d_1, e_1):
@@ -479,3 +503,28 @@ def calc_h2(a_2, b_2, c_2, d_2):
 
 def calc_a(d_3, e_3):
     return round(d_3 / pow(e_3, 2), 5)
+
+
+def data_base_name(request):
+    column_mapping = {
+        'name': 'Марка насоса',
+        'price': 'Цена',
+        'quantity': 'Количество',
+        'family': 'Семейство',
+        'feed': 'Подача',
+        'pressure': 'Напор',
+        'cavitation': 'Кав. запас',
+        'rotation_speed': 'Частота вращения',
+        'power': 'Мощность',
+        'mass': 'Масса насоса',
+        'mass_all': 'Масса агрегата',
+    }
+    column_names = ['name', 'price', 'quantity', 'family', 'feed', 'pressure', 'cavitation', 'rotation_speed', 'power',
+                    'mass', 'mass_all']
+
+    # Переименование
+    renamed_columns = [column_mapping.get(col, col) for col in column_names]
+
+    # Передача данных в контекст
+    context = {'columns': renamed_columns}
+    return

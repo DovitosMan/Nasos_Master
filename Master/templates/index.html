@@ -1,64 +1,89 @@
 {% extends 'head.html' %}
-{% load static %}
 {% block title %}
-    Подбор насоса index
+    Построение характеристик
 {% endblock %}
-{% block settings %}
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'Pump_selection/css/style.css' %}"/>
-    <title>Подбор насоса</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap"
-          rel="stylesheet">
-{% endblock %}
+{% block pump_selection %}
+<div>
+    <form action="{% url 'home' %}">
+        <input type="submit" value="{{ button1 }}">
+        <br>
+    </form>
 
-{% block index %}
-    <div class="Container">
-        <div class="header">
-            <div class="Pump_Master">
-                Pump Master
-            </div>
+</div>
+<div class="MainWindow">
+    <div class="InputField">
+        <div>
+            <form>
+                <select size="1">
+                    {% for select in select1 %}
+                    <option value="t1">{{ select }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        <div>
+            <form>
+                <select size="1">
+                    {% for select in select2 %}
+                    <option value="t2">{{ select }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        <div>
+            <form>
+                <select size="1">
+                    {% for select in select5 %}
+                    <option value="t5">{{ select }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        <div>
+            <form>
+                <select size="1">
+                    {% for select in select3 %}
+                    <option value="t3">{{ select }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        <div>
+            <form action="{% url 'pump_selection' %}" method="post">
+                {% csrf_token %}
+                {% for input in input1 %}
+                <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
+                <br>
+                {% endfor %}
+                <input type="submit" value="{{ button2 }}">
+            </form>
+        </div>
+        <div>
+            <form>
+                <select size="1">
+                    {% for select in select4 %}
+                    <option value="t4">{{ select }}</option>
+                    {% endfor %}
+                </select>
+            </form>
         </div>
 
-        <div class="chart_and_wrapper">
 
-            <div class="wrapper">
-
-                <div class="menu">
-                    <form action="{% url 'pump_selection_index' %}" method="post" class="form">
-                        {% csrf_token %}
-                        {% for select in selects %}
-                            <div class="menu_select">
-                                {% if select.type == 'option' %}
-                                    <span>{{ select.name }}</span>
-                                    <select class="Region_1">
-                                        {% for key in select.keys %}
-                                            <option value="{{ key.value }}">{{ key.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                {% elif select.type == 'input' %}
-                                    <span>{{ select.placeholder }} </span>
-                                    <label>
-                                        <input class="Select_a_value" type="number" name="{{ select.name }}">
-                                    </label>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                        <input class="button" type="submit" value="{{ button.1 }}">
-                    </form>
-                </div>
-            </div>
-
-            <div class="chart">
-                {% if calculations.graph_url %}
-                    <img src="data:image/png;base64,{{ calculations.graph_url }}" alt="Graph" width="500">
+            <div>
+                {% if user_data is not None %}
+                    <p>Вы ввели: {{ user_data }}</p>
                 {% endif %}
+                <p>Список a0: {{ total_a0 }}</p>
+                <p>Список b0: {{ total_b0 }}</p>
+                <p>Список c0: {{ total_c0 }}</p>
+                <p>Для всех насосов Q2: {{ calc_q2_all }}</p>
+                <p>Для всех насосов H2: {{ calc_h2_all }}</p>
+                <p>Для всех насосов a: {{ calc_a_all }}</p>
+                <p>Для 1-го насоса Q2: {{ calc_q2 }}</p>
+                <p>Для 1-го насоса H2: {{ calc_h2 }}</p>
+                <p>Для 1-го насоса a: {{ calc_a }}</p>
             </div>
-
-        </div>
-
-        <div class="table">
+        <div>
             <h2>Выборка из базы данных</h2>
             <table border="1">
                 <tr>
@@ -74,7 +99,7 @@
                     <th>Mass</th>
                     <th>Mass_all</th>
                 </tr>
-                {% for item in calculations.filter_pumps %}
+                {% for item in filter_pumps %}
                     <tr>
                         <td>{{ item.name }}</td>
                         <td>{{ item.price }}</td>
@@ -91,15 +116,12 @@
                 {% endfor %}
             </table>
         </div>
-
-        <div class="footer">
-            <div class="Exit">
-                <form action="{% url 'home' %}">
-                    <input type="submit" value="{{ button.0 }}">
-                </form>
-            </div>
-        </div>
-
     </div>
-
+    <div class="Plot">
+        {% if graph_url %}
+        <h2>График для 1-го насоса с наименьшей мощностью </h2>
+        <img src="data:image/png;base64,{{ graph_url }}" alt="Graph">
+        {% endif %}
+    </div>
+</div>
 {% endblock %}
