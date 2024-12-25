@@ -288,84 +288,6 @@ def pump_selection(request):
             },
 
         ],
-        # 'calculations': [
-        #     {
-        #         'name': 'user_pressure',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'user_flow_rate',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'user_max_pressure',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'user_temperature',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'user_data',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'pumps',
-        #         'value': Pumps.objects.all()
-        #     },
-        #     {
-        #         'name': 'families',
-        #         'value': PumpFamily.objects.all()
-        #     },
-        #     {
-        #         'name': 'total_a0',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'total_b0',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'total_c0',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'calc_q2',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'calc_h2',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'calc_q2',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'calc_a',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'calc_q2_all',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'calc_h2_all',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'calc_a_all',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'not_filter_pumps',
-        #         'value': None
-        #     },
-        #     {
-        #         'name': 'graph_url',
-        #         'value': None
-        #     }
-        # ],
         'calculations': {
             'user_pressure': None,
             'user_flow_rate': None,
@@ -468,25 +390,7 @@ def pump_selection(request):
         buffer.seek(0)
         graph_url = base64.b64encode(buffer.getvalue()).decode('utf-8')
         context['calculations']['graph_url'] = graph_url
-        column_mapping = {
-            'name': 'Марка насоса',
-            'price': 'Цена',
-            'quantity': 'Количество',
-            'family': 'Семейство',
-            'feed': 'Подача',
-            'pressure': 'Напор',
-            'cavitation': 'Кав. запас',
-            'rotation_speed': 'Частота вращения',
-            'power': 'Мощность',
-            'mass': 'Масса насоса',
-            'mass_all': 'Масса агрегата',
-        }
-        column_names = ['name', 'price', 'quantity', 'family', 'feed', 'pressure', 'cavitation', 'rotation_speed',
-                        'power',
-                        'mass', 'mass_all']
-        # Переименование
-        renamed_columns = [column_mapping.get(col, col) for col in column_names]
-        context['columns'] = renamed_columns
+        context['columns'] = column_renaiming()
 
     return render(request, 'pump_selection.html', context)
 
@@ -505,7 +409,7 @@ def calc_a(d_3, e_3):
     return round(d_3 / pow(e_3, 2), 5)
 
 
-def data_base_name(request):
+def column_renaiming():
     column_mapping = {
         'name': 'Марка насоса',
         'price': 'Цена',
@@ -519,12 +423,9 @@ def data_base_name(request):
         'mass': 'Масса насоса',
         'mass_all': 'Масса агрегата',
     }
-    column_names = ['name', 'price', 'quantity', 'family', 'feed', 'pressure', 'cavitation', 'rotation_speed', 'power',
+    column_names = ['name', 'price', 'quantity', 'family', 'feed', 'pressure', 'cavitation', 'rotation_speed',
+                    'power',
                     'mass', 'mass_all']
-
     # Переименование
     renamed_columns = [column_mapping.get(col, col) for col in column_names]
-
-    # Передача данных в контекст
-    context = {'columns': renamed_columns}
-    return
+    return renamed_columns
