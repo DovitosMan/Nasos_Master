@@ -8,6 +8,14 @@
     font-style: normal;
     font-size: 16px;
 }
+html{
+    height: 100%;
+}
+body{
+    min-height: 100%;
+    position: relative;
+    padding-bottom: 90px;
+}
 .Container{
     display: flex;
     margin: 0 auto;
@@ -29,7 +37,10 @@
     margin-left: 50px;
 }
 .main{
-
+    display: flex;
+    margin: 0 auto;
+    flex-direction: column;
+    align-items: center;
 }
 .Exit{
     text-align: center;
