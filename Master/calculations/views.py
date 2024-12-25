@@ -9,7 +9,7 @@ def index(request):
 
 def wheel_calc(request):
     context = {
-        'title': 'Расчет рабочего колеса',
+        'title': 'Расчет рабочего колеса:',
         'button': [
             'Вернуться домой',
             'Получить размеры'

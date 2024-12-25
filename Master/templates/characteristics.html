@@ -1,7 +1,7 @@
 {% extends 'head.html' %}
 {% load static %}
 {% block title %}
-    Подбор насоса
+    Поcтроение характеристики
 {% endblock %}
 {% block characteristics %}
 {% block settings %}
@@ -20,17 +20,19 @@
             </div>
         </div>
 
-<div>
-    <form action="{% url 'characteristics' %}" method="post" class="values">
-        {% csrf_token %}
-        {% for input in inputs %}
-        <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
+        <div class="main">
 
-        {% endfor%}
+            <div>
+                <form action="{% url 'characteristics' %}" method="post" class="values">
+                {% csrf_token %}
+                {% for input in inputs %}
+                <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
 
-        <button class="Get_a_feature">
-                Получить характеристику
-            </button>
+                {% endfor%}
+
+                <button class="Get_a_feature">
+                        Получить характеристику
+                </button>
 
 <!--        <input type="submit" value="{{ button1 }}">-->
     </form>
@@ -42,17 +44,18 @@
 </div>
 <div class="Plot">
         {% if graph_url %}
-        <h2>Характеристика насоса </h2>
         <img src="data:image/png;base64,{{ graph_url }}" alt="Graph">
         {% endif %}
     </div>
+        </div>
 
         <div class="footer">
-        <form action="{% url 'home' %}" class="Exit">
-            <input type="submit" class="Exit" value="Домой">
-        </form>
-
-
+            <button class="Exit">
+                Домой
+<!--        <form action="{% url 'home' %}" class="Exit">-->
+<!--            <input type="submit" value="Домой">-->
+<!--        </form>-->
+            </button>
         </div>
 
     </div>
