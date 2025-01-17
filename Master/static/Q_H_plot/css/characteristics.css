@@ -23,19 +23,6 @@ body{
     align-items: center;
     justify-content: space-between;
 }
-.header{
-    height: 80px;
-    background-color: #002845;
-    width: 100%;
-    display: flex;
-    align-items: center;
-}
-.Pump_Master{
-    color:  #fff;
-    font-size: 32px;
-    font-style:oblique;
-    margin-left: 50px;
-}
 .main{
     display: flex;
     margin: 0 auto;
@@ -68,12 +55,4 @@ body{
     background-color: #002845;
     color:  #fff;
     gap: 5px;
-}
-.footer{
-    position: absolute;
-    bottom: 0 ;
-    height: 80px;
-    background-color: #002845;
-    display: flex;
-    width: 100%;
 }

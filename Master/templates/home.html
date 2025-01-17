@@ -3,7 +3,6 @@
 {% block title %}
     Главная страница
 {% endblock %}
-{% block characteristics %}
 {% block settings %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{% static 'home/css/home.css' %}" />
@@ -12,12 +11,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
 {% endblock %}
+{% block characteristics %}
 <div class="Window">
-    <div class="header">
-        <div class="Pump_Master">
-             Pump Master
-            </div>
-    </div>
+
     <div class="Menu_select">
 
         <form action="{% url 'wheel_calc' %}">
@@ -63,8 +59,6 @@
         <form action="">
             <input type="submit" value="{{ button9 }}">
         </form>
-    </div>
-    <div class="footer">
     </div>
 
 </div>

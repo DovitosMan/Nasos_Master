@@ -24,19 +24,6 @@ body{
     text-align: center;
     padding-bottom: 90px;
 }
-.header{
-    height: 80px;
-    background-color: #002845;
-    width: 100%;
-    display: flex;
-    align-items: center;
-}
-.Pump_Master{
-    color:  #fff;
-    font-size: 32px;
-    font-style:oblique;
-    margin-left: 50px;
-}
 .main{
     padding: 20px;
 }
@@ -60,13 +47,5 @@ input[type=submit] {
     border-radius: 10px;
 }
 input[type=number] {
-    width: 100%;
-}
-.footer{
-    position: absolute;
-    bottom: 0 ;
-    height: 80px;
-    background-color: #002845;
-    display: flex;
     width: 100%;
 }

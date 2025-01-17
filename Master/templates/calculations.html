@@ -5,8 +5,9 @@
 {% endblock %}
 {% block characteristics %}
 {% block settings %}
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'calculations/css/calculations.css' %}" />
+    <link rel="stylesheet" href="{% static 'calculations/css/calculations.css' %}" >
     <title>Подбор насоса</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,12 +15,6 @@
 {% endblock %}
 
 <div class="Window">
-    <div class="header">
-        <div class="Pump_Master">
-             Pump Master
-            </div>
-    </div>
-
     <div class="main">
               <div class="Wheel calc">{{ title }}
           <select class="Type_Pump">
@@ -42,13 +37,6 @@
     {% endfor %}
     </div>
 
-    <div class="footer">
-        <div class="Exit">
-        <form action="{% url 'home' %}">
-            <input type="submit" value="{{ button.0}}">
-        </form>
-        </div>
-    </div>
 </div>
 
 {% endblock %}

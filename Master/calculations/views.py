@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 import math
+from Master.views import home
 
 
 def index(request):
@@ -11,7 +12,7 @@ def wheel_calc(request):
     context = {
         'title': 'Расчет рабочего колеса:',
         'button': [
-            'Вернуться домой',
+            'Pump Master',
             'Получить размеры'
         ],
         'calculations': [

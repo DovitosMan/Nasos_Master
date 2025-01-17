@@ -39,6 +39,7 @@ def home(request):
         #         'url_name': "{% url 'home' %}",
         #     },
         # ],
+        'button0': 'Pump Master',
         'button1': 'Главное меню',
         'button2': 'Расчет колеса',
         'button3': 'Расчет подвода',
