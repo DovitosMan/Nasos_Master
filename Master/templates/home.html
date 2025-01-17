@@ -1,65 +1,25 @@
-{% extends 'head.html' %}
+{% extends 'Master.html' %}
 {% load static %}
 {% block title %}
     Главная страница
 {% endblock %}
 {% block settings %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'home/css/home.css' %}" />
+    <link rel="stylesheet" href="{% static 'home/css/home.css' %}"/>
     <title>Подбор насоса</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap"
+          rel="stylesheet">
 {% endblock %}
-{% block characteristics %}
-<div class="Window">
-
+{% block menu %}
     <div class="Menu_select">
-
-        <form action="{% url 'wheel_calc' %}">
-            <input type="submit" value="{{ button2 }}">
-            <br>
-        </form>
-
-        <form action="">
-            <input type="submit" value="{{ button3 }}">
-            <br>
-        </form>
-
-        <form action="">
-            <input type="submit" value="{{ button4 }}">
-            <br>
-        </form>
-
-        <form action="{% url 'characteristics' %}">
-            <input type="submit" value="{{ button5 }}">
-        </form>
-
-        <form action="{% url 'pump_selection' %}">
-            <input type="submit" value="{{ button6 }}">
-        </form>
-
-        <form action="">
-            <input type="submit" value="{{ button7 }}">
-        </form>
-
-        <form action="">
-            <input type="submit" value="{{ button8 }}">
-        </form>
-<!--   пробую разное -->
-<!--    {% csrf_token %}-->
-<!--    {% for button in buttons %}-->
-<!--        <form action="{{ button.url_name }}">-->
-<!--            <input type="submit" value="{{ button.value }}">-->
-<!--            <br>-->
-<!--        </form>-->
-<!--    {% endfor %}-->
-<!--  end пробую разное  -->
-
-        <form action="">
-            <input type="submit" value="{{ button9 }}">
-        </form>
+        {% csrf_token %}
+        {% for button in buttons %}
+            <form action="{% url button.url_name %}">
+                <input type="submit" value="{{ button.value }}">
+                <br>
+            </form>
+        {% endfor %}
     </div>
-
-</div>
 {% endblock %}

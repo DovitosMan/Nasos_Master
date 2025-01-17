@@ -1,12 +1,48 @@
+:root {
+    --primary-color: #002845;
+    --secondary-color: #094775;
+    --white-color: #ffffff;
+}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Montserrat", serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 16px;
+}
+html{
+    height: 100%;
+}
+body{
+    min-height: 100%;
+    position: relative;
+    padding-bottom: 90px;
+}
+input[type=button], input[type=submit]{
+    width: 100%;
+    background-color: var(--primary-color);
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    text-align: center;
+    height: 50px;
+    border-radius: 10px;
+}
+input[type=number] {
+    width: 100%;
+}
 .header{
     height: 80px;
-    background-color: #002845;
+    background-color: var(--primary-color);
     width: 100%;
     display: flex;
     align-items: center;
 }
 .Pump_Master{
-    color:  #fff;
+    color:  var(--white-color);
     border: none;
     cursor: pointer;
     font-size: 32px;
@@ -19,7 +55,7 @@
     position: absolute;
     bottom: 0 ;
     height: 80px;
-    background-color: #002845;
+    background-color: var(--primary-color);
     display: flex;
     width: 100%;
 }

@@ -1,21 +1,4 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: "Montserrat", serif;
-    font-optical-sizing: auto;
-    font-weight: 500;
-    font-style: normal;
-    font-size: 16px;
-}
-html{
-    height: 100%;
-}
-body{
-    min-height: 100%;
-    position: relative;
-    padding-bottom: 90px;
-}
+
 .Container{
     display: flex;
     margin: 0 auto;
