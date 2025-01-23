@@ -3,13 +3,8 @@ from django.http import HttpResponse
 import math
 
 
-def index(request):
-    return render(request, 'calculations.html')
-
-
 def wheel_calc(request):
     context = {
-        'title': 'Расчет рабочего колеса:',
         'button': [
             'Pump Master',
             'Получить размеры'
@@ -94,28 +89,35 @@ def wheel_calc(request):
                 'unit': ' мм',
             },
         ],
-        'inputs': [
+        'selects': [
+            {
+                'type': 'option',
+                'placeholder': 'Расчет рабочего колеса:',
+                'keys': [
+                    'Центробежный насос', 'Струйный насос'
+                ],
+            },
             {
                 'placeholder': 'Расход, м3/ч',
-                'type': 'number',
+                'type': 'input',
                 'name': 'flow_rate',
                 'value': '',
             },
             {
                 'placeholder': 'Напор, м',
-                'type': 'number',
+                'type': 'input',
                 'name': 'pressure',
                 'value': '',
             },
             {
                 'placeholder': 'Плотность, кг/м3',
-                'type': 'number',
+                'type': 'input',
                 'name': 'density',
                 'value': '',
             },
             {
                 'placeholder': 'Частота вр., об/мин',
-                'type': 'number',
+                'type': 'input',
                 'name': 'speed',
                 'value': '',
             },
@@ -130,7 +132,7 @@ def wheel_calc(request):
 
         calculated_values = calculations(flow_rate, pressure, density, speed)  # Получаем расчёты
         update_context(context, calculated_values)  # Обновляем context
-        format_context_list(context) # форматирование текста
+        format_context_list(context)  # форматирование текста
 
     return render(request, 'calculations.html', context)
 
@@ -155,15 +157,15 @@ def calculations(flow_rate, pressure, density, speed):
     v_0 = alpha * (flow_rate / 3600 * speed ** 2) ** (1 / 3)
     inner_diam_of_work_wheel_2 = round((4 * flow_rate / 3600 / (math.pi * v_0)) ** (1 / 2), 4)
     # Предварительная оценка КПД
-    n_0 = (1 + (0.68 / (pump_speed_coef ** (2 / 3)))) ** (-1)*100
+    n_0 = (1 + (0.68 / (pump_speed_coef ** (2 / 3)))) ** (-1) * 100
     if inner_diam_of_work_wheel_1 < inner_diam_of_work_wheel_2:
-        n_r = (1 - (0.42 / (math.log10(inner_diam_of_work_wheel_1 * 1000) - 0.172) ** 2))*100
+        n_r = (1 - (0.42 / (math.log10(inner_diam_of_work_wheel_1 * 1000) - 0.172) ** 2)) * 100
     else:
-        n_r = (1 - (0.42 / (math.log10(inner_diam_of_work_wheel_2 * 1000) - 0.172) ** 2))*100
-    n_m = (1 + (28.6 / pump_speed_coef) ** 2) ** (-1)*100
-    n_a = n_0/100 * n_r/100 * n_m/100*100
+        n_r = (1 - (0.42 / (math.log10(inner_diam_of_work_wheel_2 * 1000) - 0.172) ** 2)) * 100
+    n_m = (1 + (28.6 / pump_speed_coef) ** 2) ** (-1) * 100
+    n_a = n_0 / 100 * n_r / 100 * n_m / 100 * 100
     # Максимальная мощность насоса
-    power = density * 9.81 * pressure * flow_rate / 60 / 60 /( n_a /100)/1000
+    power = density * 9.81 * pressure * flow_rate / 60 / 60 / (n_a / 100) / 1000
     k_n = 1.1
     power_max = power * k_n
     # Определение размеров вала и втулки (ступицы) колеса
@@ -190,7 +192,7 @@ def update_context(context, values):
 def format_context_list(data_list):
     for item in data_list['calculations']:
         if item['value'] is not None:
-            if item['value']<1:
+            if item['value'] < 1:
                 item['value'] = round(item['value'], item['round'])
             else:
                 item['value'] = int(item['value'])

@@ -1,4 +1,4 @@
-.Container{
+.container{
     display: flex;
     margin: 0 auto;
     flex-direction: column;
@@ -13,7 +13,7 @@
 .chart_and_wrapper{
     display: flex;
     padding: 30px;
-    gap: 0px 50px;
+    gap: 0 50px;
 }
 .wrapper{
     display: flex;
@@ -21,12 +21,7 @@
     text-align: right;
     gap: 20px;
 }
-.Pump_mode,.Appointment_1,.Region_1,.Select_a_value,.Select_a_value_2,.Select_a_value_3,.Environment_1{
-    width: 210px;
-}
-.Select_a_value_4,.Select_a_value_5{
-    width: 45px;
-}
+
 .button{
     background-color: #002845;
     color: #fff;
@@ -35,9 +30,6 @@
     text-align: center;
     height: 40px;
     border-radius: 10px;
-}
-.chart{
-
 }
 .form{
     display: flex;
@@ -48,4 +40,14 @@
 .table{
     text-align: center;
     padding-bottom: 30px;
+}
+.menu_select{
+    gap: 20px;
+    display: flex;
+    width: 100%;
+    text-align: left ;
+}
+.Select{
+    width: 100%;
+    /*flex: 1;*/
 }

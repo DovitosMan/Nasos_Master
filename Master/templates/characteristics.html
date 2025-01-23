@@ -3,43 +3,35 @@
 {% block title %}
     Поcтроение характеристики
 {% endblock %}
-{% block characteristics %}
 {% block settings %}
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'Q_H_plot/css/characteristics.css' %}" />
-    <title>Подбор насоса</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'Q_H_plot/css/characteristics.css' %}"/>
 {% endblock %}
+{% block characteristics %}
     <div class="Container">
         <div class="main">
-
             <div>
                 <form action="{% url 'characteristics' %}" method="post" class="values">
-                {% csrf_token %}
-                {% for input in inputs %}
-                <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
-
-                {% endfor%}
-
-                <button class="Get_a_feature">
+                    {% csrf_token %}
+                    {% for input in inputs %}
+                        <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}"
+                               value="{{ input.value }}">
+                    {% endfor %}
+                    <button class="Get_a_feature">
                         Получить характеристику
-                </button>
-
-<!--        <input type="submit" value="{{ button1 }}">-->
-    </form>
-    {% for calculation in calculations %}
-        {% if calculation.value is not None %}
-            <div>{{ calculation.name }}{{ calculation.value }}{{ calculation.unit }}</div><br>
-        {% endif %}
-    {% endfor %}
-</div>
-<div class="Plot">
-        {% if graph_url %}
-        <img src="data:image/png;base64,{{ graph_url }}" alt="Graph">
-        {% endif %}
-    </div>
+                    </button>
+                    <input type="submit" value="{{ button1 }}">
+                </form>
+                {% for calculation in calculations %}
+                    {% if calculation.value is not None %}
+                        <div>{{ calculation.name }}{{ calculation.value }}{{ calculation.unit }}</div><br>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div class="Plot">
+                {% if graph_url %}
+                    <img src="data:image/png;base64,{{ graph_url }}" alt="Graph">
+                {% endif %}
+            </div>
         </div>
 
     </div>

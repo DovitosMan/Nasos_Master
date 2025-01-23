@@ -4,60 +4,47 @@
     Подбор насоса
 {% endblock %}
 {% block settings %}
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'Pump_selection/css/style.css' %}"/>
-    <title>Подбор насоса</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap"
-          rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'Pump_selection/css/pump_selection.css' %}"/>
 {% endblock %}
-
 {% block index %}
-    <div class="Container">
+    <div class="container">
         <div class="chart_and_wrapper">
-
             <div class="wrapper">
-
-                <div class="menu">
-                    <form action="{% url 'pump_selection' %}" method="post" class="form">
-                        {% csrf_token %}
-                        {% for select in selects %}
-                            <div class="menu_select">
-                                {% if select.type == 'option' %}
-                                    <span>{{ select.name }}</span>
-                                    <select class="Region_1">
+                <form action="{% url 'pump_selection' %}" method="post" class="form">
+                    {% csrf_token %}
+                    {% for select in selects %}
+                        <div class="menu_select">
+                            <span class="Select">{{ select.placeholder }}</span>
+                            {% if select.type == 'option' %}
+                                <label class="Select">
+                                    <select class="Select" type="number">
                                         {% for key in select.keys %}
                                             <option value="{{ key.value }}">{{ key.name }}</option>
                                         {% endfor %}
                                     </select>
-                                {% elif select.type == 'input' %}
-                                    <span>{{ select.placeholder }} </span>
-                                    <label>
-                                        <input class="Select_a_value" type="number" name="{{ select.name }}">
-                                    </label>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                        <input class="button" type="submit" value="{{ button.1 }}">
-                    </form>
-                </div>
+                                </label>
+                            {% elif select.type == 'input' %}
+                                <label class="Select">
+                                    <input type="number" name="{{ select.name }}">
+                                </label>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <input class="button" type="submit" value="{{ button.1 }}">
+                </form>
             </div>
-
             <div class="chart">
                 {% if calculations.graph_url %}
                     <img src="data:image/png;base64,{{ calculations.graph_url }}" alt="Graph" width="500">
                 {% endif %}
             </div>
-
         </div>
-
         <div class="table">
             {% if calculations.filter_pumps %}
                 <table border="1">
                     <tr>
                         {% for item in columns %}
-                        <th>{{ item }}</th>
+                            <th>{{ item }}</th>
                         {% endfor %}
                     </tr>
                     {% for item in calculations.filter_pumps %}
@@ -78,8 +65,5 @@
                 </table>
             {% endif %}
         </div>
-
-
     </div>
-
 {% endblock %}

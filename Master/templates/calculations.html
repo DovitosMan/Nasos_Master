@@ -3,40 +3,35 @@
 {% block title %}
     Калькулятор рабочего колеса
 {% endblock %}
-{% block characteristics %}
 {% block settings %}
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'calculations/css/calculations.css' %}" >
-    <title>Подбор насоса</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'calculations/css/calculations.css' %}">
 {% endblock %}
-
-<div class="Window">
-    <div class="main">
-              <div class="Wheel calc">{{ title }}
-          <select class="Type_Pump">
-              <option value="Type_Pump">Центробежный насос</option>
-          </select>
-      </div>
-        <form action="{% url 'wheel_calc' %}" method="post" class="values">
-            {% csrf_token %}
-            {% for input in inputs %}
-                <label>
-                    <input type="number" placeholder="{{ input.placeholder }}" name="{{ input.name }}" value="{{ input.value }}">
-                </label>
-            {% endfor %}
-            <input type="submit" value="{{ button.1 }}">
-        </form>
+{% block calculations %}
+    <form action="{% url 'wheel_calc' %}" method="post" class="container">
+        {% csrf_token %}
+        {% for select in selects %}
+            <div class="menu_select">
+                <span class="Select">{{ select.placeholder }}</span>
+                {% if select.type == 'option' %}
+                    <label class="Select">
+                        <select class="Select" type="number">
+                            {% for key in select.keys %}
+                                <option>{{ key }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                {% elif select.type == 'input' %}
+                    <label class="Select">
+                        <input class="Select" type="number" name="{{ select.name }}" value="{{ select.value }}">
+                    </label>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <input type="submit" value="{{ button.1 }}">
+    </form>
     {% for calculation in calculations %}
         {% if calculation.value is not None %}
             <div>{{ calculation.name }}{{ calculation.value }}{{ calculation.unit }}</div><br>
         {% endif %}
     {% endfor %}
-    </div>
-
-</div>
-
-{% endblock %}
+{% endblock calculations %}

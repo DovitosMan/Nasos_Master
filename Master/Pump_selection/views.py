@@ -181,14 +181,14 @@ def pump_selection(request):
         'selects': [
             {
                 'type': 'option',
-                'name': 'Режим расчёта:',
+                'placeholder': 'Режим расчёта:',
                 'keys': [
                     {'name': 'Назначение системы', 'value': None}
                 ],
             },
             {
                 'type': 'option',
-                'name': 'Назначение:',
+                'placeholder': 'Назначение:',
                 'keys': [
                     {'name': 'ХВС', 'value': 'HVS'},
                     {'name': 'СВ', 'value': 'SV'},
@@ -200,7 +200,7 @@ def pump_selection(request):
             },
             {
                 'type': 'option',
-                'name': 'Регион:',
+                'placeholder': 'Регион:',
                 'keys': [
                     {'name': 'Любой', 'value': 'Any'},
                     {'name': 'Астрахань', 'value': 'Astrakhan'},
@@ -254,7 +254,7 @@ def pump_selection(request):
             },
             {
                 'type': 'option',
-                'name': 'Среда:',
+                'placeholder': 'Среда:',
                 'keys': [
                     {'name': 'Вода', 'value': 'Water'},
                     {'name': 'Этиленгликоль', 'value': 'Ethylene_Glycol'},
@@ -280,7 +280,7 @@ def pump_selection(request):
             },
             {
                 'type': 'hz',
-                'name': 'Список насосов',
+                'placeholder1': 'Список насосов',
                 'keys': ['Насосы консольные "К"', 'Насосы консольные моноблочные "КМ"',
                          'Насосы линейные циркуляционные',
                          'Насосы двухстороннего входа', 'Насосы секционные', 'Насосы "КГВ" специальные',

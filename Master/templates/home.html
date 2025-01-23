@@ -6,20 +6,8 @@
 {% block settings %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{% static 'home/css/home.css' %}"/>
-    <title>Подбор насоса</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap"
-          rel="stylesheet">
 {% endblock %}
-{% block menu %}
-    <div class="Menu_select">
-        {% csrf_token %}
-        {% for button in buttons %}
-            <form action="{% url button.url_name %}">
-                <input type="submit" value="{{ button.value }}">
-                <br>
-            </form>
-        {% endfor %}
-    </div>
-{% endblock %}
+{% block home %}
+    <div>Это домашняя страница</div>
+
+{% endblock home %}

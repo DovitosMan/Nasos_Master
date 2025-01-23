@@ -4,14 +4,35 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'Master/css/Master.css' %}" >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'Master/css/Master.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     {% block settings %}
     {% endblock %}
 </head>
 <body>
-    <div class="header">
-        <a href="{% url 'home' %}" class="Pump_Master">Pump Master</a>
-    </div>
+<!-- Хедер -->
+<div class="header">
+    <button id="menuToggle" class="menu-toggle">☰</button>
+    <a href="{% url 'home' %}" class="Pump_Master">Pump Master</a>
+</div>
+<!-- Боковое меню -->
+<div id="menuSelect" class="sidebar">
+    {% csrf_token %}
+    {% for button in menu_buttons %}
+        <form action="{% url button.url_name %}">
+            <input type="submit" value="{{ button.value }}">
+            <br>
+        </form>
+    {% endfor %}
+</div>
+<!-- Затемнение экрана при развороте меню -->
+<div id="overlay" class="overlay">
+</div>
+<!-- Основной контент -->
+<div class="content">
 {% block home %}
 {% endblock home %}
 {% block calculations %}
@@ -22,7 +43,10 @@
 {% endblock pump_selection %}
 {% block index %}
 {% endblock index %}
+</div>
+<!-- Футер -->
 <div class="footer">
 </div>
+<script src="{% static 'Master/js/Master.js' %}"></script>
 </body>
 </html>

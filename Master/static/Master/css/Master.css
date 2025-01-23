@@ -1,5 +1,7 @@
+@import url('sidebar.css');
 :root {
     --primary-color: #002845;
+    --hover-color: #1f6194;
     --secondary-color: #094775;
     --white-color: #ffffff;
 }
@@ -19,7 +21,8 @@ html{
 body{
     min-height: 100%;
     position: relative;
-    padding-bottom: 90px;
+    margin: 0;
+    padding-bottom: 80px;
 }
 input[type=button], input[type=submit]{
     width: 100%;
@@ -38,24 +41,29 @@ input[type=number] {
     height: 80px;
     background-color: var(--primary-color);
     width: 100%;
+    z-index: 10;
+    position: relative;
     display: flex;
     align-items: center;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
 }
 .Pump_Master{
     color:  var(--white-color);
+    z-index: 10;
     border: none;
     cursor: pointer;
     font-size: 32px;
     font-style:oblique;
-    margin-left: 50px;
     box-shadow: none;
     text-decoration: none;
 }
 .footer{
+    z-index: 10;
     position: absolute;
     bottom: 0 ;
     height: 80px;
     background-color: var(--primary-color);
     display: flex;
     width: 100%;
+
 }
