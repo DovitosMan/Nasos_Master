@@ -7,7 +7,7 @@ from django.shortcuts import render
 # from Master.calculations import views
 
 
-def q_h_plot(request):
+def characteristics(request):
 
     context = {
         'button1': 'Получить характеристику',

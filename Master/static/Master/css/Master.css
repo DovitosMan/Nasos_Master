@@ -26,6 +26,7 @@ body{
 }
 input[type=button], input[type=submit]{
     width: 100%;
+    padding: 0 10px;
     background-color: var(--primary-color);
     color: #fff;
     text-decoration: none;
@@ -33,6 +34,7 @@ input[type=button], input[type=submit]{
     text-align: center;
     height: 50px;
     border-radius: 10px;
+    border: none;
 }
 input[type=number] {
     width: 100%;

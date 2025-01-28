@@ -6,7 +6,7 @@
 {% block settings %}
     <link rel="stylesheet" href="{% static 'Pump_selection/css/pump_selection.css' %}"/>
 {% endblock %}
-{% block index %}
+{% block pump_selection %}
     <div class="container">
         <div class="chart_and_wrapper">
             <div class="wrapper">
@@ -38,6 +38,20 @@
                     <img src="data:image/png;base64,{{ calculations.graph_url }}" alt="Graph" width="500">
                 {% endif %}
             </div>
+        </div>
+        <div>
+            {% if calculations.user_data is not None and debug_test%}
+                    <p>Вы ввели: {{ calculations.user_data }}</p><br>
+                    <p>Список a0: {{ calculations.total_a0 }}</p><br>
+                    <p>Список b0: {{ calculations.total_b0 }}</p><br>
+                    <p>Список c0: {{ calculations.total_c0 }}</p><br>
+                    <p>Для всех насосов Q2: {{ calculations.calc_q2_all }}</p><br>
+                    <p>Для всех насосов H2: {{ calculations.calc_h2_all }}</p><br>
+                    <p>Для всех насосов a: {{ calculations.calc_a_all }}</p><br>
+                    <p>Для 1-го насоса Q2: {{ calculations.calc_q2 }}</p><br>
+                    <p>Для 1-го насоса H2: {{ calculations.calc_h2 }}</p><br>
+                    <p>Для 1-го насоса a: {{ calculations.calc_a }}</p><br>
+            {% endif %}
         </div>
         <div class="table">
             {% if calculations.filter_pumps %}

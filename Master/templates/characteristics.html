@@ -4,7 +4,7 @@
     Поcтроение характеристики
 {% endblock %}
 {% block settings %}
-    <link rel="stylesheet" href="{% static 'Q_H_plot/css/characteristics.css' %}"/>
+    <link rel="stylesheet" href="{% static 'characteristics/css/characteristics.css' %}"/>
 {% endblock %}
 {% block characteristics %}
     <div class="Container">
@@ -16,9 +16,6 @@
                         <input type="float" placeholder="{{ input.placeholder }}" name="{{ input.name }}"
                                value="{{ input.value }}">
                     {% endfor %}
-                    <button class="Get_a_feature">
-                        Получить характеристику
-                    </button>
                     <input type="submit" value="{{ button1 }}">
                 </form>
                 {% for calculation in calculations %}

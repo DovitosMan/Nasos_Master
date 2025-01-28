@@ -8,5 +8,5 @@ urlpatterns = [
     path('', views.home, name="home"),
     path('pump_selection/', include('Pump_selection.urls')),
     path('calculations/', include('calculations.urls')),
-    path('characteristics/', include('Q_H_plot.urls')),
+    path('characteristics/', include('characteristics.urls')),
 ]
