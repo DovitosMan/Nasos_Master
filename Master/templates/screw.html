@@ -1,0 +1,29 @@
+{% extends 'Master.html' %}
+{% load static %}
+{% block title %}
+    Screw
+{% endblock %}
+{% block settings %}
+    <link rel="stylesheet" href="{% static 'Screw/css/Screw.css' %}"/>
+{% endblock %}
+{% block Screw %}.
+    <div>
+        <form action="{% url 'screw' %}" method="post" class="form">
+            {% csrf_token %}
+            {% for cal in calc %}
+                <label>
+                <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}">
+                </label>
+            {% endfor %}
+            <input class="button" type="submit" value="ok">
+        </form>
+    </div>
+<div>
+    {% if calculations.user_test1 is not None %}
+    <p>Вы ввели: {{ calculations.user_test1 }}</p>
+    {% endif %}
+    {% if calculations.user_test2 is not None %}
+    <p>Вы ввели: {{ calculations.user_test2 }}</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'calculations',
     'Pump_selection',
     'characteristics',
+    'Screw',
 
 ]
 

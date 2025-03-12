@@ -9,4 +9,5 @@ urlpatterns = [
     path('pump_selection/', include('Pump_selection.urls')),
     path('calculations/', include('calculations.urls')),
     path('characteristics/', include('characteristics.urls')),
+    path('screw/', include('Screw.urls')),
 ]
