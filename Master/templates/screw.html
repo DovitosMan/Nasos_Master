@@ -19,11 +19,8 @@
         </form>
     </div>
 <div>
-    {% if calculations.user_test1 is not None %}
-    <p>Вы ввели: {{ calculations.user_test1 }}</p>
-    {% endif %}
-    {% if calculations.user_test2 is not None %}
-    <p>Вы ввели: {{ calculations.user_test2 }}</p>
+    {% if calculations.user_size is not None %}
+    <p>Размер куба: {{ calculations.user_size }}</p>
     {% endif %}
 </div>
 {% endblock %}
