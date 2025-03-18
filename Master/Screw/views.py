@@ -5,6 +5,7 @@ from cadquery import exporters
 import logging
 import os
 import math
+from django.core.files.storage import default_storage
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -109,6 +110,8 @@ def create_spiral_extrusion(d, num_turns):
         # Создание сечения
         section = create_section(d)
 
+        N = 1000
+
         # Спиральная траектория
         spiral = cq.Workplane("XY").parametricCurve(
             lambda t: (
@@ -117,7 +120,8 @@ def create_spiral_extrusion(d, num_turns):
                 (10 * d / 3) * t
             ),
             start=0,
-            stop=num_turns
+            stop=num_turns,
+            N=int(N * num_turns)
         )
 
         # Экспортируем спираль для отладки
@@ -152,23 +156,25 @@ def screw(request):
             {'type': 'float', 'placeholder': 'Диаметр винта (мм)', 'name': 'diam'},
             {'type': 'float', 'placeholder': 'Число витков', 'name': 'turns'},
         ],
-        'error': None
+        'error': None,
+        'logs': [],
     }
 
     if request.method == "POST":
         try:
             # Валидация входных данных
-            d = float(request.POST.get("diam"))
-            turns = float(request.POST.get("turns"))
+            d = float(request.POST.get("diam").replace(',', '.'))
+            turns = float(request.POST.get("turns").replace(',', '.'))
 
             if d <= 0 or turns <= 0:
                 raise ValueError("Значения должны быть положительными")
 
-            if d > 1000 or turns > 100:
+            if d > 1000 or turns > 3.8:
                 raise ValueError("Слишком большие значения параметров")
 
             # Создание модели
             create_spiral_extrusion(d, turns)
+            context['logs'].append("Модель успешно создана.")
 
             # Отправка файла
             if os.path.exists('screw.step'):
@@ -181,8 +187,10 @@ def screw(request):
         except ValueError as e:
             context['error'] = f"Ошибка ввода: {str(e)}"
             logger.warning(f"Некорректный ввод: {str(e)}")
+            context['logs'].append(f"Ошибка ввода: {str(e)}")
         except Exception as e:
             context['error'] = f"Ошибка генерации: {str(e)}"
             logger.error(f"Ошибка генерации: {str(e)}", exc_info=True)
+            context['logs'].append(f"Ошибка генерации: {str(e)}")
 
     return render(request, 'screw.html', context)

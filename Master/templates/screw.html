@@ -23,4 +23,14 @@
     <p>Диаметр винта: {{ calculations.user_diam }}</p>
     {% endif %}
 </div>
+    <div class="logs">
+        <h3>Логи:</h3>
+        <ul>
+            {% for log in logs %}
+                <li>{{ log }}</li>
+            {% empty %}
+                <li>Логи отсутствуют.</li>
+            {% endfor %}
+        </ul>
+    </div>
 {% endblock %}
