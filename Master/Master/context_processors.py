@@ -34,6 +34,10 @@ def menu_items_context(request):
                 'value': 'Личный кабинет',
                 'url_name': "home",
             },
+            {
+                'value': 'Трехвинтовой насос',
+                'url_name': "screw",
+            },
         ],
     }
     return menu_items

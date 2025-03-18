@@ -169,7 +169,7 @@ def screw(request):
             if d <= 0 or turns <= 0:
                 raise ValueError("Значения должны быть положительными")
 
-            if d > 1000 or turns > 3.8:
+            if d > 500 or turns > 3.8:
                 raise ValueError("Слишком большие значения параметров")
 
             # Создание модели
