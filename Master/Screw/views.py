@@ -104,41 +104,60 @@ def create_section(d):
         raise
 
 
-def create_spiral_extrusion(d, num_turns):
+def create_trapezoid(d, num_turns):
+    """Создает прямоугольную трапецию для вырезания вращением."""
+    try:
+        # Вычисляем длину наклонной стороны
+
+        r_low = d * 1 / 2  # Нижний радиус
+
+        width = d / 4
+        height = d / 2
+        angle = 30
+        slant_height = height / math.tan(math.radians(angle))
+
+        # Создаем трапецию
+        trapezoid = cq.Workplane("ZY").polyline([
+            ((10 * d / 3) * num_turns + width, height + r_low - 1),
+            ((10 * d / 3) * num_turns - slant_height, height + r_low - 1),
+            ((10 * d / 3) * num_turns, r_low - 1),
+            ((10 * d / 3) * num_turns + width, r_low - 1)
+        ]).close()
+
+        exporters.export(trapezoid, 'debug_trapezoid.step')
+        logger.info("Трапеция успешно создана и экспортирована в debug_trapezoid.step")
+
+        return trapezoid
+    except Exception as e:
+        logger.error(f"Ошибка создания трапеции: {str(e)}", exc_info=True)
+        raise
+
+
+def create_body(d, num_turns):
     """Создает спиральное выдавливание с проверкой геометрии"""
     try:
         # Создание сечения
         section = create_section(d)
 
-        N = 1000
+        screw_body = section.twistExtrude(distance=(10 * d / 3) * num_turns, angleDegrees=360 * num_turns)
 
-        # Спиральная траектория
-        spiral = cq.Workplane("XY").parametricCurve(
-            lambda t: (
-                d / 2 * math.cos(2 * math.pi * t),
-                d / 2 * math.sin(2 * math.pi * t),
-                (10 * d / 3) * t
-            ),
-            start=0,
-            stop=num_turns,
-            N=int(N * num_turns)
-        )
+        # Создание сечения трапеции для вырезания
+        trapezoid = create_trapezoid(d=d, num_turns=num_turns)
 
-        # Экспортируем спираль для отладки
-        exporters.export(spiral, 'debug_spiral.step')
-        logger.info("Спираль успешно создана и экспортирована в debug_spiral.step")
+        # Создание тела вращения трапеции
+        trapezoid_revolved = trapezoid.revolve(axisStart=(0, 0, 0), axisEnd=(1, 0, 0), angleDegrees=360)
 
-        # Выдавливание
-        result = section.sweep(
-            spiral,
-            makeSolid=True,
-            isFrenet=True,
-            clean=True
-        )
+        # Вырезание тела трапеции из винта
+        result_cut = screw_body.cut(trapezoid_revolved)
+
+        top_face = cq.Workplane('XY').workplane(offset=round((10 * d / 3) * num_turns, 3))
+        circle = top_face.circle(d / 2 - 1)
+        circle_extruded = circle.extrude(math.ceil(d / 3 + 2) * 5)
+        result_union = result_cut.union(circle_extruded)
 
         # Валидация результата
-        if result.val().isValid():
-            exporters.export(result, 'screw.step')
+        if result_union.val().isValid():
+            exporters.export(result_union, 'screw.step')
             logger.info("Модель успешно создана и экспортирована в screw.step")
             return True
         else:
@@ -153,8 +172,11 @@ def screw(request):
     """Обработчик запроса с улучшенной обработкой ошибок"""
     context = {
         'calc': [
-            {'type': 'float', 'placeholder': 'Диаметр винта (мм)', 'name': 'diam'},
-            {'type': 'float', 'placeholder': 'Число витков', 'name': 'turns'},
+            {'type': 'float', 'placeholder': 'Диаметр винта, мм', 'name': 'diam'},
+            {'type': 'float', 'placeholder': 'Число витков, шт.', 'name': 'turns'},
+            {'type': 'float', 'placeholder': 'Подача, м3/ч', 'name': 'feed'},
+            {'type': 'float', 'placeholder': 'Напор, м', 'name': 'pressure'},
+            {'type': 'float', 'placeholder': 'Частота вращения, об/мин', 'name': 'rotation_speed'},
         ],
         'error': None,
         'logs': [],
@@ -173,7 +195,7 @@ def screw(request):
                 raise ValueError("Слишком большие значения параметров")
 
             # Создание модели
-            create_spiral_extrusion(d, turns)
+            create_body(d, turns)
             context['logs'].append("Модель успешно создана.")
 
             # Отправка файла
