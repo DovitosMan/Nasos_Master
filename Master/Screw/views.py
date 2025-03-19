@@ -1,11 +1,12 @@
 from django.shortcuts import render
-from django.http import HttpResponse, FileResponse
+from django.http import HttpResponse
 import cadquery as cq
-from cadquery import exporters
+from cadquery import exporters, Assembly, Workplane
 import logging
 import os
 import math
-from django.core.files.storage import default_storage
+import zipfile
+
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -20,7 +21,7 @@ def calculate_mid_point(p1, p2, center, radius, is_lower=False):
     return (mid_x, mid_y)
 
 
-def create_section(d):
+def create_section_lead(d):
     """Создает полное сечение винта с точным построением контура"""
     try:
         # Основные параметры
@@ -94,8 +95,8 @@ def create_section(d):
         section = section.close()
 
         # Экспортируем сечение для отладки
-        exporters.export(section, 'debug_section.step')
-        logger.info("Сечение успешно создано и экспортировано в debug_section.step")
+        exporters.export(section, 'debug_section_lead.step')
+        logger.info("Сечение успешно создано и экспортировано в debug_section_lead.step")
 
         return section
 
@@ -104,7 +105,7 @@ def create_section(d):
         raise
 
 
-def create_trapezoid(d, num_turns):
+def create_trapezoid_lead(d, num_turns):
     """Создает прямоугольную трапецию для вырезания вращением."""
     try:
         # Вычисляем длину наклонной стороны
@@ -124,8 +125,8 @@ def create_trapezoid(d, num_turns):
             ((10 * d / 3) * num_turns + width, r_low - 1)
         ]).close()
 
-        exporters.export(trapezoid, 'debug_trapezoid.step')
-        logger.info("Трапеция успешно создана и экспортирована в debug_trapezoid.step")
+        exporters.export(trapezoid, 'debug_trapezoid_lead.step')
+        logger.info("Трапеция успешно создана и экспортирована в debug_trapezoid_lead.step")
 
         return trapezoid
     except Exception as e:
@@ -133,16 +134,16 @@ def create_trapezoid(d, num_turns):
         raise
 
 
-def create_body(d, num_turns):
+def create_body_lead(d, num_turns):
     """Создает спиральное выдавливание с проверкой геометрии"""
     try:
         # Создание сечения
-        section = create_section(d)
+        section = create_section_lead(d)
 
         screw_body = section.twistExtrude(distance=(10 * d / 3) * num_turns, angleDegrees=360 * num_turns)
 
         # Создание сечения трапеции для вырезания
-        trapezoid = create_trapezoid(d=d, num_turns=num_turns)
+        trapezoid = create_trapezoid_lead(d=d, num_turns=num_turns)
 
         # Создание тела вращения трапеции
         trapezoid_revolved = trapezoid.revolve(axisStart=(0, 0, 0), axisEnd=(1, 0, 0), angleDegrees=360)
@@ -157,8 +158,122 @@ def create_body(d, num_turns):
 
         # Валидация результата
         if result_union.val().isValid():
-            exporters.export(result_union, 'screw.step')
-            logger.info("Модель успешно создана и экспортирована в screw.step")
+            exporters.export(result_union, 'screw_lead.step')
+            logger.info("Модель успешно создана и экспортирована в screw_lead.step")
+            return True
+        else:
+            raise RuntimeError("Некорректная геометрия после выдавливания")
+
+    except Exception as e:
+        logger.error(f"Ошибка при выдавливании: {str(e)}", exc_info=True)
+        raise
+
+
+def create_section_driven(d):
+    try:
+        # Основные параметры
+        r_5 = d * 1 / 2
+        r_6 = d * 19 / 80
+        r_7 = d * 3 / 10
+        r_8 = d * 1 / 6
+        r_9 = d * 31 / 160
+
+        # Центры дуг
+        centers = [
+            (0.0, 0.0),  # Центр дуги r5
+            (0.1394955476 * d, 0.4801468810 * d),  # Центр дуги r6 = r3
+            (0.0430406905 * d, 0.4354444762 * d),  # Центр дуги r7
+            (0.1005530476 * d, 0.3461058571 * d),  # Центр дуги r9
+            (0.0, 0.0),  # Центр дуги r8
+            (-0.0, 0.0),  # Центр дуги r8 отраженный
+            (-0.1005530476 * d, 0.3461058571 * d),  # Центр дуги r9 отраженный
+            (-0.0430406905 * d, 0.4354444762 * d),  # Центр дуги r7 отраженный
+            (-0.1394955476 * d, 0.4801468810 * d),  # Центр дуги r6 = r3 отраженный
+            (-0.0, 0.0),  # Центр дуги r5 отраженный
+            (-0.0, -0.0),  # Центр дуги r5 отраженный 2
+            (-0.1394955476 * d, -0.4801468810 * d),  # Центр дуги r6 = r3 отраженный 2
+            (-0.0430406905 * d, -0.4354444762 * d),  # Центр дуги r7 отраженный 2
+            (-0.1005530476 * d, -0.3461058571 * d),  # Центр дуги r9 отраженный 2
+            (-0.0, -0.0),  # Центр дуги r8 отраженный 2
+            (0.0, -0.0),  # Центр дуги r8 отраженный 3
+            (0.1005530476 * d, -0.3461058571 * d),  # Центр дуги r9 отраженный 3
+            (0.0430406905 * d, -0.4354444762 * d),  # Центр дуги r7 отраженный 3
+            (0.1394955476 * d, -0.4801468810 * d),  # Центр дуги r6 = r3 отраженный 3
+            (0.0, -0.0),  # Центр дуги r5 отраженный 3
+        ]
+
+        # Точки соединения дуг
+        points = [
+            (r_5, 0),  # Точка f
+            (0.34530280952381 * d, 0.361615785714286 * d),  # Точка g = b
+            (0.32422885714286 * d, 0.330882452380952 * d),  # Точка i
+            (0.20542857142857 * d, 0.183194261904762 * d),  # Точка j
+            (0.04649852380952 * d, 0.160048952380952 * d),  # Точка k
+            (0.0, r_8),  # Точка l
+            (-0.04649852380952 * d, 0.160048952380952 * d),  # Точка k отраженная
+            (-0.20542857142857 * d, 0.183194261904762 * d),  # Точка j отраженная
+            (-0.32422885714286 * d, 0.330882452380952 * d),  # Точка i отраженная
+            (-0.34530280952381 * d, 0.361615785714286 * d),  # Точка g = b отраженная
+            (-r_5, 0),  # Точка f отраженная
+            (-0.34530280952381 * d, -0.361615785714286 * d),  # Точка g = b отраженная 2
+            (-0.32422885714286 * d, -0.330882452380952 * d),  # Точка i отраженная 2
+            (-0.20542857142857 * d, -0.183194261904762 * d),  # Точка j отраженная 2
+            (-0.04649852380952 * d, -0.160048952380952 * d),  # Точка k отраженная 2
+            (-0.0, -r_8),  # Точка l отраженная 2
+            (0.04649852380952 * d, -0.160048952380952 * d),  # Точка k отраженная 3
+            (0.20542857142857 * d, -0.183194261904762 * d),  # Точка j отраженная 3
+            (0.32422885714286 * d, -0.330882452380952 * d),  # Точка i отраженная 3
+            (0.34530280952381 * d, -0.361615785714286 * d),  # Точка g = b отраженная 3
+            (r_5, -0),  # Точка f отраженная 3
+        ]
+
+        # Вычисление средних точек
+        mid_points = []
+        for i in range(len(points) - 1):
+            p1 = points[i]
+            p2 = points[i + 1]
+            center = centers[i]
+            radius = r_5 if i in [0, 9, 10, 19] else r_6 if i in [1, 8, 11, 18] \
+                else r_7 if i in [2, 7, 12, 17] else r_9 if i in [3, 6, 13, 16] else r_8
+            is_lower = True if i in [1, 2, 3, 6, 7, 8, 10, 14, 15, 19] else False
+            mid_points.append(calculate_mid_point(p1, p2, center, radius, is_lower))
+
+            # Построение четверти сечения
+        section = cq.Workplane("XY").moveTo(points[0][0], points[0][1])  # Начало в точке a
+
+        # Построение дуг в цикле
+        for i in range(len(mid_points)):
+            section = section.threePointArc(
+                (mid_points[i][0], mid_points[i][1]),  # Средняя точка
+                (points[i + 1][0], points[i + 1][1])  # Конечная точка
+            )
+
+        # Замыкаем контур
+        section = section.close()
+
+        # Экспортируем сечение для отладки
+        exporters.export(section, 'debug_section_driven.step')
+        logger.info("Сечение успешно создано и экспортировано в debug_section_driven.step")
+
+        return section
+
+    except Exception as e:
+        logger.error(f"Ошибка создания сечения: {str(e)}", exc_info=True)
+        raise
+
+
+def create_body_driven(d, num_turns):
+    """Создает спиральное выдавливание с проверкой геометрии"""
+    try:
+        # Создание сечения
+        section = create_section_driven(d)
+
+        screw_body = section.twistExtrude(distance=(100 * d / 27) * num_turns, angleDegrees=-400 * num_turns)
+
+        # Валидация результата
+        if screw_body.val().isValid():
+            exporters.export(screw_body, 'screw_driven.step')
+            logger.info("Модель успешно создана и экспортирована в screw_driven.step")
             return True
         else:
             raise RuntimeError("Некорректная геометрия после выдавливания")
@@ -191,20 +306,30 @@ def screw(request):
             if d <= 0 or turns <= 0:
                 raise ValueError("Значения должны быть положительными")
 
-            if d > 500 or turns > 3.8:
+            if d > 500 or turns > 20:
                 raise ValueError("Слишком большие значения параметров")
 
-            # Создание модели
-            create_body(d, turns)
-            context['logs'].append("Модель успешно создана.")
+            # Создание модели ведущего
+            create_body_lead(d, turns)
+            context['logs'].append("Модель ведущего успешно создана.")
+
+            # Создание модели ведомого
+            create_body_driven(d, turns)
+            context['logs'].append("Модель ведомого успешно создана.")
 
             # Отправка файла
-            if os.path.exists('screw.step'):
-                with open('screw.step', 'rb') as f:
-                    response = HttpResponse(f.read(), content_type='application/step')
-                    response['Content-Disposition'] = 'attachment; filename="screw.step"'
-                    return response
-            raise FileNotFoundError("Файл модели не был создан")
+            if not os.path.exists('screw_lead.step') or not os.path.exists('screw_driven.step'):
+                raise FileNotFoundError("Файлы моделей не были созданы")
+
+            zip_filename = 'screw_models.zip'
+            with zipfile.ZipFile(zip_filename, 'w') as zipf:
+                zipf.write('screw_lead.step', arcname='screw_lead.step')
+                zipf.write('screw_driven.step', arcname='screw_driven.step')
+
+            with open(zip_filename, 'rb') as f:
+                response = HttpResponse(f.read(), content_type='application/zip')
+                response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
+                return response
 
         except ValueError as e:
             context['error'] = f"Ошибка ввода: {str(e)}"
