@@ -12,10 +12,23 @@
             {% csrf_token %}
             {% for cal in calc %}
                 <label>
-                <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}">
+                    {% if cal.name == "diam" and calculated_diam %}
+                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ calculated_diam }}">
+                    {% elif cal.name == "rotation_speed" and calculated_rotation_speed %}
+                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ calculated_rotation_speed }}">
+                    {% elif cal.name == "feed" and input_feed is not None %}
+                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ input_feed }}">
+                    {% elif cal.name == "pressure" and input_pressure is not None %}
+                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ input_pressure }}">
+                    {% elif cal.name == "turns" and turns is not None %}
+                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ turns }}">
+                    {% else %}
+                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}">
+                    {% endif %}
                 </label>
             {% endfor %}
-            <input class="button" type="submit" value="Скачать модель step">
+            <input class="button" type="submit" name="calculate_params" value="Вычислить параметры">
+            <input class="button" type="submit" name="download_model" value="Скачать модель">
         </form>
     </div>
 <div>

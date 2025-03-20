@@ -151,7 +151,7 @@ def create_body_lead(d, num_turns):
         # Вырезание тела трапеции из винта
         result_cut = screw_body.cut(trapezoid_revolved)
 
-        top_face = cq.Workplane('XY').workplane(offset=round((10 * d / 3) * num_turns, 3))
+        top_face = cq.Workplane('XY').workplane(offset=(10 * d / 3) * num_turns)
         circle = top_face.circle(d / 2 - 1)
         circle_extruded = circle.extrude(math.ceil(d / 3 + 2) * 5)
         result_union = result_cut.union(circle_extruded)
@@ -267,12 +267,20 @@ def create_body_driven(d, num_turns):
     try:
         # Создание сечения
         section = create_section_driven(d)
+        screw_length = (100 * d / 27) * num_turns
 
-        screw_body = section.twistExtrude(distance=(100 * d / 27) * num_turns, angleDegrees=-400 * num_turns)
+        screw_body = section.twistExtrude(screw_length, angleDegrees=-400 * num_turns)
+
+        top_face = cq.Workplane('XY').workplane(offset=screw_length)
+        circle = top_face.circle(d / 2)
+        circle_extruded = circle.extrude(math.ceil(d / 6) * 5)
+        result_union = screw_body.union(circle_extruded)
+
+        filleted_body = result_union
 
         # Валидация результата
-        if screw_body.val().isValid():
-            exporters.export(screw_body, 'screw_driven.step')
+        if filleted_body.val().isValid():
+            exporters.export(filleted_body, 'screw_driven.step')
             logger.info("Модель успешно создана и экспортирована в screw_driven.step")
             return True
         else:
@@ -281,6 +289,104 @@ def create_body_driven(d, num_turns):
     except Exception as e:
         logger.error(f"Ошибка при выдавливании: {str(e)}", exc_info=True)
         raise
+
+
+def create_assembly(d):
+    try:
+        lead_screw = cq.importers.importStep('screw_lead.step')
+        driven_screw = cq.importers.importStep('screw_driven.step')
+
+        assembly = cq.Assembly()
+        assembly.add(lead_screw, name='lead_screw', loc=cq.Location(cq.Vector(0, 0, 0)))
+        assembly.add(driven_screw, name='driven_screw_1', loc=cq.Location(cq.Vector(0, d, 0)))
+        assembly.add(driven_screw, name='driven_screw_2', loc=cq.Location(cq.Vector(0, -d, 0)))
+
+        exporters.export(assembly.toCompound(), 'pump_assembly.step')
+        logger.info('Сборка успешно создана и экспортирована в pump_assembly.step')
+
+        return assembly
+
+    except Exception as e:
+        logger.error(f"Ошибка создания сборки: {str(e)}", exc_info=True)
+        raise
+
+
+def calculate_data(feed, pressure, rotation_speed=None):
+    kpd_vol_pre = 0.9
+    feed_ls = feed * 5 / 18   # 5 / 18 коэф перевода из м3/ч в л/с
+    pressure_kg_sm = pressure * 0.1  # перевод из м в кгс/см2
+
+    rotation_speed_max = math.floor(8175 / math.sqrt(feed_ls / kpd_vol_pre))  # об/мин
+    len_iterations = math.floor(rotation_speed_max / 50)
+
+    if len_iterations <= 0:
+        raise ValueError("Невозможно выполнить расчет: недостаточное количество итераций.")
+
+    n_rec = []
+    d_rec = []
+    feed_rec = []
+    powers = []
+
+    for i in range(len_iterations):
+        n_0 = 50
+        n_i = n_0 * i + n_0
+        d_i_pre = 10 * math.pow(feed_ls / (0.068924 * n_i * kpd_vol_pre * math.pow(10, 6)), 1/3)
+        d_i = math.ceil(d_i_pre * 1000) / 1000
+        feed_i_pre = 0.068924 * math.pow(d_i, 3) * n_i * kpd_vol_pre
+        feed_i_d = feed_i_pre * 60 * 60
+        power_i = pressure_kg_sm * feed_i_pre * 1000
+
+        if feed_i_d >= feed:
+            n_rec.append(n_i)
+            d_rec.append(d_i)
+            feed_rec.append(feed_i_d)
+            powers.append(power_i)
+
+    combined = list(zip(n_rec, d_rec, feed_rec, powers))
+    combined_sorted = sorted(combined, key=lambda x: x[3])
+    combined_filtered = combined_sorted[:5]
+    n_rec, d_rec, feed_rec, powers = zip(*combined_filtered)
+
+    n_rec = list(n_rec)
+    d_rec = list(d_rec)
+    feed_rec = list(feed_rec)
+    powers = list(powers)
+
+    if rotation_speed is not None:
+        d_i_pre = 10 * math.pow(feed_ls / (0.068924 * rotation_speed * kpd_vol_pre * math.pow(10, 6)), 1 / 3)
+        d_i = math.ceil(d_i_pre * 1000) / 1000
+        feed_i_pre = 0.068924 * math.pow(d_i, 3) * rotation_speed * kpd_vol_pre
+        feed_i_d = feed_i_pre * 60 * 60
+        power_i = pressure_kg_sm * feed_i_pre * 1000
+
+        n_rec.append(rotation_speed)
+        d_rec.append(d_i)
+        feed_rec.append(feed_i_d)
+        powers.append(power_i)
+
+        return [n_rec[-1], d_rec[-1], feed_rec[-1], powers[-1]]
+
+    if len(feed_rec) >= 2:
+        index = -1  # Второе наибольшее значение (по индексу -2)
+        return [n_rec[index]], [d_rec[index]], [feed_rec[index]], [powers[index]]
+    elif len(feed_rec) == 1:
+        return [n_rec[0]], [d_rec[0]], [feed_rec[0]], [powers[0]]
+    else:
+        return [], [], [], []
+
+
+def calculate_turns(pressure):
+    """Определяет число витков на основе давления."""
+    if pressure < 100:
+        return 1.5
+    elif 100 <= pressure < 300:
+        return 2
+    elif 300 <= pressure < 600:
+        return 3
+    elif 600 <= pressure < 1000:
+        return 5
+    else:
+        raise ValueError("Давление должно быть меньше 1000")
 
 
 def screw(request):
@@ -299,37 +405,84 @@ def screw(request):
 
     if request.method == "POST":
         try:
-            # Валидация входных данных
-            d = float(request.POST.get("diam").replace(',', '.'))
-            turns = float(request.POST.get("turns").replace(',', '.'))
+            feed = float(request.POST.get("feed").replace(',', '.'))
+            pressure = float(request.POST.get("pressure").replace(',', '.'))
 
-            if d <= 0 or turns <= 0:
-                raise ValueError("Значения должны быть положительными")
+            if feed <= 0 or pressure <= 0:
+                raise ValueError("Все входные значения должны быть положительными числами.")
 
-            if d > 500 or turns > 20:
-                raise ValueError("Слишком большие значения параметров")
+            rotation_speed = request.POST.get("rotation_speed")
+            if rotation_speed:
+                rotation_speed = float(rotation_speed.replace(',', '.'))
+            else:
+                rotation_speed = None
 
-            # Создание модели ведущего
-            create_body_lead(d, turns)
-            context['logs'].append("Модель ведущего успешно создана.")
+            n_rec, d_rec, feed_rec, powers = calculate_data(feed, pressure, rotation_speed)
 
-            # Создание модели ведомого
-            create_body_driven(d, turns)
-            context['logs'].append("Модель ведомого успешно создана.")
+            if d_rec:
+                if isinstance(d_rec, list):  # Если d_rec — это список
+                    context['calculated_diam'] = d_rec[0] * 1000  # Переводим из метров в миллиметры
+                else:  # Если d_rec — это число
+                    context['calculated_diam'] = d_rec * 1000
 
-            # Отправка файла
-            if not os.path.exists('screw_lead.step') or not os.path.exists('screw_driven.step'):
-                raise FileNotFoundError("Файлы моделей не были созданы")
+            if n_rec:
+                if isinstance(n_rec, list):  # Если n_rec — это список
+                    context['calculated_rotation_speed'] = n_rec[0]
+                else:  # Если n_rec — это число
+                    context['calculated_rotation_speed'] = n_rec
 
-            zip_filename = 'screw_models.zip'
-            with zipfile.ZipFile(zip_filename, 'w') as zipf:
-                zipf.write('screw_lead.step', arcname='screw_lead.step')
-                zipf.write('screw_driven.step', arcname='screw_driven.step')
+            context['input_feed'] = feed
+            context['input_pressure'] = pressure
+            context['input_rotation_speed'] = rotation_speed
 
-            with open(zip_filename, 'rb') as f:
-                response = HttpResponse(f.read(), content_type='application/zip')
-                response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
-                return response
+            turns = calculate_turns(pressure)  # Определяем число витков на основе давления
+            context['turns'] = turns  # Добавляем число витков в контекст
+
+            context['logs'].append(f"Рассчитанная подача: {feed_rec}")
+            context['logs'].append(f"Рассчитанная мощность: {powers}")
+            context['logs'].append(f"Давление: {pressure} м. Определено число витков: {turns}")
+
+            # Если нажата кнопка "Скачать модель", создаем файлы
+            if 'download_model' in request.POST:
+                d = float(request.POST.get("diam").replace(',', '.'))
+                turns = float(request.POST.get("turns").replace(',', '.'))
+
+                if d <= 0 or turns <= 0:
+                    raise ValueError("Значения должны быть положительными")
+
+                if d > 500 or turns > 20:
+                    raise ValueError("Слишком большие значения параметров")
+
+                # Создание модели ведущего
+                context['logs'].append("Начинаем создание модели ведущего...")
+                create_body_lead(d, turns)
+                context['logs'].append("Модель ведущего успешно создана и экспортирована.")
+
+                # Создание модели ведомого
+                context['logs'].append("Начинаем создание модели ведомого...")
+                create_body_driven(d, turns)
+                context['logs'].append("Модель ведомого успешно создана и экспортирована.")
+
+                # Создание сборки
+                context['logs'].append("Начинаем создание сборки...")
+                create_assembly(d)
+                context['logs'].append("Сборка успешно создана и экспортирована.")
+
+                # Отправка файла
+                if not os.path.exists('screw_lead.step') or not os.path.exists('screw_driven.step') \
+                        or not os.path.exists('pump_assembly.step'):
+                    raise FileNotFoundError("Файлы моделей не были созданы")
+
+                zip_filename = 'screw_models.zip'
+                with zipfile.ZipFile(zip_filename, 'w') as zipf:
+                    zipf.write('screw_lead.step', arcname='screw_lead.step')
+                    zipf.write('screw_driven.step', arcname='screw_driven.step')
+                    zipf.write('pump_assembly.step', arcname='pump_assembly.step')
+
+                with open(zip_filename, 'rb') as f:
+                    response = HttpResponse(f.read(), content_type='application/zip')
+                    response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
+                    return response
 
         except ValueError as e:
             context['error'] = f"Ошибка ввода: {str(e)}"
