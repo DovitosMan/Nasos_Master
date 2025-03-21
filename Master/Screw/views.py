@@ -344,13 +344,19 @@ def calculate_data(feed, pressure, rotation_speed=None):
 
     combined = list(zip(n_rec, d_rec, feed_rec, powers))
     combined_sorted = sorted(combined, key=lambda x: x[3])
-    combined_filtered = combined_sorted[:5]
+    combined_filtered = combined_sorted[:7]
     n_rec, d_rec, feed_rec, powers = zip(*combined_filtered)
 
     n_rec = list(n_rec)
     d_rec = list(d_rec)
     feed_rec = list(feed_rec)
     powers = list(powers)
+
+    print(n_rec)
+    print(d_rec)
+    print(feed_rec)
+    print(powers)
+    print(rotation_speed_max)
 
     if rotation_speed is not None:
         d_i_pre = 10 * math.pow(feed_ls / (0.068924 * rotation_speed * kpd_vol_pre * math.pow(10, 6)), 1 / 3)
@@ -366,13 +372,29 @@ def calculate_data(feed, pressure, rotation_speed=None):
 
         return [n_rec[-1], d_rec[-1], feed_rec[-1], powers[-1]]
 
-    if len(feed_rec) >= 2:
-        index = -1  # Второе наибольшее значение (по индексу -2)
-        return [n_rec[index]], [d_rec[index]], [feed_rec[index]], [powers[index]]
-    elif len(feed_rec) == 1:
-        return [n_rec[0]], [d_rec[0]], [feed_rec[0]], [powers[0]]
+    n_rec_filtered = [n for n in n_rec if n > 1450]  # Фильтрация значений с частотой > 1450
+    if n_rec_filtered:
+        # Фильтруем все параметры по частоте > 1450
+        filtered_combined = [(n, d, f, p) for n, d, f, p in zip(n_rec, d_rec, feed_rec, powers) if n > 1450]
+        if len(filtered_combined) > 2:  # Если больше 2 значений с частотой > 1450
+            # Сортируем по мощности и выбираем элемент с наименьшей мощностью
+            filtered_combined_sorted_by_power = sorted(filtered_combined, key=lambda x: x[3])
+            selected_item = filtered_combined_sorted_by_power[0]
+            return [selected_item[0]], [selected_item[1]], [selected_item[2]], [selected_item[3]]
+        else:
+            # Если 1 или 2 значения, возвращаем первое
+            selected_item = filtered_combined[0]
+            return [selected_item[0]], [selected_item[1]], [selected_item[2]], [selected_item[3]]
     else:
-        return [], [], [], []
+        # Если нет значений > 1450, рассчитаем параметры для 1450 оборотов
+        n_i = 1450  # Устанавливаем частоту 1450 оборотов
+        d_i_pre = 10 * math.pow(feed_ls / (0.068924 * n_i * kpd_vol_pre * math.pow(10, 6)), 1 / 3)
+        d_i = math.ceil(d_i_pre * 1000) / 1000  # Округляем до 3 знаков после запятой
+        feed_i_pre = 0.068924 * math.pow(d_i, 3) * n_i * kpd_vol_pre
+        feed_i_d = feed_i_pre * 60 * 60  # Переводим подачу в м3/ч
+        power_i = pressure_kg_sm * feed_i_pre * 1000  # Рассчитываем мощность
+
+        return [n_i], [d_i], [feed_i_d], [power_i]
 
 
 def calculate_turns(pressure):

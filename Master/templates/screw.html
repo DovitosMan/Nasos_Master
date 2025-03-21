@@ -29,6 +29,7 @@
             {% endfor %}
             <input class="button" type="submit" name="calculate_params" value="Вычислить параметры">
             <input class="button" type="submit" name="download_model" value="Скачать модель">
+            <input class="button" type="reset" value="Очистить форму">
         </form>
     </div>
 <div>
@@ -46,4 +47,24 @@
             {% endfor %}
         </ul>
     </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Находим кнопку "Очистить форму" по её ID
+        const clearButton = document.getElementById("clear-form");
+
+        // Добавляем обработчик события
+        clearButton.addEventListener("click", function(event) {
+            // Находим все поля формы
+            const formInputs = document.querySelectorAll("form input[type='text'], form input[type='number']");
+
+            // Очищаем каждое поле
+            formInputs.forEach(input => {
+                input.value = "";  // Устанавливаем пустое значение
+            });
+
+            // Отменяем стандартное поведение кнопки reset
+            event.preventDefault();
+        });
+    });
+    </script>
 {% endblock %}
