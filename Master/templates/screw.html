@@ -22,6 +22,8 @@
                         <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ input_pressure }}">
                     {% elif cal.name == "turns" and turns is not None %}
                         <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ turns }}">
+                    {% elif cal.name == "viscosity" and input_viscosity is not None %}
+                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ input_viscosity }}">
                     {% else %}
                         <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}">
                     {% endif %}
@@ -29,42 +31,35 @@
             {% endfor %}
             <input class="button" type="submit" name="calculate_params" value="Вычислить параметры">
             <input class="button" type="submit" name="download_model" value="Скачать модель">
-            <input class="button" type="reset" value="Очистить форму">
         </form>
     </div>
+    {% if is_low_pressure %}
+        <div class="alert alert-warning" role="alert">
+            Внимание: давление слишком низкое, что может привести к некорректной работе насоса.
+        </div>
+    {% endif %}
 <div>
     {% if calculations.user_diam is not None %}
     <p>Диаметр винта: {{ calculations.user_diam }}</p>
     {% endif %}
 </div>
     <div class="logs">
-        <h3>Логи:</h3>
+        <h3></h3>
         <ul>
             {% for log in logs %}
                 <li>{{ log }}</li>
             {% empty %}
-                <li>Логи отсутствуют.</li>
+                <li></li>
             {% endfor %}
         </ul>
     </div>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Находим кнопку "Очистить форму" по её ID
-        const clearButton = document.getElementById("clear-form");
-
-        // Добавляем обработчик события
-        clearButton.addEventListener("click", function(event) {
-            // Находим все поля формы
-            const formInputs = document.querySelectorAll("form input[type='text'], form input[type='number']");
-
-            // Очищаем каждое поле
-            formInputs.forEach(input => {
-                input.value = "";  // Устанавливаем пустое значение
-            });
-
-            // Отменяем стандартное поведение кнопки reset
-            event.preventDefault();
-        });
-    });
-    </script>
+    {% if plots %}
+        {% for plot in plots %}
+            <div>
+                {{ plot|safe }}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>Графики отсутствуют.</p>
+    {% endif %}
 {% endblock %}

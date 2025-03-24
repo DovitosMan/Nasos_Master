@@ -1,20 +1,19 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 import cadquery as cq
-from cadquery import exporters, Assembly, Workplane
+from cadquery import exporters
 import logging
 import os
 import math
 import zipfile
+import numpy as np
+import plotly.graph_objects as go
 
-
-# Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 def calculate_mid_point(p1, p2, center, radius, is_lower=False):
-    """Вычисляет среднюю точку на дуге между двумя точками."""
     mid_x = (p1[0] + p2[0]) / 2
     y_offset = math.sqrt(radius**2 - (mid_x - center[0])**2)
     mid_y = center[1] - y_offset if is_lower else center[1] + y_offset
@@ -22,15 +21,12 @@ def calculate_mid_point(p1, p2, center, radius, is_lower=False):
 
 
 def create_section_lead(d):
-    """Создает полное сечение винта с точным построением контура"""
     try:
-        # Основные параметры
         R = d * 5 / 6  # Главный радиус
         r = d * 9 / 16  # Боковой радиус
         r_small = d * 19 / 80  # Малый радиус
         r_low = d * 1 / 2  # Нижний радиус
 
-        # Центры дуг
         centers = [
             (0.0, 0.0),  # Центр нижней дуги
             (0.1394955476 * d, 0.4801468810 * d),  # Центр малой дуги
@@ -50,7 +46,6 @@ def create_section_lead(d):
             (0.0, -0.0),  # Центр нижней дуги отраженный 3
         ]
 
-        # Точки соединения дуг
         points = [
             (r_low, 0),  # Точка a
             (0.34530280952381 * d, 0.361615785714286 * d),  # Точка b
@@ -71,7 +66,6 @@ def create_section_lead(d):
             (r_low, -0),  # Точка a отраженная 3
         ]
 
-        # Вычисление средних точек
         mid_points = []
         for i in range(len(points) - 1):
             p1 = points[i]
@@ -81,20 +75,16 @@ def create_section_lead(d):
             is_lower = True if i in [1, 6, 8, 10, 11, 12, 13, 15] else False
             mid_points.append(calculate_mid_point(p1, p2, center, radius, is_lower))
 
-        # Построение четверти сечения
         section = cq.Workplane("XY").moveTo(points[0][0], points[0][1])  # Начало в точке a
 
-        # Построение дуг в цикле
         for i in range(len(mid_points)):
             section = section.threePointArc(
                 (mid_points[i][0], mid_points[i][1]),  # Средняя точка
                 (points[i + 1][0], points[i + 1][1])  # Конечная точка
             )
 
-        # Замыкаем контур
         section = section.close()
 
-        # Экспортируем сечение для отладки
         exporters.export(section, 'debug_section_lead.step')
         logger.info("Сечение успешно создано и экспортировано в debug_section_lead.step")
 
@@ -106,18 +96,13 @@ def create_section_lead(d):
 
 
 def create_trapezoid_lead(d, num_turns):
-    """Создает прямоугольную трапецию для вырезания вращением."""
     try:
-        # Вычисляем длину наклонной стороны
-
         r_low = d * 1 / 2  # Нижний радиус
-
         width = d / 4
         height = d / 2
         angle = 30
         slant_height = height / math.tan(math.radians(angle))
 
-        # Создаем трапецию
         trapezoid = cq.Workplane("ZY").polyline([
             ((10 * d / 3) * num_turns + width, height + r_low - 1),
             ((10 * d / 3) * num_turns - slant_height, height + r_low - 1),
@@ -135,20 +120,15 @@ def create_trapezoid_lead(d, num_turns):
 
 
 def create_body_lead(d, num_turns):
-    """Создает спиральное выдавливание с проверкой геометрии"""
     try:
-        # Создание сечения
         section = create_section_lead(d)
 
         screw_body = section.twistExtrude(distance=(10 * d / 3) * num_turns, angleDegrees=360 * num_turns)
 
-        # Создание сечения трапеции для вырезания
         trapezoid = create_trapezoid_lead(d=d, num_turns=num_turns)
 
-        # Создание тела вращения трапеции
         trapezoid_revolved = trapezoid.revolve(axisStart=(0, 0, 0), axisEnd=(1, 0, 0), angleDegrees=360)
 
-        # Вырезание тела трапеции из винта
         result_cut = screw_body.cut(trapezoid_revolved)
 
         top_face = cq.Workplane('XY').workplane(offset=(10 * d / 3) * num_turns)
@@ -156,7 +136,6 @@ def create_body_lead(d, num_turns):
         circle_extruded = circle.extrude(math.ceil(d / 3 + 2) * 5)
         result_union = result_cut.union(circle_extruded)
 
-        # Валидация результата
         if result_union.val().isValid():
             exporters.export(result_union, 'screw_lead.step')
             logger.info("Модель успешно создана и экспортирована в screw_lead.step")
@@ -171,14 +150,12 @@ def create_body_lead(d, num_turns):
 
 def create_section_driven(d):
     try:
-        # Основные параметры
         r_5 = d * 1 / 2
         r_6 = d * 19 / 80
         r_7 = d * 3 / 10
         r_8 = d * 1 / 6
         r_9 = d * 31 / 160
 
-        # Центры дуг
         centers = [
             (0.0, 0.0),  # Центр дуги r5
             (0.1394955476 * d, 0.4801468810 * d),  # Центр дуги r6 = r3
@@ -202,7 +179,6 @@ def create_section_driven(d):
             (0.0, -0.0),  # Центр дуги r5 отраженный 3
         ]
 
-        # Точки соединения дуг
         points = [
             (r_5, 0),  # Точка f
             (0.34530280952381 * d, 0.361615785714286 * d),  # Точка g = b
@@ -227,7 +203,6 @@ def create_section_driven(d):
             (r_5, -0),  # Точка f отраженная 3
         ]
 
-        # Вычисление средних точек
         mid_points = []
         for i in range(len(points) - 1):
             p1 = points[i]
@@ -238,20 +213,16 @@ def create_section_driven(d):
             is_lower = True if i in [1, 2, 3, 6, 7, 8, 10, 14, 15, 19] else False
             mid_points.append(calculate_mid_point(p1, p2, center, radius, is_lower))
 
-            # Построение четверти сечения
         section = cq.Workplane("XY").moveTo(points[0][0], points[0][1])  # Начало в точке a
 
-        # Построение дуг в цикле
         for i in range(len(mid_points)):
             section = section.threePointArc(
                 (mid_points[i][0], mid_points[i][1]),  # Средняя точка
                 (points[i + 1][0], points[i + 1][1])  # Конечная точка
             )
 
-        # Замыкаем контур
         section = section.close()
 
-        # Экспортируем сечение для отладки
         exporters.export(section, 'debug_section_driven.step')
         logger.info("Сечение успешно создано и экспортировано в debug_section_driven.step")
 
@@ -263,9 +234,7 @@ def create_section_driven(d):
 
 
 def create_body_driven(d, num_turns):
-    """Создает спиральное выдавливание с проверкой геометрии"""
     try:
-        # Создание сечения
         section = create_section_driven(d)
         screw_length = (100 * d / 27) * num_turns
 
@@ -278,7 +247,6 @@ def create_body_driven(d, num_turns):
 
         filleted_body = result_union
 
-        # Валидация результата
         if filleted_body.val().isValid():
             exporters.export(filleted_body, 'screw_driven.step')
             logger.info("Модель успешно создана и экспортирована в screw_driven.step")
@@ -312,93 +280,63 @@ def create_assembly(d):
 
 
 def calculate_data(feed, pressure, rotation_speed=None):
-    kpd_vol_pre = 0.9
-    feed_ls = feed * 5 / 18   # 5 / 18 коэф перевода из м3/ч в л/с
-    pressure_kg_sm = pressure * 0.1  # перевод из м в кгс/см2
+    kpd_vol_pre = 0.85
+    feed_ls = feed * 5 / 18  # Перевод из м3/ч в л/с
+    pressure_kg_sm = pressure * 0.1  # Перевод из м в кгс/см2
 
-    rotation_speed_max = math.floor(8175 / math.sqrt(feed_ls / kpd_vol_pre))  # об/мин
+    rotation_speed_max = math.floor(8175 / math.sqrt(feed_ls / kpd_vol_pre))
     len_iterations = math.floor(rotation_speed_max / 50)
 
     if len_iterations <= 0:
         raise ValueError("Невозможно выполнить расчет: недостаточное количество итераций.")
 
-    n_rec = []
-    d_rec = []
-    feed_rec = []
-    powers = []
-
-    for i in range(len_iterations):
-        n_0 = 50
-        n_i = n_0 * i + n_0
-        d_i_pre = 10 * math.pow(feed_ls / (0.068924 * n_i * kpd_vol_pre * math.pow(10, 6)), 1/3)
+    def calculate_parameters(n):
+        d_i_pre = 10 * math.pow(feed_ls / (0.068924 * n * kpd_vol_pre * math.pow(10, 6)), 1 / 3)
         d_i = math.ceil(d_i_pre * 1000) / 1000
-        feed_i_pre = 0.068924 * math.pow(d_i, 3) * n_i * kpd_vol_pre
-        feed_i_d = feed_i_pre * 60 * 60
-        power_i = pressure_kg_sm * feed_i_pre * 1000
+        feed_i_pre = math.ceil(0.068924 * math.pow(d_i, 3) * n * 1000000) / 1000000
+        feed_i_d = math.ceil(feed_i_pre * 60 * 60 * 1000000) / 1000000
+        power_i = math.ceil(pressure_kg_sm * feed_i_pre * 1000 * 1000) / 1000
+        return n, d_i, feed_i_d, power_i
 
-        if feed_i_d >= feed:
-            n_rec.append(n_i)
-            d_rec.append(d_i)
-            feed_rec.append(feed_i_d)
-            powers.append(power_i)
+    n_rec, d_rec, feed_rec, powers = [], [], [], []
+    for i in range(1, len_iterations + 1):
+        n_i = 50 * i
+        n, d, f, p = calculate_parameters(n_i)
+        if f >= feed:
+            n_rec.append(n)
+            d_rec.append(d)
+            feed_rec.append(f)
+            powers.append(p)
 
     combined = list(zip(n_rec, d_rec, feed_rec, powers))
     combined_sorted = sorted(combined, key=lambda x: x[3])
     combined_filtered = combined_sorted[:7]
     n_rec, d_rec, feed_rec, powers = zip(*combined_filtered)
-
-    n_rec = list(n_rec)
-    d_rec = list(d_rec)
-    feed_rec = list(feed_rec)
-    powers = list(powers)
-
-    print(n_rec)
-    print(d_rec)
-    print(feed_rec)
-    print(powers)
-    print(rotation_speed_max)
+    n_rec, d_rec, feed_rec, powers = list(n_rec), list(d_rec), list(feed_rec), list(powers)
 
     if rotation_speed is not None:
-        d_i_pre = 10 * math.pow(feed_ls / (0.068924 * rotation_speed * kpd_vol_pre * math.pow(10, 6)), 1 / 3)
-        d_i = math.ceil(d_i_pre * 1000) / 1000
-        feed_i_pre = 0.068924 * math.pow(d_i, 3) * rotation_speed * kpd_vol_pre
-        feed_i_d = feed_i_pre * 60 * 60
-        power_i = pressure_kg_sm * feed_i_pre * 1000
+        n, d, f, p = calculate_parameters(rotation_speed)
+        return [n, d, f, p]
 
-        n_rec.append(rotation_speed)
-        d_rec.append(d_i)
-        feed_rec.append(feed_i_d)
-        powers.append(power_i)
-
-        return [n_rec[-1], d_rec[-1], feed_rec[-1], powers[-1]]
-
-    n_rec_filtered = [n for n in n_rec if n > 1450]  # Фильтрация значений с частотой > 1450
+    n_rec_filtered = [n for n in n_rec if n > 1450]
     if n_rec_filtered:
-        # Фильтруем все параметры по частоте > 1450
         filtered_combined = [(n, d, f, p) for n, d, f, p in zip(n_rec, d_rec, feed_rec, powers) if n > 1450]
-        if len(filtered_combined) > 2:  # Если больше 2 значений с частотой > 1450
-            # Сортируем по мощности и выбираем элемент с наименьшей мощностью
+        if len(filtered_combined) > 2:
             filtered_combined_sorted_by_power = sorted(filtered_combined, key=lambda x: x[3])
             selected_item = filtered_combined_sorted_by_power[0]
-            return [selected_item[0]], [selected_item[1]], [selected_item[2]], [selected_item[3]]
         else:
-            # Если 1 или 2 значения, возвращаем первое
             selected_item = filtered_combined[0]
-            return [selected_item[0]], [selected_item[1]], [selected_item[2]], [selected_item[3]]
+        return [selected_item[0]], [selected_item[1]], [selected_item[2]], [selected_item[3]]
     else:
-        # Если нет значений > 1450, рассчитаем параметры для 1450 оборотов
-        n_i = 1450  # Устанавливаем частоту 1450 оборотов
-        d_i_pre = 10 * math.pow(feed_ls / (0.068924 * n_i * kpd_vol_pre * math.pow(10, 6)), 1 / 3)
-        d_i = math.ceil(d_i_pre * 1000) / 1000  # Округляем до 3 знаков после запятой
-        feed_i_pre = 0.068924 * math.pow(d_i, 3) * n_i * kpd_vol_pre
-        feed_i_d = feed_i_pre * 60 * 60  # Переводим подачу в м3/ч
-        power_i = pressure_kg_sm * feed_i_pre * 1000  # Рассчитываем мощность
-
-        return [n_i], [d_i], [feed_i_d], [power_i]
+        if rotation_speed_max < 1450:
+            n_i = (rotation_speed_max // 50) * 50
+        else:
+            n_i = 1450
+        n, d, f, p = calculate_parameters(n_i)
+        return [n], [d], [f], [p]
 
 
 def calculate_turns(pressure):
-    """Определяет число витков на основе давления."""
     if pressure < 100:
         return 1.5
     elif 100 <= pressure < 300:
@@ -411,8 +349,265 @@ def calculate_turns(pressure):
         raise ValueError("Давление должно быть меньше 1000")
 
 
+def calculate_common_params(d, pressure, num=100):
+    velocity = math.ceil(83.331379 * d * 1000000) / 1000000  # м/с
+    pressure_values = np.linspace(0, pressure * 1.1, num=num)
+    return velocity, pressure_values
+
+
+def calculate_feed_loss(d, velocity, pressure_values):
+    return 3 * d * velocity * np.sqrt(pressure_values) * 0.001 * 60 * 60 / 11
+
+
+def create_plotly_figure(plots, title, xaxis_title, yaxis_title):
+    fig = go.Figure()
+    for plot in plots:
+        fig.add_scatter(**plot)
+    fig.update_layout(
+        title=title,
+        xaxis_title=xaxis_title,
+        yaxis_title=yaxis_title,
+        hovermode='x',
+        showlegend=True
+    )
+    return fig
+
+
+def calculate_qh_characteristic(d, feed, pressure):
+    velocity, pressure_values = calculate_common_params(d, pressure)
+    feed_loss = calculate_feed_loss(d, velocity, pressure_values)
+    feed_real = feed - feed_loss
+
+    plots = [
+        {'x': pressure_values, 'y': np.full_like(pressure_values, feed), 'name': 'Теоретическая подача'},
+        {'x': pressure_values, 'y': feed_real, 'name': 'Фактическая подача'}
+    ]
+
+    fig = create_plotly_figure(plots, 'Характеристика подачи', 'Напор, м', 'Подача, м3/ч')
+    return fig.to_html(full_html=False)
+
+
+def calculate_kpd_characteristic(d, feed, pressure, viscosity, rotation_speed):
+    velocity, pressure_values = calculate_common_params(d, pressure)
+    feed_loss = calculate_feed_loss(d, velocity, pressure_values)
+    feed_real = feed - feed_loss
+
+    power_t = (pressure_values / 10) * (feed_real * 1000 / 60 / 60)
+
+    viscosity_sm = viscosity * math.pow(10, -2)
+    viscosity_e = (viscosity_sm + math.sqrt(math.pow(viscosity_sm, 2) + 0.03996)) / (2 * 0.074)
+    power_viscosity_loss = 0.4 * math.pow(viscosity_e / 6.4, 1 / 1.8)
+
+    moment_lead = 0.727499 * (pressure_values / 10) * (math.pow(d * 10, 3)) * 1000
+    moment_driven = -0.034664 * (pressure_values / 10) * (math.pow(d * 10, 3)) * 1000
+    moment = moment_lead + 2 * moment_driven
+    power_moment_loss = moment * rotation_speed / 60 / 1019.8
+
+    force_radial = 1.399945 * (pressure_values / 10) * math.pow(d * 10, 2) * 100
+    power_friction_loss = (np.pi * rotation_speed * force_radial * d / 60) * 0.009807
+
+    power_loss = power_viscosity_loss + power_moment_loss + power_friction_loss
+    kpd_mechanical = np.where(
+        power_t != 0,
+        np.clip(100 * (1 - power_loss / power_t), 0, 100),
+        0
+    )
+
+    kpd_volumetric = np.where(
+        feed != 0,
+        np.clip(100 * (feed_real / feed), 0, 100),
+        0
+    )
+
+    kpd_total = kpd_volumetric / 100 * kpd_mechanical / 100 * 100
+
+    is_low_pressure = kpd_total[1] == 0
+
+    plots = [
+        {'x': pressure_values, 'y': np.full_like(pressure_values, kpd_volumetric), 'name': 'Объемный КПД'},
+        {'x': pressure_values, 'y': np.full_like(pressure_values, kpd_mechanical), 'name': 'Механический КПД'},
+        {'x': pressure_values, 'y': np.full_like(pressure_values, kpd_total), 'name': 'Полный КПД'}
+    ]
+
+    fig = create_plotly_figure(plots, 'Характеристика КПД', 'Напор, м', 'КПД, %')
+    return fig.to_html(full_html=False), is_low_pressure
+
+
+def calculate_power_characteristic(d, feed, pressure, viscosity, num_turns, rotation_speed):
+    velocity, pressure_values = calculate_common_params(d, pressure)
+    feed_loss = calculate_feed_loss(d, velocity, pressure_values)
+    feed_real = feed - feed_loss
+
+    kpd_volumetric = (feed_real / feed) * 100
+
+    power_t = (pressure_values / 10) * (feed_real * 1000 / 60 / 60)
+
+    viscosity_sm = viscosity * math.pow(10, -2)
+    viscosity_e = (viscosity_sm + math.sqrt(math.pow(viscosity_sm, 2) + 0.03996)) / (2 * 0.074)
+    power_viscosity_loss = 0.4 * math.pow(viscosity_e / 6.4, 1 / 1.8)
+
+    length = 10 * d * num_turns / 3
+    power_length_loss = 100 * pressure_values * length * math.pow(d, 2)
+
+    moment_lead = 0.727499 * (pressure_values / 10) * (math.pow(d * 10, 3)) * 1000
+    moment_driven = -0.034664 * (pressure_values / 10) * (math.pow(d * 10, 3)) * 1000
+    moment = moment_lead + 2 * moment_driven
+    power_moment_loss = moment * rotation_speed / 60 / 1019.8
+
+    force_radial = 1.399945 * (pressure_values / 10) * math.pow(d * 10, 2) * 100
+    power_friction_loss = (np.pi * rotation_speed * force_radial * d / 60) * 0.009807
+
+    power_loss = power_viscosity_loss + power_moment_loss + power_friction_loss
+    kpd_mechanical = np.zeros_like(power_t)
+    kpd_mechanical[1:] = np.where(power_t[1:] != 0, (1 - power_loss[1:] / power_t[1:]) * 100, 0)
+
+    kpd = kpd_volumetric / 100 * kpd_mechanical / 100
+
+    feed_loss_user = calculate_feed_loss(d, velocity, np.array([pressure]))[0]
+    feed_real_user = feed - feed_loss_user
+
+    power_eff = np.zeros_like(power_t)
+    power_eff[1:] = power_t[1:] - power_loss[1:] - power_length_loss[1:]
+
+    power_start = calculate_start_power(d, pressure, rotation_speed, feed_real_user, viscosity)
+    power_nominal = np.where(
+        np.abs(kpd) > 1e-10,
+        power_eff / kpd + power_start,
+        power_start
+    )
+
+    plots = [
+        {'x': pressure_values, 'y': power_nominal, 'name': 'Номинальная мощность'},
+        {'x': pressure_values, 'y': power_t, 'name': 'Теоретическая мощность'},
+        {'x': pressure_values, 'y': power_eff, 'name': 'Эффективная мощность'}
+    ]
+
+    fig = create_plotly_figure(plots, 'Характеристика мощности', 'Напор, м', 'Мощность, кВт')
+    return fig.to_html(full_html=False)
+
+
+def calculate_start_power(d, pressure, rotation_speed, feed, viscosity):
+    frictional_koef = 0.05
+
+    force_radial = 1.399945 * (pressure / 10) * math.pow(d * 10, 2) * 100
+    moment_frictional = force_radial * frictional_koef * (d * 10 / 2)
+
+    power_t_user = (pressure / 10) * (feed * 1000 / 60 / 60)
+    moment_exp = power_t_user * 936.55 / rotation_speed
+
+    moment_start = (moment_frictional + moment_exp) * 10
+
+    viscosity_sm = viscosity * math.pow(10, -2)
+    viscosity_e = (viscosity_sm + math.sqrt(math.pow(viscosity_sm, 2) + 0.03996)) / (2 * 0.074)
+    power_viscosity_loss = 0.4 * math.pow(viscosity_e / 6.4, 1 / 1.8)
+
+    moment_lead = 0.727499 * (pressure / 10) * (math.pow(d * 10, 3)) * 1000
+    moment_driven = -0.034664 * (pressure / 10) * (math.pow(d * 10, 3)) * 1000
+    moment = moment_lead + 2 * moment_driven
+    power_moment_loss = moment * rotation_speed / 60 / 1019.8
+
+    force_radial = 1.399945 * (pressure / 10) * math.pow(d * 10, 2) * 100
+    power_friction_loss = (np.pi * rotation_speed * force_radial * d / 60) * 0.009807
+
+    power_loss_user = power_viscosity_loss + power_moment_loss + power_friction_loss
+    kpd_mechanical = (1 - power_loss_user / power_t_user)
+
+    power_start = moment_start * rotation_speed / 60 / 1019.8 / kpd_mechanical
+
+    return power_start
+
+
+def handle_post_request(request, context):
+    try:
+        # Получаем и проверяем входные данные
+        feed = float(request.POST.get("feed").replace(',', '.'))
+        pressure = float(request.POST.get("pressure").replace(',', '.'))
+        if feed <= 0 or pressure <= 0:
+            raise ValueError("Все входные значения должны быть положительными числами.")
+
+        rotation_speed = request.POST.get("rotation_speed")
+        rotation_speed = float(rotation_speed.replace(',', '.')) if rotation_speed else None
+
+        # Выполняем расчеты
+        n_rec, d_rec, feed_rec, powers = calculate_data(feed, pressure, rotation_speed)
+
+        # Добавляем результаты в контекст
+        if d_rec:
+            context['calculated_diam'] = (d_rec[0] if isinstance(d_rec, list) else d_rec) * 1000
+        if n_rec:
+            context['calculated_rotation_speed'] = n_rec[0] if isinstance(n_rec, list) else n_rec
+
+        context.update({
+            'input_feed': feed,
+            'input_pressure': pressure,
+            'input_rotation_speed': rotation_speed,
+            'turns': calculate_turns(pressure),
+        })
+
+        # Рассчитываем графики
+        viscosity = float(request.POST.get("viscosity").replace(',', '.'))
+        plots = [
+            calculate_qh_characteristic(d_rec, feed_rec, pressure),
+            calculate_kpd_characteristic(d_rec, feed_rec, pressure, viscosity, rotation_speed),
+            calculate_power_characteristic(d_rec, feed_rec, pressure, viscosity, context['turns'], rotation_speed),
+        ]
+        context['plots'] = plots
+
+        # Обработка скачивания модели
+        if 'download_model' in request.POST:
+            handle_download_model(request, context)
+
+    except ValueError as e:
+        context['error'] = f"Ошибка ввода: {str(e)}"
+        logger.warning(f"Некорректный ввод: {str(e)}")
+    except Exception as e:
+        context['error'] = f"Ошибка генерации: {str(e)}"
+        logger.error(f"Ошибка генерации: {str(e)}", exc_info=True)
+
+
+def handle_download_model(request, context):
+    d = float(request.POST.get("diam").replace(',', '.'))
+    turns = float(request.POST.get("turns").replace(',', '.'))
+
+    if d <= 0 or turns <= 0:
+        raise ValueError("Значения должны быть положительными")
+    if d > 500 or turns > 20:
+        raise ValueError("Слишком большие значения параметров")
+
+    # Пути к файлам
+    files_to_zip = ['screw_lead.step', 'screw_driven.step', 'pump_assembly.step']
+
+    # Создание моделей
+    context['logs'].append("Начинаем создание модели ведущего...")
+    create_body_lead(d, turns)
+    context['logs'].append("Модель ведущего успешно создана и экспортирована.")
+
+    context['logs'].append("Начинаем создание модели ведомого...")
+    create_body_driven(d, turns)
+    context['logs'].append("Модель ведомого успешно создана и экспортирована.")
+
+    context['logs'].append("Начинаем создание сборки...")
+    create_assembly(d)
+    context['logs'].append("Сборка успешно создана и экспортирована.")
+
+    # Проверка существования файлов
+    if not all(os.path.exists(file) for file in files_to_zip):
+        raise FileNotFoundError("Файлы моделей не были созданы")
+
+    # Создание ZIP-архива
+    zip_filename = 'screw_models.zip'
+    with zipfile.ZipFile(zip_filename, 'w') as zipf:
+        for file in files_to_zip:
+            zipf.write(file, arcname=os.path.basename(file))
+
+    # Чтение ZIP-архива и отправка его в ответе
+    with open(zip_filename, 'rb') as f:
+        response = HttpResponse(f, content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
+        return response
+
+
 def screw(request):
-    """Обработчик запроса с улучшенной обработкой ошибок"""
     context = {
         'calc': [
             {'type': 'float', 'placeholder': 'Диаметр винта, мм', 'name': 'diam'},
@@ -420,6 +615,7 @@ def screw(request):
             {'type': 'float', 'placeholder': 'Подача, м3/ч', 'name': 'feed'},
             {'type': 'float', 'placeholder': 'Напор, м', 'name': 'pressure'},
             {'type': 'float', 'placeholder': 'Частота вращения, об/мин', 'name': 'rotation_speed'},
+            {'type': 'float', 'placeholder': 'Вязкость *10^-6, м2/с', 'name': 'viscosity'},
         ],
         'error': None,
         'logs': [],
@@ -429,9 +625,12 @@ def screw(request):
         try:
             feed = float(request.POST.get("feed").replace(',', '.'))
             pressure = float(request.POST.get("pressure").replace(',', '.'))
+            viscosity = float(request.POST.get("viscosity").replace(',', '.'))
 
             if feed <= 0 or pressure <= 0:
                 raise ValueError("Все входные значения должны быть положительными числами.")
+
+            context['input_viscosity'] = viscosity
 
             rotation_speed = request.POST.get("rotation_speed")
             if rotation_speed:
@@ -442,77 +641,41 @@ def screw(request):
             n_rec, d_rec, feed_rec, powers = calculate_data(feed, pressure, rotation_speed)
 
             if d_rec:
-                if isinstance(d_rec, list):  # Если d_rec — это список
-                    context['calculated_diam'] = d_rec[0] * 1000  # Переводим из метров в миллиметры
-                else:  # Если d_rec — это число
-                    context['calculated_diam'] = d_rec * 1000
-
+                context['calculated_diam'] = (d_rec[0] if isinstance(d_rec, list) else d_rec) * 1000  # Переводим в мм
             if n_rec:
-                if isinstance(n_rec, list):  # Если n_rec — это список
-                    context['calculated_rotation_speed'] = n_rec[0]
-                else:  # Если n_rec — это число
-                    context['calculated_rotation_speed'] = n_rec
+                context['calculated_rotation_speed'] = n_rec[0] if isinstance(n_rec, list) else n_rec
 
             context['input_feed'] = feed
             context['input_pressure'] = pressure
             context['input_rotation_speed'] = rotation_speed
 
-            turns = calculate_turns(pressure)  # Определяем число витков на основе давления
-            context['turns'] = turns  # Добавляем число витков в контекст
+            turns = calculate_turns(pressure)
+            context['turns'] = turns
 
-            context['logs'].append(f"Рассчитанная подача: {feed_rec}")
-            context['logs'].append(f"Рассчитанная мощность: {powers}")
-            context['logs'].append(f"Давление: {pressure} м. Определено число витков: {turns}")
+            kpd_plot, is_low_pressure = calculate_kpd_characteristic(d_rec, feed_rec, pressure, viscosity,
+                                                                     rotation_speed)
+            context['is_low_pressure'] = is_low_pressure
 
-            # Если нажата кнопка "Скачать модель", создаем файлы
+            plots = [
+                calculate_qh_characteristic(d_rec, feed_rec, pressure),
+                kpd_plot,
+                calculate_power_characteristic(d_rec, feed_rec, pressure, viscosity, turns, rotation_speed),
+            ]
+            context['plots'] = plots
+
+            if is_low_pressure:
+                context['error'] = "Давление слишком низкое для корректного расчета КПД."
+
             if 'download_model' in request.POST:
-                d = float(request.POST.get("diam").replace(',', '.'))
-                turns = float(request.POST.get("turns").replace(',', '.'))
-
-                if d <= 0 or turns <= 0:
-                    raise ValueError("Значения должны быть положительными")
-
-                if d > 500 or turns > 20:
-                    raise ValueError("Слишком большие значения параметров")
-
-                # Создание модели ведущего
-                context['logs'].append("Начинаем создание модели ведущего...")
-                create_body_lead(d, turns)
-                context['logs'].append("Модель ведущего успешно создана и экспортирована.")
-
-                # Создание модели ведомого
-                context['logs'].append("Начинаем создание модели ведомого...")
-                create_body_driven(d, turns)
-                context['logs'].append("Модель ведомого успешно создана и экспортирована.")
-
-                # Создание сборки
-                context['logs'].append("Начинаем создание сборки...")
-                create_assembly(d)
-                context['logs'].append("Сборка успешно создана и экспортирована.")
-
-                # Отправка файла
-                if not os.path.exists('screw_lead.step') or not os.path.exists('screw_driven.step') \
-                        or not os.path.exists('pump_assembly.step'):
-                    raise FileNotFoundError("Файлы моделей не были созданы")
-
-                zip_filename = 'screw_models.zip'
-                with zipfile.ZipFile(zip_filename, 'w') as zipf:
-                    zipf.write('screw_lead.step', arcname='screw_lead.step')
-                    zipf.write('screw_driven.step', arcname='screw_driven.step')
-                    zipf.write('pump_assembly.step', arcname='pump_assembly.step')
-
-                with open(zip_filename, 'rb') as f:
-                    response = HttpResponse(f.read(), content_type='application/zip')
-                    response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
+                response = handle_download_model(request, context)
+                if response:
                     return response
 
         except ValueError as e:
             context['error'] = f"Ошибка ввода: {str(e)}"
             logger.warning(f"Некорректный ввод: {str(e)}")
-            context['logs'].append(f"Ошибка ввода: {str(e)}")
         except Exception as e:
             context['error'] = f"Ошибка генерации: {str(e)}"
             logger.error(f"Ошибка генерации: {str(e)}", exc_info=True)
-            context['logs'].append(f"Ошибка генерации: {str(e)}")
 
     return render(request, 'screw.html', context)
