@@ -259,15 +259,81 @@ def create_body_driven(d, num_turns):
         raise
 
 
+def create_section_stator(d, num_turns, rotation_speed):
+    try:
+        r_stator = math.ceil(2 * d / 2.5) * 2.5
+        r_lead = 5 * d / 6
+        r_driven = d / 2
+        r_extrude = math.ceil(1.7 * d / 2.5) * 2.5
+
+        square_mm = 1.240623 * math.pow(d, 2)
+        step = 10 * d / 3
+        feed_mm_s = square_mm * step * rotation_speed / 60
+        feed_m_h = feed_mm_s * 60 * 60 / 1000000000
+        velocity_m_s = feed_mm_s / square_mm / 1000
+
+        r_exit = math.ceil(math.sqrt(feed_m_h / 2500 / velocity_m_s / math.pi) * 1000)
+
+        # Создаем сечения
+        section1 = cq.Workplane("XY").circle(r_stator)
+        section2 = cq.Workplane("XY").circle(r_lead)
+        section3 = cq.Workplane("XY").transformed(offset=(0, d, 0)).circle(r_driven)
+        section4 = cq.Workplane("XY").transformed(offset=(0, -d, 0)).circle(r_driven)
+        section5 = cq.Workplane("XY").transformed(offset=(0, 0, 10 * d / 3 * num_turns - d + 10)).circle(r_extrude)
+        section6 = cq.Workplane("XZ").transformed(offset=(0, 10 * d / 3 * num_turns - d + 20 + r_exit, 0)).circle(r_exit)
+
+        exporters.export(section1, 'debug_section1_stator.step')
+        exporters.export(section2, 'debug_section2_stator.step')
+        exporters.export(section3, 'debug_section3_stator.step')
+        exporters.export(section4, 'debug_section4_stator.step')
+        exporters.export(section5, 'debug_section5_stator.step')
+        exporters.export(section6, 'debug_section6_stator.step')
+
+        return section1, section2, section3, section4, section5, section6
+
+    except Exception as e:
+        logger.error(f"Ошибка создания сечения: {str(e)}", exc_info=True)
+        raise
+
+
+def extrude_stator(d, num_turns, rotation_speed):
+    try:
+        section1, section2, section3, section4, section5, section6 = create_section_stator(d, num_turns, rotation_speed)
+
+        # Выдавливаем первое сечение
+        extrusion_length = 10 * d / 3 * num_turns + 2 * d
+        solid = section1.extrude(extrusion_length)
+
+        # Вырезаем остальные сечения
+        solid = solid.cut(section2.extrude(extrusion_length))
+        solid = solid.cut(section3.extrude(extrusion_length))
+        solid = solid.cut(section4.extrude(extrusion_length))
+        solid = solid.cut(section5.extrude(extrusion_length))
+        solid = solid.cut(section6.extrude(extrusion_length))
+
+        if solid.val().isValid():
+            exporters.export(solid, 'stator.step')
+            logger.info("Модель успешно создана и экспортирована в stator.step")
+            return True
+        else:
+            raise RuntimeError("Некорректная геометрия после выдавливания")
+
+    except Exception as e:
+        logger.error(f"Ошибка при выдавливании: {str(e)}", exc_info=True)
+        raise
+
+
 def create_assembly(d):
     try:
         lead_screw = cq.importers.importStep('screw_lead.step')
         driven_screw = cq.importers.importStep('screw_driven.step')
+        stator = cq.importers.importStep('stator.step')
 
         assembly = cq.Assembly()
         assembly.add(lead_screw, name='lead_screw', loc=cq.Location(cq.Vector(0, 0, 0)))
         assembly.add(driven_screw, name='driven_screw_1', loc=cq.Location(cq.Vector(0, d, 0)))
         assembly.add(driven_screw, name='driven_screw_2', loc=cq.Location(cq.Vector(0, -d, 0)))
+        assembly.add(stator, name='stator', loc=cq.Location(cq.Vector(0, 0, -10)))
 
         exporters.export(assembly.toCompound(), 'pump_assembly.step')
         logger.info('Сборка успешно создана и экспортирована в pump_assembly.step')
@@ -524,6 +590,7 @@ def calculate_start_power(d, pressure, rotation_speed, feed, viscosity):
 def handle_download_model(request, context):
     d = float(request.POST.get("diam").replace(',', '.'))
     turns = float(request.POST.get("turns").replace(',', '.'))
+    rotation_speed = float(request.POST.get("rotation_speed").replace(',', '.'))
 
     if d <= 0 or turns <= 0:
         raise ValueError("Значения должны быть положительными")
@@ -531,7 +598,7 @@ def handle_download_model(request, context):
         raise ValueError("Слишком большие значения параметров")
 
     # Пути к файлам
-    files_to_zip = ['screw_lead.step', 'screw_driven.step', 'pump_assembly.step']
+    files_to_zip = ['screw_lead.step', 'screw_driven.step', 'stator.step', 'pump_assembly.step']
 
     # Создание моделей
     context['logs'].append("Начинаем создание модели ведущего...")
@@ -541,6 +608,10 @@ def handle_download_model(request, context):
     context['logs'].append("Начинаем создание модели ведомого...")
     create_body_driven(d, turns)
     context['logs'].append("Модель ведомого успешно создана и экспортирована.")
+
+    context['logs'].append("Начинаем создание статора...")
+    extrude_stator(d, turns, rotation_speed)
+    context['logs'].append("Статор успешно создан и экспортирован.")
 
     context['logs'].append("Начинаем создание сборки...")
     create_assembly(d)
