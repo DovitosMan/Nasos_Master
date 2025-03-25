@@ -3,12 +3,14 @@
 {% block title %}
     Screw
 {% endblock %}
+
 {% block settings %}
     <link rel="stylesheet" href="{% static 'Screw/css/Screw.css' %}"/>
 {% endblock %}
-{% block Screw %}.
+
+{% block Screw %}
     <div>
-        <form action="{% url 'screw' %}" method="post" class="form">
+        <form action="{% url 'screw' %}" method="post" class="form" id="screw-form">
             {% csrf_token %}
             {% for cal in calc %}
                 <label>
@@ -30,36 +32,93 @@
                 </label>
             {% endfor %}
             <input class="button" type="submit" name="calculate_params" value="Вычислить параметры">
+            <input class="button" type="button" id="reset-button" value="Сброс значений">
+            <input class="button" type="submit" name="calculate_params" value="Построить график">
             <input class="button" type="submit" name="download_model" value="Скачать модель">
         </form>
     </div>
+
+    <!-- Отображение ошибок -->
+    {% if error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    <!-- Отображение предупреждения о низком давлении -->
     {% if is_low_pressure %}
         <div class="alert alert-warning" role="alert">
             Внимание: давление слишком низкое, что может привести к некорректной работе насоса.
         </div>
     {% endif %}
-<div>
-    {% if calculations.user_diam is not None %}
-    <p>Диаметр винта: {{ calculations.user_diam }}</p>
+
+    <!-- Отображение рассчитанного диаметра -->
+    <div>
+        {% if calculations.user_diam is not None %}
+            <p>Диаметр винта: {{ calculations.user_diam }}</p>
+        {% endif %}
+    </div>
+
+    <!-- Отображение фактического расхода, КПД и мощности -->
+    <div>
+        {% if feed_real is not None %}
+        <h3>Результаты расчета:</h3>
+        <p>Фактический расход: {{ feed_real|floatformat:3 }} м³/ч</p>
+        <p>Напор: {{ user_pressure|floatformat:3 }} м</p>
+        <p>Объемный КПД: {{ kpd_volumetric|floatformat:3 }} %</p>
+        <p>Механический КПД: {{ kpd_mechanical|floatformat:3 }} %</p>
+        <p>Полный КПД: {{ kpd_total|floatformat:3 }} %</p>
+        <p>Теоретическая мощность: {{ power_t|floatformat:3 }} кВт</p>
+        <p>Эффективная мощность: {{ power_eff|floatformat:3 }} кВт</p>
+        <p>Номинальная мощность: {{ power_nominal|floatformat:3 }} кВт</p>
     {% endif %}
-</div>
+    </div>
+
+    <!-- Отображение логов -->
     <div class="logs">
-        <h3></h3>
         <ul>
             {% for log in logs %}
                 <li>{{ log }}</li>
             {% empty %}
-                <li></li>
+
             {% endfor %}
         </ul>
     </div>
-    {% if plots %}
-        {% for plot in plots %}
-            <div>
-                {{ plot|safe }}
-            </div>
-        {% endfor %}
-    {% else %}
-        <p>Графики отсутствуют.</p>
-    {% endif %}
+
+    <!-- Отображение графиков -->
+    <div>
+        {% if plots %}
+            {% for plot in plots %}
+                <div class="plot-container">
+                    {{ plot|safe }}
+                </div>
+            {% endfor %}
+        {% else %}
+
+        {% endif %}
+    </div>
+
+    <script>
+        function forcePlot() {
+            const form = document.getElementById('screw-form');
+            // Добавляем скрытое поле для force_plot
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'force_plot';
+            input.value = '1';
+            form.appendChild(input);
+            // Отправляем форму
+            form.submit();
+        }
+
+            // Функция для сброса значений
+        document.getElementById('reset-button').addEventListener('click', function() {
+            // Находим только поля ввода (исключая кнопки)
+            const inputs = document.querySelectorAll('#screw-form input[type="text"], #screw-form input[type="number"], #screw-form input[type="float"]');
+            inputs.forEach(input => {
+                // Очищаем значение каждого поля
+                input.value = '';
+            });
+        });
+    </script>
 {% endblock %}

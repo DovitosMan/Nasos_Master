@@ -349,7 +349,7 @@ def calculate_turns(pressure):
         raise ValueError("Давление должно быть меньше 1000")
 
 
-def calculate_common_params(d, pressure, num=100):
+def calculate_common_params(d, pressure, num=50):
     velocity = math.ceil(83.331379 * d * 1000000) / 1000000  # м/с
     pressure_values = np.linspace(0, pressure * 1.1, num=num)
     return velocity, pressure_values
@@ -476,6 +476,10 @@ def calculate_power_characteristic(d, feed, pressure, viscosity, num_turns, rota
         power_start
     )
 
+    is_power_increasing = all(power_nominal[i] <= power_nominal[i + 1] for i in range(len(power_nominal) - 1))
+    if not is_power_increasing:
+        return None, True
+
     plots = [
         {'x': pressure_values, 'y': power_nominal, 'name': 'Номинальная мощность'},
         {'x': pressure_values, 'y': power_t, 'name': 'Теоретическая мощность'},
@@ -483,7 +487,7 @@ def calculate_power_characteristic(d, feed, pressure, viscosity, num_turns, rota
     ]
 
     fig = create_plotly_figure(plots, 'Характеристика мощности', 'Напор, м', 'Мощность, кВт')
-    return fig.to_html(full_html=False)
+    return fig.to_html(full_html=False), False
 
 
 def calculate_start_power(d, pressure, rotation_speed, feed, viscosity):
@@ -515,54 +519,6 @@ def calculate_start_power(d, pressure, rotation_speed, feed, viscosity):
     power_start = moment_start * rotation_speed / 60 / 1019.8 / kpd_mechanical
 
     return power_start
-
-
-def handle_post_request(request, context):
-    try:
-        # Получаем и проверяем входные данные
-        feed = float(request.POST.get("feed").replace(',', '.'))
-        pressure = float(request.POST.get("pressure").replace(',', '.'))
-        if feed <= 0 or pressure <= 0:
-            raise ValueError("Все входные значения должны быть положительными числами.")
-
-        rotation_speed = request.POST.get("rotation_speed")
-        rotation_speed = float(rotation_speed.replace(',', '.')) if rotation_speed else None
-
-        # Выполняем расчеты
-        n_rec, d_rec, feed_rec, powers = calculate_data(feed, pressure, rotation_speed)
-
-        # Добавляем результаты в контекст
-        if d_rec:
-            context['calculated_diam'] = (d_rec[0] if isinstance(d_rec, list) else d_rec) * 1000
-        if n_rec:
-            context['calculated_rotation_speed'] = n_rec[0] if isinstance(n_rec, list) else n_rec
-
-        context.update({
-            'input_feed': feed,
-            'input_pressure': pressure,
-            'input_rotation_speed': rotation_speed,
-            'turns': calculate_turns(pressure),
-        })
-
-        # Рассчитываем графики
-        viscosity = float(request.POST.get("viscosity").replace(',', '.'))
-        plots = [
-            calculate_qh_characteristic(d_rec, feed_rec, pressure),
-            calculate_kpd_characteristic(d_rec, feed_rec, pressure, viscosity, rotation_speed),
-            calculate_power_characteristic(d_rec, feed_rec, pressure, viscosity, context['turns'], rotation_speed),
-        ]
-        context['plots'] = plots
-
-        # Обработка скачивания модели
-        if 'download_model' in request.POST:
-            handle_download_model(request, context)
-
-    except ValueError as e:
-        context['error'] = f"Ошибка ввода: {str(e)}"
-        logger.warning(f"Некорректный ввод: {str(e)}")
-    except Exception as e:
-        context['error'] = f"Ошибка генерации: {str(e)}"
-        logger.error(f"Ошибка генерации: {str(e)}", exc_info=True)
 
 
 def handle_download_model(request, context):
@@ -607,75 +563,138 @@ def handle_download_model(request, context):
         return response
 
 
+def print_data(d, pressure, rotation_speed, viscosity, num_turns):
+    square_mm = 1.240623 * math.pow(d * 1000, 2)
+    step = 10 * d * 1000 / 3
+    feed_mm_s = square_mm * step * rotation_speed / 60
+    feed_m_h = feed_mm_s * 60 * 60 / 1000000000
+    velocity_m_s = feed_mm_s / square_mm / 1000
+    feed_loss = 3 * d * velocity_m_s * np.sqrt(pressure) * 0.001 * 60 * 60 / 11
+    feed_real = round(feed_m_h - feed_loss, 3)
+
+    kpd_volumetric = round(feed_real / feed_m_h, 3) * 100
+
+    power_t = round((pressure / 10) * (feed_m_h * 1000 / 60 / 60), 3)
+
+    viscosity_sm = viscosity * math.pow(10, -2)
+    viscosity_e = (viscosity_sm + math.sqrt(math.pow(viscosity_sm, 2) + 0.03996)) / (2 * 0.074)
+    power_viscosity_loss = 0.4 * math.pow(viscosity_e / 6.4, 1 / 1.8)
+    moment_lead = 0.727499 * (pressure / 10) * (math.pow(d * 10, 3)) * 1000
+    moment_driven = -0.034664 * (pressure / 10) * (math.pow(d * 10, 3)) * 1000
+    moment = moment_lead + 2 * moment_driven
+    power_moment_loss = moment * rotation_speed / 60 / 1019.8
+    force_radial = 1.399945 * (pressure / 10) * math.pow(d * 10, 2) * 100
+    power_friction_loss = (np.pi * rotation_speed * force_radial * d / 60) * 0.009807
+    power_loss = power_viscosity_loss + power_moment_loss + power_friction_loss
+    kpd_mechanical = round(1 - power_loss / power_t, 3) * 100
+
+    kpd_total = round(kpd_volumetric / 100 * kpd_mechanical / 100, 3) * 100
+
+    length = 10 * d * num_turns / 3
+    power_length_loss = 100 * pressure * length * math.pow(d, 2)
+    power_eff = round(power_t - power_loss - power_length_loss, 3)
+
+    power_start = calculate_start_power(d, pressure, rotation_speed, feed_real, viscosity)
+
+    power_nominal = round((((pressure / 10) * (feed_m_h * 1000 / 60 / 60)) - power_loss - power_length_loss) /
+                          ((feed_real / feed_m_h) * (1 - power_loss / power_t)) + power_start, 3)
+
+    return feed_real, kpd_volumetric, kpd_mechanical, kpd_total, power_t, power_eff, power_nominal
+
+
 def screw(request):
     context = {
         'calc': [
-            {'type': 'float', 'placeholder': 'Диаметр винта, мм', 'name': 'diam'},
-            {'type': 'float', 'placeholder': 'Число витков, шт.', 'name': 'turns'},
             {'type': 'float', 'placeholder': 'Подача, м3/ч', 'name': 'feed'},
             {'type': 'float', 'placeholder': 'Напор, м', 'name': 'pressure'},
-            {'type': 'float', 'placeholder': 'Частота вращения, об/мин', 'name': 'rotation_speed'},
             {'type': 'float', 'placeholder': 'Вязкость *10^-6, м2/с', 'name': 'viscosity'},
+            {'type': 'float', 'placeholder': 'Диаметр винта, мм', 'name': 'diam'},
+            {'type': 'float', 'placeholder': 'Число витков, шт.', 'name': 'turns'},
+            {'type': 'float', 'placeholder': 'Частота вращения, об/мин', 'name': 'rotation_speed'},
         ],
         'error': None,
         'logs': [],
     }
 
     if request.method == "POST":
-        try:
-            feed = float(request.POST.get("feed").replace(',', '.'))
-            pressure = float(request.POST.get("pressure").replace(',', '.'))
-            viscosity = float(request.POST.get("viscosity").replace(',', '.'))
+        feed = float(request.POST.get("feed").replace(',', '.'))
+        pressure = float(request.POST.get("pressure").replace(',', '.'))
+        if feed and pressure:
+            try:
+                feed = float(request.POST.get("feed").replace(',', '.'))
+                pressure = float(request.POST.get("pressure").replace(',', '.'))
+                viscosity = float(request.POST.get("viscosity").replace(',', '.'))
 
-            if feed <= 0 or pressure <= 0:
-                raise ValueError("Все входные значения должны быть положительными числами.")
+                if feed <= 0 or pressure <= 0:
+                    raise ValueError("Все входные значения должны быть положительными числами.")
 
-            context['input_viscosity'] = viscosity
+                context['input_viscosity'] = viscosity
 
-            rotation_speed = request.POST.get("rotation_speed")
-            if rotation_speed:
-                rotation_speed = float(rotation_speed.replace(',', '.'))
-            else:
-                rotation_speed = None
+                rotation_speed = request.POST.get("rotation_speed")
+                if rotation_speed:
+                    rotation_speed = float(rotation_speed.replace(',', '.'))
+                else:
+                    rotation_speed = None
 
-            n_rec, d_rec, feed_rec, powers = calculate_data(feed, pressure, rotation_speed)
+                n_rec, d_rec, feed_rec, powers = calculate_data(feed, pressure, rotation_speed)
 
-            if d_rec:
-                context['calculated_diam'] = (d_rec[0] if isinstance(d_rec, list) else d_rec) * 1000  # Переводим в мм
-            if n_rec:
-                context['calculated_rotation_speed'] = n_rec[0] if isinstance(n_rec, list) else n_rec
+                if d_rec:
+                    context['calculated_diam'] = (d_rec[0] if isinstance(d_rec, list) else d_rec) * 1000  # Переводим в мм
+                if n_rec:
+                    context['calculated_rotation_speed'] = n_rec[0] if isinstance(n_rec, list) else n_rec
 
-            context['input_feed'] = feed
-            context['input_pressure'] = pressure
-            context['input_rotation_speed'] = rotation_speed
+                context['input_feed'] = feed
+                context['input_pressure'] = pressure
+                context['input_rotation_speed'] = rotation_speed
 
-            turns = calculate_turns(pressure)
-            context['turns'] = turns
+                turns = calculate_turns(pressure)
+                context['turns'] = turns
 
-            kpd_plot, is_low_pressure = calculate_kpd_characteristic(d_rec, feed_rec, pressure, viscosity,
-                                                                     rotation_speed)
-            context['is_low_pressure'] = is_low_pressure
+                qh_plot = calculate_qh_characteristic(d_rec, feed_rec, pressure)
 
-            plots = [
-                calculate_qh_characteristic(d_rec, feed_rec, pressure),
-                kpd_plot,
-                calculate_power_characteristic(d_rec, feed_rec, pressure, viscosity, turns, rotation_speed),
-            ]
-            context['plots'] = plots
+                kpd_plot, is_low_pressure = calculate_kpd_characteristic(d_rec, feed_rec, pressure, viscosity,
+                                                                         rotation_speed)
+                power_plot, is_power_error = calculate_power_characteristic(d_rec, feed_rec, pressure, viscosity, turns,
+                                                                            rotation_speed)
 
-            if is_low_pressure:
-                context['error'] = "Давление слишком низкое для корректного расчета КПД."
+                feed_p, kpd_volumetric_p, kpd_mechanical_p, kpd_total_p, power_t_p, power_eff_p, power_nominal_p = (
+                    print_data(d_rec, pressure, rotation_speed, viscosity, turns))
 
-            if 'download_model' in request.POST:
-                response = handle_download_model(request, context)
-                if response:
-                    return response
+                force_plot = 'force_plot' in request.POST
 
-        except ValueError as e:
-            context['error'] = f"Ошибка ввода: {str(e)}"
-            logger.warning(f"Некорректный ввод: {str(e)}")
-        except Exception as e:
-            context['error'] = f"Ошибка генерации: {str(e)}"
-            logger.error(f"Ошибка генерации: {str(e)}", exc_info=True)
+                if (is_low_pressure or is_power_error) and not force_plot:
+                    context['error'] = "Давление слишком низкое для корректного расчета."
+                    context['is_low_pressure'] = True
+                    plots = []
+                else:
+                    plots = [
+                        qh_plot,
+                        kpd_plot,
+                        power_plot,
+                    ]
+                    context['is_low_pressure'] = False
+                context['plots'] = plots
+
+                # Передаем значения в контекст
+                context['feed_real'] = float(feed_p)  # Фактический расход
+                context['user_pressure'] = float(pressure)
+                context['kpd_volumetric'] = float(kpd_volumetric_p)  # Объемный КПД
+                context['kpd_mechanical'] = float(kpd_mechanical_p)  # Механический КПД
+                context['kpd_total'] = float(kpd_total_p)  # Полный КПД
+                context['power_t'] = float(power_t_p)  # Теоретическая мощность
+                context['power_eff'] = float(power_eff_p)  # Эффективная мощность
+                context['power_nominal'] = float(power_nominal_p)  # Номинальная мощность
+
+                if 'download_model' in request.POST:
+                    response = handle_download_model(request, context)
+                    if response:
+                        return response
+
+            except ValueError as e:
+                context['error'] = f"Ошибка ввода: {str(e)}"
+                logger.warning(f"Некорректный ввод: {str(e)}")
+            except Exception as e:
+                context['error'] = f"Нажмите кнопку Построить график"
+                logger.error(f"Ошибка генерации: {str(e)}", exc_info=True)
 
     return render(request, 'screw.html', context)
