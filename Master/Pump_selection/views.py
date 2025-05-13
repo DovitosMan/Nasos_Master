@@ -75,13 +75,51 @@ def pump_selection(request):
             },
             {
                 'type': 'input',
-                'placeholder': 'Расход, м³,ч:',
+                'placeholder': 'Подача, м³,ч:',
                 'name': 'flow_rate',
             },
             {
                 'type': 'input',
-                'placeholder': 'Напор,м.вод.ст.:',
+                'placeholder': 'Напор, м:',
                 'name': 'pressure',
+            },
+            {
+                'type': 'input',
+                'placeholder': 'Высота всасывания, м:',
+                'name': 'pump_lift',
+            },
+            {
+                'type': 'input',
+                'placeholder': 'Доп. кав. запас, м:',
+                'name': 'cav_reserve',
+            },
+            {
+                'type': 'option',
+                'placeholder': 'Тип режима перекачки',
+                'keys': [
+                    {'name': 'Постоянный', 'value': 'Constant'},
+                    {'name': 'Переменный', 'value': 'Variable'},
+                ],
+            },
+            {
+                'type': 'option',
+                'placeholder': 'Материал',
+                'keys': [
+                    {'name': 'Сталь', 'value': 'Steel'},
+                    {'name': 'Чугун', 'value': 'Cast_iron'},
+                    {'name': 'Нержавеющая сталь', 'value': 'Stainless_steel'},
+                    {'name': 'Композит', 'value': 'Composite'},
+                ],
+            },
+            {
+                'type': 'input',
+                'placeholder': 'Частота вращения, об/мин:',
+                'name': 'rotation_speed',
+            },
+            {
+                'type': 'input',
+                'placeholder': 'Потребляемая мощность, кВт:',
+                'name': 'power',
             },
             {
                 'type': 'option',
@@ -94,7 +132,40 @@ def pump_selection(request):
             },
             {
                 'type': 'input',
-                'placeholder': 'Т среды,℃:',
+                'placeholder': 'Содержание газа, %:',
+                'name': 'gas_content',
+            },
+            {
+                'type': 'option',
+                'placeholder': 'Наличие твердых включений, (да/нет)',
+                'keys': [
+                    {'name': 'Да', 'value': 'Yes'},
+                    {'name': 'Нет', 'value': 'No'},
+                ],
+            },
+            {
+                'type': 'input',
+                'placeholder': 'Об. конц. тв. включ., %:',
+                'name': 'solid_content',
+            },
+            {
+                'type': 'input',
+                'placeholder': 'Макс. лин. р-р тв. включ.,мм:',
+                'name': 'solid_size',
+            },
+            {
+                'type': 'input',
+                'placeholder': 'Плотность среды,℃:',
+                'name': 'density',
+            },
+            {
+                'type': 'input',
+                'placeholder': 'Вязкость среды, мПа*с:',
+                'name': 'viscosity',
+            },
+            {
+                'type': 'input',
+                'placeholder': 'Температура эксп., ℃:',
                 'name': 'temperature',
             },
             {
@@ -105,7 +176,7 @@ def pump_selection(request):
             },
             {
                 'type': 'input',
-                'placeholder': 'Pmax среды, бар:',
+                'placeholder': 'Pmax на входе, МПа:',
                 'name': 'max_pressure',
                 'class': 'Select_a_value_5'
             },
@@ -124,6 +195,15 @@ def pump_selection(request):
             'user_flow_rate': None,
             'user_max_pressure': None,
             'user_temperature': None,
+            'user_pump_lift': None,
+            'user_cav_reserve': None,
+            'user_rotation_speed': None,
+            'user_power': None,
+            'user_gas_content': None,
+            'user_solid_content': None,
+            'user_solid_size': None,
+            'user_density': None,
+            'user_viscosity': None,
             'user_data': None,
             'pumps': Pumps.objects.all(),
             'families': PumpFamily.objects.all(),
@@ -148,6 +228,15 @@ def pump_selection(request):
         user_flow_rate = request.POST.get("flow_rate")
         user_max_pressure = request.POST.get("max_pressure")
         user_temperature = request.POST.get("temperature")
+        user_pump_lift = request.POST.get('pump_lift')
+        user_cav_reserve = request.POST.get('cav_reserve')
+        user_rotation_speed = request.POST.get('rotation_speed')
+        user_power = request.POST.get('power')
+        user_gas_content = request.POST.get('gas_content')
+        user_solid_content = request.POST.get('solid_content')
+        user_solid_size = request.POST.get('solid_size')
+        user_density = request.POST.get('density')
+        user_viscosity = request.POST.get('viscosity')
 
         a_0 = Pumps.objects.values_list('a0', flat=True).filter(pressure__gt=user_pressure).filter(
             feed__gt=user_flow_rate).order_by("power")
@@ -163,7 +252,10 @@ def pump_selection(request):
         filter_pumps = Pumps.objects.all().filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by(
             "power")
 
-        context['calculations']['user_data'] = user_flow_rate, user_pressure, user_temperature, user_max_pressure
+        context['calculations']['user_data'] = (user_flow_rate, user_pressure, user_pump_lift, user_cav_reserve,
+                                                user_rotation_speed, user_power, user_gas_content, user_solid_content,
+                                                user_solid_size, user_density, user_viscosity, user_temperature,
+                                                user_max_pressure)
         context['calculations']['total_a0'] = a_0_list
         context['calculations']['total_b0'] = b_0_list
         context['calculations']['total_c0'] = c_0_list
