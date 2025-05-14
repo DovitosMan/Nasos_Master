@@ -313,7 +313,7 @@ def pump_selection(request):
         buffer.seek(0)
         graph_url = base64.b64encode(buffer.getvalue()).decode('utf-8')
         context['calculations']['graph_url'] = graph_url
-        context['columns'] = column_renaiming()
+        context['columns'] = column_renaming()
 
     return render(request, 'pump_selection.html', context)
 
@@ -332,7 +332,7 @@ def calc_a(d_3, e_3):
     return round(d_3 / pow(e_3, 2), 5)
 
 
-def column_renaiming():
+def column_renaming():
     column_mapping = {
         'name': 'Марка насоса',
         'price': 'Цена',
