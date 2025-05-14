@@ -4,125 +4,34 @@ import math
 
 
 def wheel_calc(request):
-    context = {
-        'button': [
-            'Pump Master',
-            'Получить размеры'
-        ],
-        'calculations': [
-            {
-                'name': 'Коэффициент быстроходности насоса: ',
-                'value': None,
-                'round': 0,
-                'unit': '',
-            },
-            {
-                'name': 'Наружный диаметр рабочего колеса: ',
-                'value': None,
-                'round': 4,
-                'unit': ' мм',
-            },
-            {
-                'name': 'Ширина лопастного канала рабочего колеса на входе: ',
-                'value': None,
-                'round': 4,
-                'unit': ' мм',
-            },
-            {
-                'name': 'Приведенный диаметр входа в рабочее колесо 1: ',
-                'value': None,
-                'round': 4,
-                'unit': ' мм',
-            },
-            {
-                'name': 'Приведенный диаметр входа в рабочее колесо 2: ',
-                'value': None,
-                'round': 4,
-                'unit': ' мм',
-            },
-            {
-                'name': 'Объемный КПД: ',
-                'value': None,
-                'round': 3,
-                'unit': ' %',
-            },
-            {
-                'name': 'Гидравлический КПД: ',
-                'value': None,
-                'round': 3,
-                'unit': ' %',
-            },
-            {
-                'name': 'Внутр. мех. КПД: ',
-                'value': None,
-                'round': 3,
-                'unit': ' %',
-            },
-            {
-                'name': 'Полный ожидаемый КПД: ',
-                'value': None,
-                'round': 3,
-                'unit': ' %',
-            },
-            {
-                'name': 'Мощность: ',
-                'value': None,
-                'round': 0,
-                'unit': ' кВт',
-            },
-            {
-                'name': 'Мощность максимальная: ',
-                'value': None,
-                'round': 0,
-                'unit': ' кВт',
-            },
-            {
-                'name': 'Диаметр вала: ',
-                'value': None,
-                'round': 0,
-                'unit': ' мм',
-            },
-            {
-                'name': 'Диаметр входа в рабочее колесо: ',
-                'value': None,
-                'round': 0,
-                'unit': ' мм',
-            },
-        ],
-        'selects': [
-            {
-                'type': 'option',
-                'placeholder': 'Расчет рабочего колеса:',
-                'keys': [
-                    'Центробежный насос', 'Струйный насос'
-                ],
-            },
-            {
-                'placeholder': 'Расход, м3/ч',
-                'type': 'input',
-                'name': 'flow_rate',
-                'value': '',
-            },
-            {
-                'placeholder': 'Напор, м',
-                'type': 'input',
-                'name': 'pressure',
-                'value': '',
-            },
-            {
-                'placeholder': 'Плотность, кг/м3',
-                'type': 'input',
-                'name': 'density',
-                'value': '',
-            },
-            {
-                'placeholder': 'Частота вр., об/мин',
-                'type': 'input',
-                'name': 'speed',
-                'value': '',
-            },
-        ],
-    }
+    context = {'button': ['Pump Master', 'Получить размеры'],
+               'calculations': [
+                   {'name': 'Коэффициент быстроходности насоса: ', 'value': None, 'round': 0, 'unit': '', },
+                   {'name': 'Наружный диаметр рабочего колеса: ', 'value': None, 'round': 4, 'unit': ' мм', },
+                   {'name': 'Ширина лопастного канала рабочего колеса на входе: ', 'value': None, 'round': 4,
+                    'unit': ' мм', },
+                   {'name': 'Приведенный диаметр входа в рабочее колесо 1: ', 'value': None, 'round': 4,
+                    'unit': ' мм', },
+                   {'name': 'Приведенный диаметр входа в рабочее колесо 2: ', 'value': None, 'round': 4,
+                    'unit': ' мм', },
+                   {'name': 'Объемный КПД: ', 'value': None, 'round': 3, 'unit': ' %', },
+                   {'name': 'Гидравлический КПД: ', 'value': None, 'round': 3, 'unit': ' %', },
+                   {'name': 'Внутр. мех. КПД: ', 'value': None, 'round': 3, 'unit': ' %', },
+                   {'name': 'Полный ожидаемый КПД: ', 'value': None, 'round': 3, 'unit': ' %', },
+                   {'name': 'Мощность: ', 'value': None, 'round': 0, 'unit': ' кВт', },
+                   {'name': 'Мощность максимальная: ', 'value': None, 'round': 0, 'unit': ' кВт', },
+                   {'name': 'Диаметр вала: ', 'value': None, 'round': 0, 'unit': ' мм', },
+                   {'name': 'Диаметр входа в рабочее колесо: ', 'value': None, 'round': 0, 'unit': ' мм', },
+               ],
+               'selects': [
+                   {'type': 'option', 'placeholder': 'Расчет рабочего колеса:',
+                    'keys': ['Центробежный насос', 'Струйный насос'], },
+                   {'type': 'input', 'placeholder': 'Расход, м3/ч', 'name': 'flow_rate', 'value': '', },
+                   {'type': 'input', 'placeholder': 'Напор, м', 'name': 'pressure', 'value': '', },
+                   {'type': 'input', 'placeholder': 'Плотность, кг/м3', 'name': 'density', 'value': '', },
+                   {'type': 'input', 'placeholder': 'Частота вр., об/мин', 'name': 'speed', 'value': '', },
+               ],
+               }
     if request.method == "POST":
         # Получаем данные из формы
         flow_rate = float(request.POST.get("flow_rate", 0))
