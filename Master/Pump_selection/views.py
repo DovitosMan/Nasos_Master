@@ -1,10 +1,56 @@
 from django.shortcuts import render
 import math
 from .models import Pumps, PumpFamily
-import matplotlib.pyplot as plt
-import io
-import base64
+### Нужно для фильтрации и вывода графика старого ###
+# import matplotlib.pyplot as plt
+# import io
+# import base64
+### Нужно для фильтрации и вывода графика старого ###
 
+### Нужно для фильтрации и вывода графика старого ###
+# def getting_base_a_0(flow_rate, pressure):
+#     a_0 = Pumps.objects.values_list('a0', flat=True).filter(pressure__gt=pressure).filter(
+#         feed__gt=flow_rate).order_by("power")
+#
+#     a_0_list = list(a_0)
+#
+#     return a_0_list
+#
+#
+# def getting_base_b_0(flow_rate, pressure):
+#     b_0 = Pumps.objects.values_list('b0', flat=True).filter(pressure__gt=pressure).filter(
+#         feed__gt=flow_rate).order_by("power")
+#
+#     b_0_list = list(b_0)
+#
+#     return b_0_list
+#
+#
+# def getting_base_c_0(flow_rate, pressure):
+#     c_0 = Pumps.objects.values_list('c0', flat=True).filter(pressure__gt=pressure).filter(
+#         feed__gt=flow_rate).order_by("power")
+#
+#     c_0_list = list(c_0)
+#
+#     return c_0_list
+
+
+# def plot(x_, y1_, y2_):
+#     plt.figure()
+#     plt.plot(x_, y1_)
+#     plt.plot(x_, y2_)
+#     plt.title('Для 1-го насоса с наименьшей мощностью')
+#     plt.xlabel('Q, м3/ч')
+#     plt.ylabel('H, м')
+#
+#     buffer = io.BytesIO()
+#     plt.savefig(buffer, format='png')
+#     plt.close()
+#     buffer.seek(0)
+#     graph_url = base64.b64encode(buffer.getvalue()).decode('utf-8')
+#
+#     return graph_url
+### Нужно для фильтрации и вывода графика старого ###
 
 def pump_selection(request):
     context = {
@@ -238,81 +284,83 @@ def pump_selection(request):
         user_density = request.POST.get('density')
         user_viscosity = request.POST.get('viscosity')
 
-        a_0 = Pumps.objects.values_list('a0', flat=True).filter(pressure__gt=user_pressure).filter(
-            feed__gt=user_flow_rate).order_by("power")
-
-        b_0 = Pumps.objects.values_list('b0', flat=True).filter(pressure__gt=user_pressure).filter(
-            feed__gt=user_flow_rate).order_by("power")
-
-        c_0 = Pumps.objects.values_list('c0', flat=True).filter(pressure__gt=user_pressure).filter(
-            feed__gt=user_flow_rate).order_by("power")
-        a_0_list = list(a_0)
-        b_0_list = list(b_0)
-        c_0_list = list(c_0)
-        filter_pumps = Pumps.objects.all().filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by(
-            "power")
+        ### Нужно для фильтрации и вывода графика старого ###
+        # filter_pumps = Pumps.objects.all().filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by(
+        #     "power")
+        ### Нужно для фильтрации и вывода графика старого ###
 
         context['calculations']['user_data'] = (user_flow_rate, user_pressure, user_pump_lift, user_cav_reserve,
                                                 user_rotation_speed, user_power, user_gas_content, user_solid_content,
                                                 user_solid_size, user_density, user_viscosity, user_temperature,
                                                 user_max_pressure)
-        context['calculations']['total_a0'] = a_0_list
-        context['calculations']['total_b0'] = b_0_list
-        context['calculations']['total_c0'] = c_0_list
+        ### Нужно для фильтрации и вывода графика старого ###
+        # context['calculations']['total_a0'] = getting_base_a_0(user_flow_rate, user_pressure)
+        # context['calculations']['total_b0'] = getting_base_b_0(user_flow_rate, user_pressure)
+        # context['calculations']['total_c0'] = getting_base_c_0(user_flow_rate, user_pressure)
 
-        calcs_q2_all = []
-        calcs_h2_all = []
-        calc_a_all = []
-        for i_i in range(len(a_0_list)):
-            i_a = a_0_list[i_i]
-            i_b = b_0_list[i_i]
-            i_c = c_0_list[i_i]
-            calcs_q2_all.append(
-                calc_q2(float(i_a), float(i_b), float(i_c), float(user_flow_rate), float(user_pressure)))
-            calcs_h2_all.append(calc_h2(float(i_a), float(i_b), float(i_c), calcs_q2_all[i_i]))
-            calc_a_all.append(calc_a(calcs_h2_all[i_i], calcs_q2_all[i_i]))
+        # calcs_q2_all = []
+        # calcs_h2_all = []
+        # calc_a_all = []
+        # for i_i in range(len(getting_base_a_0(user_flow_rate, user_pressure))):
+        #     i_a = getting_base_a_0(user_flow_rate, user_pressure)[i_i]
+        #     i_b = getting_base_b_0(user_flow_rate, user_pressure)[i_i]
+        #     i_c = getting_base_c_0(user_flow_rate, user_pressure)[i_i]
+        #     calcs_q2_all.append(
+        #         calc_q2(float(i_a), float(i_b), float(i_c), float(user_flow_rate), float(user_pressure)))
+        #     calcs_h2_all.append(calc_h2(float(i_a), float(i_b), float(i_c), calcs_q2_all[i_i]))
+        #     calc_a_all.append(calc_a(calcs_h2_all[i_i], calcs_q2_all[i_i]))
+        #
+        # context['calculations']['calc_q2_all'] = calcs_q2_all
+        # context['calculations']['calc_h2_all'] = calcs_h2_all
+        # context['calculations']['calc_a_all'] = calc_a_all
+        # context['calculations']['filter_pumps'] = filter_pumps
+        #
+        # context['calculations']['calc_q2'] = calc_q2(float(getting_base_a_0(user_flow_rate, user_pressure)[0]),
+        #                                              float(getting_base_b_0(user_flow_rate, user_pressure)[0]),
+        #                                              float(getting_base_c_0(user_flow_rate, user_pressure)[0]),
+        #                                              float(user_flow_rate), float(user_pressure))
+        # context['calculations']['calc_h2'] = calc_h2(float(getting_base_a_0(user_flow_rate, user_pressure)[0]),
+        #                                              float(getting_base_b_0(user_flow_rate, user_pressure)[0]),
+        #                                              float(getting_base_c_0(user_flow_rate, user_pressure)[0]),
+        #                                              context['calculations']['calc_q2'])
+        # context['calculations']['calc_a'] = calc_a(context['calculations']['calc_h2'],
+        #                                            context['calculations']['calc_q2'])
+        #
+        # x = []
+        # for num in range(math.ceil(float(context['calculations']['calc_q2'])) + 1):
+        #     x.append(num)
+        # x.insert(-1, float(context['calculations']['calc_q2']))
+        #
+        # y1 = []
+        # for num_1 in range(len(x)):
+        #     y1.append(float(getting_base_a_0(user_flow_rate, user_pressure)[0] * math.pow(x[num_1], 2) +
+        #                     getting_base_b_0(user_flow_rate, user_pressure)[0] * x[num_1] +
+        #                     getting_base_c_0(user_flow_rate, user_pressure)[0]))
+        #
+        # y2 = []
+        # for num_2 in range(len(x)):
+        #     y2.append(float(context['calculations']['calc_a'] * math.pow(x[num_2], 2)))
+        #
+        # context['calculations']['graph_url'] = plot(x, y1, y2)
+        ### Нужно для фильтрации и вывода графика старого ###
+        ### Новая логика выбора и фильтрации ###
+        # Фильтрация насосов по диапазонам
+        filtered_pumps = Pumps.objects.filter(
+            # feed_min__lte=user_flow_rate, feed__gte=user_flow_rate,
+            # pressure_min__lte=user_pressure, pressure__gte=user_pressure,
+            pump_lift_min__lte=user_pump_lift, pump_lift__gte=user_pump_lift,
+            cavitation_min__lte=user_cav_reserve, cavitation__gte=user_cav_reserve,
+            # rotation_speed_min__lte=user_rotation_speed, rotation_speed__gte=user_rotation_speed,
+            # power_min__lte=user_power, power__gte=user_power,
+            gas_content_min__lte=user_gas_content, gas_content__gte=user_gas_content,
+            solid_content_min__lte=user_solid_content, solid_content__gte=user_solid_content,
+            solid_size_min__lte=user_solid_size, solid_size__gte=user_solid_size,
+            density_min__lte=user_density, density__gte=user_density,
+            viscosity_min__lte=user_viscosity, viscosity__gte=user_viscosity
+        )
+        context['calculations']['filter_pumps'] = filtered_pumps
+        ### Новая логика выбора и фильтрации ###
 
-        context['calculations']['calc_q2_all'] = calcs_q2_all
-        context['calculations']['calc_h2_all'] = calcs_h2_all
-        context['calculations']['calc_a_all'] = calc_a_all
-        context['calculations']['filter_pumps'] = filter_pumps
-
-        context['calculations']['calc_q2'] = calc_q2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]),
-                                                     float(user_flow_rate), float(user_pressure))
-        context['calculations']['calc_h2'] = calc_h2(float(a_0_list[0]), float(b_0_list[0]), float(c_0_list[0]),
-                                                     context['calculations']['calc_q2'])
-        context['calculations']['calc_a'] = calc_a(context['calculations']['calc_h2'],
-                                                   context['calculations']['calc_q2'])
-
-        x = []
-        for num in range(math.ceil(float(context['calculations']['calc_q2'])) + 1):
-            x.append(num)
-        x.insert(-1, float(context['calculations']['calc_q2']))
-        # print(x)
-
-        y1 = []
-        for num_1 in range(len(x)):
-            y1.append(float(a_0_list[0] * math.pow(x[num_1], 2) + b_0_list[0] * x[num_1] + c_0_list[0]))
-        # print(y1)
-
-        y2 = []
-        for num_2 in range(len(x)):
-            y2.append(float(context['calculations']['calc_a'] * math.pow(x[num_2], 2)))
-        # print(y2)
-
-        plt.figure()
-        plt.plot(x, y1)
-        plt.plot(x, y2)
-        plt.title('Для 1-го насоса с наименьшей мощностью')
-        plt.xlabel('Q, м3/ч')
-        plt.ylabel('H, м')
-
-        buffer = io.BytesIO()
-        plt.savefig(buffer, format='png')
-        plt.close()
-        buffer.seek(0)
-        graph_url = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        context['calculations']['graph_url'] = graph_url
         context['columns'] = column_renaming()
 
     return render(request, 'pump_selection.html', context)
