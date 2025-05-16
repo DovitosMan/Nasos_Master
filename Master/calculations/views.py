@@ -149,8 +149,10 @@ def calculations_2(flow_rate, pressure, density, speed, num_items=10):
     # print(angle_total_list, len(angle_total_list))
 
 
-def create_section_meridional(r_list, angle_total_list, number_of_blades, thickness, step_filename="spline_export.step"):
-    # Конвертируем полярные координаты в декартовы (X, Y)
+def create_section_meridional(r_list, angle_total_list, number_of_blades, thickness,
+                              step_filename="spline_export.step"):
+
+    # Конвертация в декартовы координаты
     points = [(r_list[0] * math.cos(0), r_list[0] * math.sin(0))]
     for i, angle in enumerate(angle_total_list):
         r = r_list[i + 1]
@@ -159,15 +161,9 @@ def create_section_meridional(r_list, angle_total_list, number_of_blades, thickn
         y = r * math.sin(rad_angle)
         points.append((x, y))
 
-    # wp = cq.Workplane("XY")
-
     angle_step = 360.0 / number_of_blades
     all_objects = []
-    thickness_temp = thickness
-    thickness_all = thickness
-    # for i in range(number_of_blades - 1):
 
-    print(thickness_all)
     for i in range(number_of_blades):
         rotated_points = [
             (
@@ -176,22 +172,94 @@ def create_section_meridional(r_list, angle_total_list, number_of_blades, thickn
             )
             for p in points
         ]
-        # blade_wp = cq.Workplane("XY")
-        for p in rotated_points:
-            circle = cq.Workplane("XY").moveTo(p[0], p[1]).circle(10)
-            all_objects.append(circle.val())
 
-        spline = cq.Workplane("XY").spline(rotated_points)
-        all_objects.append(spline.val())
+        outer_points = []
+        inner_points = []
+        tangent_vectors = []
 
-    print(len(rotated_points), rotated_points)
+        for j, p in enumerate(rotated_points):
+            # Вычисление касательного вектора
+            if j == 0:
+                dx = rotated_points[j + 1][0] - p[0]
+                dy = rotated_points[j + 1][1] - p[1]
+            elif j == len(rotated_points) - 1:
+                dx = p[0] - rotated_points[j - 1][0]
+                dy = p[1] - rotated_points[j - 1][1]
+            else:
+                dx = rotated_points[j + 1][0] - rotated_points[j - 1][0]
+                dy = rotated_points[j + 1][1] - rotated_points[j - 1][1]
+
+            length = math.hypot(dx, dy)
+            if length > 0:
+                tangent_x = dx / length
+                tangent_y = dy / length
+            else:
+                tangent_x, tangent_y = 0, 0
+
+            normal_x = -tangent_y
+            normal_y = tangent_x
+
+            outer_points.append((
+                p[0] + normal_x * thickness[j],
+                p[1] + normal_y * thickness[j]
+            ))
+            inner_points.append((
+                p[0] - normal_x * thickness[j],
+                p[1] - normal_y * thickness[j]
+            ))
+            tangent_vectors.append((tangent_x, tangent_y))
+
+        # Создаем сплайны
+        outer_spline = cq.Workplane("XY").spline(outer_points)
+        inner_spline = cq.Workplane("XY").spline(inner_points)
+
+        tangent_length = max(thickness)
+
+        # Касательные отрезки на начальных точках (направлены к центру)
+        outer_start_tangent = (
+            outer_points[0][0] - tangent_vectors[0][0] * tangent_length,
+            outer_points[0][1] - tangent_vectors[0][1] * tangent_length
+        )
+        inner_start_tangent = (
+            inner_points[0][0] - tangent_vectors[0][0] * tangent_length,
+            inner_points[0][1] - tangent_vectors[0][1] * tangent_length
+        )
+
+        # Касательные отрезки на конечных точках (направлены от центра)
+        outer_end_tangent = (
+            outer_points[-1][0] + tangent_vectors[-1][0] * tangent_length,
+            outer_points[-1][1] + tangent_vectors[-1][1] * tangent_length
+        )
+        inner_end_tangent = (
+            inner_points[-1][0] + tangent_vectors[-1][0] * tangent_length,
+            inner_points[-1][1] + tangent_vectors[-1][1] * tangent_length
+        )
+
+        # Строим касательные отрезки
+        outer_start_line = cq.Workplane("XY").moveTo(*outer_points[0]).lineTo(*outer_start_tangent)
+        inner_start_line = cq.Workplane("XY").moveTo(*inner_points[0]).lineTo(*inner_start_tangent)
+        outer_end_line = cq.Workplane("XY").moveTo(*outer_points[-1]).lineTo(*outer_end_tangent)
+        inner_end_line = cq.Workplane("XY").moveTo(*inner_points[-1]).lineTo(*inner_end_tangent)
+
+        # Соединяем концы касательных отрезков между контурами
+        start_closure = cq.Workplane("XY").moveTo(*outer_start_tangent).lineTo(*inner_start_tangent)
+        end_closure = cq.Workplane("XY").moveTo(*outer_end_tangent).lineTo(*inner_end_tangent)
+
+        all_objects.extend([
+            outer_spline.val(),
+            inner_spline.val(),
+            outer_start_line.val(),
+            inner_start_line.val(),
+            outer_end_line.val(),
+            inner_end_line.val(),
+            start_closure.val(),
+            end_closure.val()
+        ])
 
     compound = cq.Compound.makeCompound(all_objects)
     wp = cq.Workplane("XY").newObject([compound])
 
-    # Экспортируем в STEP
     cq.exporters.export(wp, step_filename, "STEP")
-
     return wp
 
 
