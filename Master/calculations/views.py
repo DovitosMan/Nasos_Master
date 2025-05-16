@@ -1,6 +1,11 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 import math
+import cadquery as cq
+
+
+def create_section_meridional():
+    pass
 
 
 def wheel_calc(request):

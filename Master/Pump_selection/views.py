@@ -343,6 +343,7 @@ def pump_selection(request):
         #
         # context['calculations']['graph_url'] = plot(x, y1, y2)
         ### Нужно для фильтрации и вывода графика старого ###
+
         ### Новая логика выбора и фильтрации ###
         # Фильтрация насосов по диапазонам
         filtered_pumps = Pumps.objects.filter(
