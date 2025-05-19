@@ -137,16 +137,6 @@ def calculations_2(flow_rate, pressure, density, speed, num_items=10):
         angle_total_list.append(round(cumulative, 1))
 
     return r_list, angle_total_list, number_of_blade_checked, thickness_list
-    # print(r_list, len(r_list))
-    # print(v_list, len(v_list))
-    # print(b_list, len(b_list))
-    # print(b_list_updated, len(b_list_updated))
-    # print(thickness_list, len(thickness_list))
-    # print(w_list, len(w_list))
-    # print(b_l_list, len(b_l_list))
-    # print(num_integrate_list, len(num_integrate_list))
-    # print(angle_step_list, len(angle_step_list))
-    # print(angle_total_list, len(angle_total_list))
 
 
 def create_section_meridional(r_list, angle_total_list, number_of_blades, thickness,
@@ -291,6 +281,9 @@ def wheel_calc(request):
                    {'type': 'input', 'placeholder': 'Плотность, кг/м3', 'name': 'density', 'value': '', },
                    {'type': 'input', 'placeholder': 'Частота вр., об/мин', 'name': 'speed', 'value': '', },
                ],
+               'error': None,
+               'plots': [],
+               'input_data': {}
                }
     if request.method == "POST":
         # Получаем данные из формы

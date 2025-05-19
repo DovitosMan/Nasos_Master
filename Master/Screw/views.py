@@ -685,6 +685,8 @@ def screw(request):
         ],
         'error': None,
         'logs': [],
+        'input_data': {},
+        'recommendations': []
     }
 
     if request.method == "POST":

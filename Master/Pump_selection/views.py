@@ -1,56 +1,7 @@
 from django.shortcuts import render
 import math
 from .models import Pumps, PumpFamily
-### Нужно для фильтрации и вывода графика старого ###
-# import matplotlib.pyplot as plt
-# import io
-# import base64
-### Нужно для фильтрации и вывода графика старого ###
 
-### Нужно для фильтрации и вывода графика старого ###
-# def getting_base_a_0(flow_rate, pressure):
-#     a_0 = Pumps.objects.values_list('a0', flat=True).filter(pressure__gt=pressure).filter(
-#         feed__gt=flow_rate).order_by("power")
-#
-#     a_0_list = list(a_0)
-#
-#     return a_0_list
-#
-#
-# def getting_base_b_0(flow_rate, pressure):
-#     b_0 = Pumps.objects.values_list('b0', flat=True).filter(pressure__gt=pressure).filter(
-#         feed__gt=flow_rate).order_by("power")
-#
-#     b_0_list = list(b_0)
-#
-#     return b_0_list
-#
-#
-# def getting_base_c_0(flow_rate, pressure):
-#     c_0 = Pumps.objects.values_list('c0', flat=True).filter(pressure__gt=pressure).filter(
-#         feed__gt=flow_rate).order_by("power")
-#
-#     c_0_list = list(c_0)
-#
-#     return c_0_list
-
-
-# def plot(x_, y1_, y2_):
-#     plt.figure()
-#     plt.plot(x_, y1_)
-#     plt.plot(x_, y2_)
-#     plt.title('Для 1-го насоса с наименьшей мощностью')
-#     plt.xlabel('Q, м3/ч')
-#     plt.ylabel('H, м')
-#
-#     buffer = io.BytesIO()
-#     plt.savefig(buffer, format='png')
-#     plt.close()
-#     buffer.seek(0)
-#     graph_url = base64.b64encode(buffer.getvalue()).decode('utf-8')
-#
-#     return graph_url
-### Нужно для фильтрации и вывода графика старого ###
 
 def pump_selection(request):
     context = {
@@ -270,97 +221,140 @@ def pump_selection(request):
     }
 
     if request.method == "POST":
-        user_pressure = request.POST.get("pressure")
-        user_flow_rate = request.POST.get("flow_rate")
-        user_max_pressure = request.POST.get("max_pressure")
-        user_temperature = request.POST.get("temperature")
-        user_pump_lift = request.POST.get('pump_lift')
-        user_cav_reserve = request.POST.get('cav_reserve')
-        user_rotation_speed = request.POST.get('rotation_speed')
-        user_power = request.POST.get('power')
-        user_gas_content = request.POST.get('gas_content')
-        user_solid_content = request.POST.get('solid_content')
-        user_solid_size = request.POST.get('solid_size')
-        user_density = request.POST.get('density')
-        user_viscosity = request.POST.get('viscosity')
 
-        ### Нужно для фильтрации и вывода графика старого ###
-        # filter_pumps = Pumps.objects.all().filter(pressure__gt=user_pressure).filter(feed__gt=user_flow_rate).order_by(
-        #     "power")
-        ### Нужно для фильтрации и вывода графика старого ###
+        def get_float(value):
+            try:
+                cleaned_value = str(value).strip().replace(' ', '').replace(',', '.')
+                return float(cleaned_value)
+            except (ValueError, TypeError, AttributeError):
+                return None
 
-        context['calculations']['user_data'] = (user_flow_rate, user_pressure, user_pump_lift, user_cav_reserve,
-                                                user_rotation_speed, user_power, user_gas_content, user_solid_content,
-                                                user_solid_size, user_density, user_viscosity, user_temperature,
-                                                user_max_pressure)
-        ### Нужно для фильтрации и вывода графика старого ###
-        # context['calculations']['total_a0'] = getting_base_a_0(user_flow_rate, user_pressure)
-        # context['calculations']['total_b0'] = getting_base_b_0(user_flow_rate, user_pressure)
-        # context['calculations']['total_c0'] = getting_base_c_0(user_flow_rate, user_pressure)
+        user_data = {
+            "pressure": get_float(request.POST.get("pressure")),
+            "flow_rate": get_float(request.POST.get("flow_rate")),
+            "max_pressure": get_float(request.POST.get("max_pressure")),
+            "temperature": get_float(request.POST.get("temperature")),
+            "pump_lift": get_float(request.POST.get("pump_lift")),
+            "cav_reserve": get_float(request.POST.get("cav_reserve")),
+            "rotation_speed": get_float(request.POST.get("rotation_speed")),
+            "power": get_float(request.POST.get("power")),
+            "gas_content": get_float(request.POST.get("gas_content")),
+            "solid_content": get_float(request.POST.get("solid_content")),
+            "solid_size": get_float(request.POST.get("solid_size")),
+            "density": get_float(request.POST.get("density")),
+            "viscosity": get_float(request.POST.get("viscosity")),
+        }
 
-        # calcs_q2_all = []
-        # calcs_h2_all = []
-        # calc_a_all = []
-        # for i_i in range(len(getting_base_a_0(user_flow_rate, user_pressure))):
-        #     i_a = getting_base_a_0(user_flow_rate, user_pressure)[i_i]
-        #     i_b = getting_base_b_0(user_flow_rate, user_pressure)[i_i]
-        #     i_c = getting_base_c_0(user_flow_rate, user_pressure)[i_i]
-        #     calcs_q2_all.append(
-        #         calc_q2(float(i_a), float(i_b), float(i_c), float(user_flow_rate), float(user_pressure)))
-        #     calcs_h2_all.append(calc_h2(float(i_a), float(i_b), float(i_c), calcs_q2_all[i_i]))
-        #     calc_a_all.append(calc_a(calcs_h2_all[i_i], calcs_q2_all[i_i]))
-        #
-        # context['calculations']['calc_q2_all'] = calcs_q2_all
-        # context['calculations']['calc_h2_all'] = calcs_h2_all
-        # context['calculations']['calc_a_all'] = calc_a_all
-        # context['calculations']['filter_pumps'] = filter_pumps
-        #
-        # context['calculations']['calc_q2'] = calc_q2(float(getting_base_a_0(user_flow_rate, user_pressure)[0]),
-        #                                              float(getting_base_b_0(user_flow_rate, user_pressure)[0]),
-        #                                              float(getting_base_c_0(user_flow_rate, user_pressure)[0]),
-        #                                              float(user_flow_rate), float(user_pressure))
-        # context['calculations']['calc_h2'] = calc_h2(float(getting_base_a_0(user_flow_rate, user_pressure)[0]),
-        #                                              float(getting_base_b_0(user_flow_rate, user_pressure)[0]),
-        #                                              float(getting_base_c_0(user_flow_rate, user_pressure)[0]),
-        #                                              context['calculations']['calc_q2'])
-        # context['calculations']['calc_a'] = calc_a(context['calculations']['calc_h2'],
-        #                                            context['calculations']['calc_q2'])
-        #
-        # x = []
-        # for num in range(math.ceil(float(context['calculations']['calc_q2'])) + 1):
-        #     x.append(num)
-        # x.insert(-1, float(context['calculations']['calc_q2']))
-        #
-        # y1 = []
-        # for num_1 in range(len(x)):
-        #     y1.append(float(getting_base_a_0(user_flow_rate, user_pressure)[0] * math.pow(x[num_1], 2) +
-        #                     getting_base_b_0(user_flow_rate, user_pressure)[0] * x[num_1] +
-        #                     getting_base_c_0(user_flow_rate, user_pressure)[0]))
-        #
-        # y2 = []
-        # for num_2 in range(len(x)):
-        #     y2.append(float(context['calculations']['calc_a'] * math.pow(x[num_2], 2)))
-        #
-        # context['calculations']['graph_url'] = plot(x, y1, y2)
-        ### Нужно для фильтрации и вывода графика старого ###
+        request.session['centrifugal_params'] = {
+            'flow_rate': user_data.get('flow_rate'),
+            'pressure': user_data.get('pressure'),
+            'density': user_data.get('density'),
+            'rotation_speed': user_data.get('rotation_speed')
+        }
+        request.session.modified = True
 
-        ### Новая логика выбора и фильтрации ###
-        # Фильтрация насосов по диапазонам
-        filtered_pumps = Pumps.objects.filter(
-            # feed_min__lte=user_flow_rate, feed__gte=user_flow_rate,
-            # pressure_min__lte=user_pressure, pressure__gte=user_pressure,
-            pump_lift_min__lte=user_pump_lift, pump_lift__gte=user_pump_lift,
-            cavitation_min__lte=user_cav_reserve, cavitation__gte=user_cav_reserve,
-            # rotation_speed_min__lte=user_rotation_speed, rotation_speed__gte=user_rotation_speed,
-            # power_min__lte=user_power, power__gte=user_power,
-            gas_content_min__lte=user_gas_content, gas_content__gte=user_gas_content,
-            solid_content_min__lte=user_solid_content, solid_content__gte=user_solid_content,
-            solid_size_min__lte=user_solid_size, solid_size__gte=user_solid_size,
-            density_min__lte=user_density, density__gte=user_density,
-            viscosity_min__lte=user_viscosity, viscosity__gte=user_viscosity
+        required_fields = {
+            'pressure': 'Давление',
+            'flow_rate': 'Подача',
+            'pump_lift': 'Напор',
+            'cav_reserve': 'Кав. запас',
+            'gas_content': 'Сод. газа',
+            'solid_content': 'Конц. тв.',
+            'solid_size': 'Р-р тв.',
+            'density': 'Плотность',
+            'viscosity': 'Вязкость',
+        }
+
+        missing_fields = [name for field, name in required_fields.items()
+                          if user_data.get(field) is None]
+
+        if missing_fields:
+            context['error'] = f"Некорректные значения для: {', '.join(missing_fields)}"
+            return render(request, 'pump_selection.html', context)
+
+        for field in required_fields:
+            if user_data.get(field) is None:
+                context['error'] = f"Некорректное значение для {field}"
+                return render(request, 'pump_selection.html', context)
+
+        context['calculations']['user_data'] = (
+            user_data["flow_rate"],  # user_flow_rate
+            user_data["pressure"],  # user_pressure
+            user_data["pump_lift"],  # user_pump_lift
+            user_data["cav_reserve"],  # user_cav_reserve
+            user_data["rotation_speed"],  # user_rotation_speed
+            user_data["power"],  # user_power
+            user_data["gas_content"],  # user_gas_content
+            user_data["solid_content"],  # user_solid_content
+            user_data["solid_size"],  # user_solid_size
+            user_data["density"],  # user_density
+            user_data["viscosity"],  # user_viscosity
+            user_data["temperature"],  # user_temperature
+            user_data["max_pressure"]  # user_max_pressure
         )
-        context['calculations']['filter_pumps'] = filtered_pumps
-        ### Новая логика выбора и фильтрации ###
+
+        pumps = Pumps.objects.only(
+            'pump_lift_min', 'pump_lift',
+            'cavitation_min', 'cavitation',
+            'gas_content_min', 'gas_content',
+            'solid_content_min', 'solid_content',
+            'solid_size_min', 'solid_size',
+            'density_min', 'density',
+            'viscosity_min', 'viscosity',
+            'pressure_min', 'pressure',
+            'feed_min', 'feed',
+            'rotation_speed_min', 'rotation_speed',
+            'power_min', 'power',
+            'name',
+            'family'
+        )
+
+        pumps_with_score = []
+        total_criteria = 11  # Общее количество проверяемых критериев
+
+        for pump in pumps:
+            score = 0
+            failed_criteria = []
+
+            # Все критерии для проверки
+            criteria = [
+                ('Давление', pump.pressure_min, pump.pressure, user_data["pressure"]),
+                ('Подача', pump.feed_min, pump.feed, user_data["flow_rate"]),
+                ('Напор', pump.pump_lift_min, pump.pump_lift, user_data["pump_lift"]),
+                ('Кавитационный запас', pump.cavitation_min, pump.cavitation, user_data["cav_reserve"]),
+                ('Скорость вращения', pump.rotation_speed_min, pump.rotation_speed, user_data["rotation_speed"]),
+                ('Мощность', pump.power_min, pump.power, user_data["power"]),
+                ('Газосодержание', pump.gas_content_min, pump.gas_content, user_data["gas_content"]),
+                ('Содержание твердых частиц', pump.solid_content_min, pump.solid_content, user_data["solid_content"]),
+                ('Размер твердых частиц', pump.solid_size_min, pump.solid_size, user_data["solid_size"]),
+                ('Плотность', pump.density_min, pump.density, user_data["density"]),
+                ('Вязкость', pump.viscosity_min, pump.viscosity, user_data["viscosity"]),
+            ]
+
+            # Проверяем каждый критерий
+            for name, min_val, max_val, user_val in criteria:
+                if min_val <= user_val <= max_val:
+                    score += 1
+                else:
+                    failed_criteria.append(
+                        f"{name}: {user_val} ∉ [{min_val}-{max_val}]"
+                    )
+
+            # Фильтр: минимальное количество совпадений
+            if score >= total_criteria // 2:  # 50% критериев
+                pumps_with_score.append({
+                    'pump': pump,
+                    'score': score,
+                    'total': total_criteria,
+                    'failed': failed_criteria
+                })
+
+        # Сортировка по приоритету:
+        # 1. Количество совпадений (по убыванию)
+        pumps_with_score.sort(key=lambda x: (-x['score']))
+
+        # Выбираем топ-3 результата
+        context['calculations']['filter_pumps'] = pumps_with_score[:2]
 
         context['columns'] = column_renaming()
 
@@ -384,20 +378,14 @@ def calc_a(d_3, e_3):
 def column_renaming():
     column_mapping = {
         'name': 'Марка насоса',
-        'price': 'Цена',
-        'quantity': 'Количество',
         'family': 'Семейство',
         'feed': 'Подача',
         'pressure': 'Напор',
         'cavitation': 'Кав. запас',
         'rotation_speed': 'Частота вращения',
         'power': 'Мощность',
-        'mass': 'Масса насоса',
-        'mass_all': 'Масса агрегата',
     }
-    column_names = ['name', 'price', 'quantity', 'family', 'feed', 'pressure', 'cavitation', 'rotation_speed',
-                    'power',
-                    'mass', 'mass_all']
-    # Переименование
+    column_names = ['name', 'family', 'feed', 'pressure', 'cavitation', 'rotation_speed', 'power',]
+
     renamed_columns = [column_mapping.get(col, col) for col in column_names]
     return renamed_columns
