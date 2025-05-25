@@ -11,10 +11,11 @@
 {% endblock %}
 
 {% block pump_selection %}
-    <div class="container">
+    <div id="block_application" class="block_application">
         <div class="chart_and_wrapper">
             <div class="wrapper">
-                <form action="{% url 'pump_selection' %}" method="post" class="form">
+                <button class="button_menu" id="toggle_block">☰ Подбор насоса</button>
+                <form action="{% url 'pump_selection' %}" method="post" class="form" id="myForm">
                     {% csrf_token %}
                     {% for select in selects %}
                         <div class="menu_select">

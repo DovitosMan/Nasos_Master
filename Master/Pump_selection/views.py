@@ -221,7 +221,10 @@ def pump_selection(request):
     }
 
     if request.method == "POST":
-
+        for select in context['selects']:
+            if select['type'] == 'input':
+                name = select['name']
+                select['value'] = request.POST.get(name, "")
         def get_float(value):
             try:
                 cleaned_value = str(value).strip().replace(' ', '').replace(',', '.')

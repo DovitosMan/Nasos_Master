@@ -291,7 +291,10 @@ def wheel_calc(request):
         pressure = float(request.POST.get("pressure", 0))
         density = float(request.POST.get("density", 0))
         speed = float(request.POST.get("speed", 0))
-
+        for select in context['selects']:
+            if select['type'] == 'input':
+                name = select['name']
+                select['value'] = request.POST.get(name, "")
         calculated_values = calculations(flow_rate, pressure, density, speed)  # Получаем расчёты
         update_context(context, calculated_values)  # Обновляем context
         format_context_list(context)  # форматирование текста

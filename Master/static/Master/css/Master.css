@@ -1,5 +1,5 @@
 @import url('sidebar.css');
-@import url('block_application.css');
+
 :root {
     --primary-color: #002845;
     --hover-color: #1f6194;
@@ -40,6 +40,16 @@ input[type=button], input[type=submit]{
 input[type=number] {
     width: 100%;
 }
+.button_menu{
+    border: 1px solid #e7e7e7;     /* Чёткая обводка */
+    background: none;           /* Без фона */
+    box-shadow: none;           /* Без тени (убирает объем) */
+    border-radius: 4px;         /* Можно сделать углы скругленными */
+    padding: 8px 16px;
+    font: inherit;
+    cursor: pointer;
+    width: 100%;
+}
 .header{
     height: 80px;
     background-color: var(--primary-color);
@@ -69,4 +79,12 @@ input[type=number] {
     display: flex;
     width: 100%;
 
+}
+.block_application{
+    display: flex;
+    justify-content: flex-start;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+    flex-direction: column;
+    /*max-height: 1000px;*/
 }

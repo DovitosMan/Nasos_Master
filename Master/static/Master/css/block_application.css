@@ -1,8 +1,0 @@
-.block_application{
-    overflow: hidden;
-    transition: max-height 0.3s ease-in-out;
-    max-height: 1000px;
-}
-.block_application.toggled{
-    max-height: 20px;
-}

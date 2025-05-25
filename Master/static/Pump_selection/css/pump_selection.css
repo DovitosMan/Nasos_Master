@@ -1,8 +1,11 @@
 .container {
+    display: flex;
+    justify-content: flex-start;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
-    display: flex;
     flex-direction: column;
     gap: 30px;
 }
@@ -10,7 +13,6 @@
 .chart_and_wrapper {
     display: flex;
     gap: 50px;
-    padding: 30px 0;
     flex-wrap: wrap;
 }
 
@@ -35,7 +37,7 @@
 .Select {
     width: 200px;
     padding: 8px;
-    border: 1px solid #002845;
+    /*border: 1px solid #002845;*/
     border-radius: 5px;
 }
 
