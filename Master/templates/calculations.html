@@ -7,32 +7,37 @@
     <link rel="stylesheet" href="{% static 'calculations/css/calculations.css' %}">
 {% endblock %}
 {% block calculations %}
-    <form action="{% url 'wheel_calc' %}" method="post" class="container">
-        {% csrf_token %}
-        {% for select in selects %}
-            <div class="menu_select">
-                <span class="Select">{{ select.placeholder }}</span>
-                {% if select.type == 'option' %}
-                    <label class="Select">
-                        <select class="Select" type="number">
-                            {% for key in select.keys %}
-                                <option>{{ key }}</option>
-                            {% endfor %}
-                        </select>
-                    </label>
-                {% elif select.type == 'input' %}
-                    <label class="Select">
-                        <input class="Select" type="number" name="{{ select.name }}" value="{{ select.value }}">
-                    </label>
-                {% endif %}
-            </div>
+    <div id="block_application" class="block_application">
+        <button class="button_menu" id="toggle_block">☰</button>
+        Калькулятор рабочего колеса
+        <form action="{% url 'wheel_calc' %}" method="post" class="container">
+            {% csrf_token %}
+            {% for select in selects %}
+                <div class="menu_select">
+                    <span class="Select">{{ select.placeholder }}</span>
+                    {% if select.type == 'option' %}
+                        <label class="Select">
+                            <select class="Select" type="number">
+                                {% for key in select.keys %}
+                                    <option>{{ key }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                    {% elif select.type == 'input' %}
+                        <label class="Select">
+                            <input class="Select" type="number" name="{{ select.name }}" value="{{ select.value }}">
+                        </label>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <input type="submit" value="{{ button.1 }}">
+            <input class="button" type="submit" name="download_model" value="Скачать модель">
+        </form>
+
+        {% for calculation in calculations %}
+            {% if calculation.value is not None %}
+                <div>{{ calculation.name }}{{ calculation.value }}{{ calculation.unit }}</div><br>
+            {% endif %}
         {% endfor %}
-        <input type="submit" value="{{ button.1 }}">
-        <input class="button" type="submit" name="download_model" value="Скачать модель">
-    </form>
-    {% for calculation in calculations %}
-        {% if calculation.value is not None %}
-            <div>{{ calculation.name }}{{ calculation.value }}{{ calculation.unit }}</div><br>
-        {% endif %}
-    {% endfor %}
+    </div>
 {% endblock calculations %}

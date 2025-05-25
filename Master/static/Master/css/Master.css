@@ -1,4 +1,5 @@
 @import url('sidebar.css');
+@import url('block_application.css');
 :root {
     --primary-color: #002845;
     --hover-color: #1f6194;
