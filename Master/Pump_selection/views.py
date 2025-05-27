@@ -5,186 +5,85 @@ from .models import Pumps, PumpFamily
 
 def pump_selection(request):
     context = {
-        'button': ['Вернуться домой', 'Подобрать насос'],
         'selects': [
-            {
-                'type': 'option',
-                'placeholder': 'Режим расчёта:',
-                'keys': [
-                    {'name': 'Назначение системы', 'value': None}
-                ],
-            },
-            {
-                'type': 'option',
-                'placeholder': 'Назначение:',
-                'keys': [
-                    {'name': 'ХВС', 'value': 'HVS'},
-                    {'name': 'СВ', 'value': 'SV'},
-                    {'name': 'СО', 'value': 'SO'},
-                    {'name': 'Подпитка', 'value': 'Recharge'},
-                    {'name': 'ГВС', 'value': 'GVS'},
-
-                ],
-            },
-            {
-                'type': 'option',
-                'placeholder': 'Регион:',
-                'keys': [
-                    {'name': 'Любой', 'value': 'Any'},
-                    {'name': 'Астрахань', 'value': 'Astrakhan'},
-                    {'name': 'Барнаул', 'value': 'Barnaul'},
-                    {'name': 'Белгород', 'value': 'Belgorod'},
-                    {'name': 'Бийск', 'value': 'Biysk'},
-                    {'name': 'Владивосток', 'value': 'Vladivostok'},
-                    {'name': 'Волгоград', 'value': 'Volgograd'},
-                    {'name': 'Вологда', 'value': 'Vologda'},
-                    {'name': 'Воронеж', 'value': 'Voronezh'},
-                    {'name': 'Екатеринбург', 'value': 'Yekaterinburg'},
-                    {'name': 'Ижевск', 'value': 'Izhevsk'},
-                    {'name': 'Казань', 'value': 'Kazan'},
-                    {'name': 'Калуга', 'value': 'Kaluga'},
-                    {'name': 'Кемерово', 'value': 'Kemerovo'},
-                    {'name': 'Киров', 'value': 'Kirov'},
-                    {'name': 'Краснодар', 'value': 'Krasnodar'},
-                    {'name': 'Красноярск', 'value': 'Krasnoyarsk'},
-                    {'name': 'Курган', 'value': 'Kurgan'},
-                    {'name': 'Курск', 'value': 'Kursk'},
-                    {'name': 'Москва', 'value': 'Moscow'},
-                    {'name': 'Набережные Челны', 'value': 'Naberezhnye Chelny'},
-                    {'name': 'Нижний Новгород', 'value': 'Nizhny Novgorod'},
-                    {'name': 'Новосибирск', 'value': 'Novosibirsk'},
-                    {'name': 'Омск', 'value': 'Omsk'},
-                    {'name': 'Оренбург', 'value': 'Orenburg'},
-                    {'name': 'Ростов-на-Дону', 'value': 'Rostov-on-Don'},
-                    {'name': 'Самара', 'value': 'Samara'},
-                    {'name': 'Санкт-Петербург', 'value': 'Saint Petersburg'},
-                    {'name': 'Саратов', 'value': 'Saratov'},
-                    {'name': 'Тамбов', 'value': 'Tambov'},
-                    {'name': 'Тверь', 'value': 'Tver'},
-                    {'name': 'Томск', 'value': 'Tomsk'},
-                    {'name': 'Уфа', 'value': 'Ufa'},
-                    {'name': 'Хабаровск', 'value': 'Khabarovsk'},
-                    {'name': 'Челябинск', 'value': 'Chelyabinsk'},
-                    {'name': 'Чебоксары', 'value': 'Cheboksary'},
-                    {'name': 'Ярославль', 'value': 'Yaroslavl'},
-
-                ],
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Подача, м³,ч:',
-                'name': 'flow_rate',
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Напор, м:',
-                'name': 'pressure',
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Высота всасывания, м:',
-                'name': 'pump_lift',
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Доп. кав. запас, м:',
-                'name': 'cav_reserve',
-            },
-            {
-                'type': 'option',
-                'placeholder': 'Тип режима перекачки',
-                'keys': [
-                    {'name': 'Постоянный', 'value': 'Constant'},
-                    {'name': 'Переменный', 'value': 'Variable'},
-                ],
-            },
-            {
-                'type': 'option',
-                'placeholder': 'Материал',
-                'keys': [
-                    {'name': 'Сталь', 'value': 'Steel'},
-                    {'name': 'Чугун', 'value': 'Cast_iron'},
-                    {'name': 'Нержавеющая сталь', 'value': 'Stainless_steel'},
-                    {'name': 'Композит', 'value': 'Composite'},
-                ],
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Частота вращения, об/мин:',
-                'name': 'rotation_speed',
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Потребляемая мощность, кВт:',
-                'name': 'power',
-            },
-            {
-                'type': 'option',
-                'placeholder': 'Среда:',
-                'keys': [
-                    {'name': 'Вода', 'value': 'Water'},
-                    {'name': 'Этиленгликоль', 'value': 'Ethylene_Glycol'},
-                    {'name': 'Пропиленгликоль', 'value': 'Propylene_Glycol'}
-                ],
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Содержание газа, %:',
-                'name': 'gas_content',
-            },
-            {
-                'type': 'option',
-                'placeholder': 'Наличие твердых включений, (да/нет)',
-                'keys': [
-                    {'name': 'Да', 'value': 'Yes'},
-                    {'name': 'Нет', 'value': 'No'},
-                ],
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Об. конц. тв. включ., %:',
-                'name': 'solid_content',
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Макс. лин. р-р тв. включ.,мм:',
-                'name': 'solid_size',
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Плотность среды,℃:',
-                'name': 'density',
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Вязкость среды, мПа*с:',
-                'name': 'viscosity',
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Температура эксп., ℃:',
-                'name': 'temperature',
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Тmax среды, ℃:',
-                'name': 'max_temperature',
-                'class': 'Select_a_value_4'
-            },
-            {
-                'type': 'input',
-                'placeholder': 'Pmax на входе, МПа:',
-                'name': 'max_pressure',
-                'class': 'Select_a_value_5'
-            },
-            {
-                'type': 'hz',
-                'placeholder1': 'Список насосов',
-                'keys': ['Насосы консольные "К"', 'Насосы консольные моноблочные "КМ"',
-                         'Насосы линейные циркуляционные',
-                         'Насосы двухстороннего входа', 'Насосы секционные', 'Насосы "КГВ" специальные',
-                         'Насосы "НКУ" специальные'],
-            },
+            {'type': 'option', 'placeholder': 'Режим расчёта:',
+             'keys': [{'name': 'Назначение системы', 'value': None}], },
+            {'type': 'option', 'placeholder': 'Назначение:',
+             'keys': [{'name': 'ХВС', 'value': 'HVS'},
+                      {'name': 'СВ', 'value': 'SV'},
+                      {'name': 'СО', 'value': 'SO'},
+                      {'name': 'Подпитка', 'value': 'Recharge'},
+                      {'name': 'ГВС', 'value': 'GVS'}, ], },
+            {'type': 'option', 'placeholder': 'Регион:',
+             'keys': [{'name': 'Любой', 'value': 'Any'},
+                      {'name': 'Астрахань', 'value': 'Astrakhan'},
+                      {'name': 'Барнаул', 'value': 'Barnaul'},
+                      {'name': 'Белгород', 'value': 'Belgorod'},
+                      {'name': 'Бийск', 'value': 'Biysk'},
+                      {'name': 'Владивосток', 'value': 'Vladivostok'},
+                      {'name': 'Волгоград', 'value': 'Volgograd'},
+                      {'name': 'Вологда', 'value': 'Vologda'},
+                      {'name': 'Воронеж', 'value': 'Voronezh'},
+                      {'name': 'Екатеринбург', 'value': 'Yekaterinburg'},
+                      {'name': 'Ижевск', 'value': 'Izhevsk'},
+                      {'name': 'Казань', 'value': 'Kazan'},
+                      {'name': 'Калуга', 'value': 'Kaluga'},
+                      {'name': 'Кемерово', 'value': 'Kemerovo'},
+                      {'name': 'Киров', 'value': 'Kirov'},
+                      {'name': 'Краснодар', 'value': 'Krasnodar'},
+                      {'name': 'Красноярск', 'value': 'Krasnoyarsk'},
+                      {'name': 'Курган', 'value': 'Kurgan'},
+                      {'name': 'Курск', 'value': 'Kursk'},
+                      {'name': 'Москва', 'value': 'Moscow'},
+                      {'name': 'Набережные Челны', 'value': 'Naberezhnye Chelny'},
+                      {'name': 'Нижний Новгород', 'value': 'Nizhny Novgorod'},
+                      {'name': 'Новосибирск', 'value': 'Novosibirsk'},
+                      {'name': 'Омск', 'value': 'Omsk'},
+                      {'name': 'Оренбург', 'value': 'Orenburg'},
+                      {'name': 'Ростов-на-Дону', 'value': 'Rostov-on-Don'},
+                      {'name': 'Самара', 'value': 'Samara'},
+                      {'name': 'Санкт-Петербург', 'value': 'Saint Petersburg'},
+                      {'name': 'Саратов', 'value': 'Saratov'},
+                      {'name': 'Тамбов', 'value': 'Tambov'},
+                      {'name': 'Тверь', 'value': 'Tver'},
+                      {'name': 'Томск', 'value': 'Tomsk'},
+                      {'name': 'Уфа', 'value': 'Ufa'},
+                      {'name': 'Хабаровск', 'value': 'Khabarovsk'},
+                      {'name': 'Челябинск', 'value': 'Chelyabinsk'},
+                      {'name': 'Чебоксары', 'value': 'Cheboksary'},
+                      {'name': 'Ярославль', 'value': 'Yaroslavl'}, ], },
+            {'type': 'input', 'placeholder': 'Расход, м3/ч:', 'name': 'flow_rate', 'value': ''},
+            {'type': 'input', 'placeholder': 'Напор, м:', 'name': 'pressure', 'value': ''},
+            {'type': 'input', 'placeholder': 'Высота всасывания, м:', 'name': 'pump_lift', 'value': ''},
+            {'type': 'input', 'placeholder': 'Доп. кав. запас, м:', 'name': 'cav_reserve', 'value': ''},
+            {'type': 'option', 'placeholder': 'Тип режима перекачки',
+             'keys': [{'name': 'Постоянный', 'value': 'Constant'},
+                      {'name': 'Переменный', 'value': 'Variable'}, ], },
+            {'type': 'option', 'placeholder': 'Материал',
+             'keys': [{'name': 'Сталь', 'value': 'Steel'},
+                      {'name': 'Чугун', 'value': 'Cast_iron'},
+                      {'name': 'Нержавеющая сталь', 'value': 'Stainless_steel'},
+                      {'name': 'Композит', 'value': 'Composite'}, ], },
+            {'type': 'input', 'placeholder': 'Частота вращения, об/мин:', 'name': 'rotation_speed', 'value': '', },
+            {'type': 'input', 'placeholder': 'Потребляемая мощность, кВт:', 'name': 'power', 'value': ''},
+            {'type': 'option', 'placeholder': 'Среда:',
+             'keys': [{'name': 'Вода', 'value': 'Water'},
+                      {'name': 'Этиленгликоль', 'value': 'Ethylene_Glycol'},
+                      {'name': 'Пропиленгликоль', 'value': 'Propylene_Glycol'}], 'value': ''},
+            {'type': 'input', 'placeholder': 'Содержание газа, %:', 'name': 'gas_content', },
+            {'type': 'option', 'placeholder': 'Наличие твердых включений, (да/нет)',
+             'keys': [{'name': 'Да', 'value': 'Yes'},
+                      {'name': 'Нет', 'value': 'No'}, ], },
+            {'type': 'input', 'placeholder': 'Об. конц. тв. включ., %:', 'name': 'solid_content', 'value': ''},
+            {'type': 'input', 'placeholder': 'Макс. лин. р-р тв. включ.,мм:', 'name': 'solid_size','value': ''},
+            {'type': 'input', 'placeholder': 'Плотность, кг/м3:', 'name': 'density', 'value': '', },
+            {'type': 'input', 'placeholder': 'Вязкость среды, мПа*с:', 'name': 'viscosity', 'value': ''},
+            {'type': 'input', 'placeholder': 'Температура эксп., ℃:', 'name': 'temperature', 'value': '' },
+            {'type': 'input', 'placeholder': 'Тmax среды, ℃:', 'name': 'max_temperature', 'class': 'Select_a_value_4', 'value': ''},
+            {'type': 'input', 'placeholder': 'Pmax на входе, МПа:', 'name': 'max_pressure', 'class': 'Select_a_value_5', 'value': ''},
+            {'type': 'hz', 'placeholder1': 'Список насосов',
+             'keys': ['Насосы консольные "К"', 'Насосы консольные моноблочные "КМ"', 'Насосы линейные циркуляционные', 'Насосы двухстороннего входа', 'Насосы секционные',
+                      'Насосы "КГВ" специальные', 'Насосы "НКУ" специальные'], },
 
         ],
         'calculations': {
@@ -219,12 +118,13 @@ def pump_selection(request):
         'columns': None,
         'debug_test': True
     }
-
     if request.method == "POST":
+
         for select in context['selects']:
             if select['type'] == 'input':
                 name = select['name']
                 select['value'] = request.POST.get(name, "")
+
         def get_float(value):
             try:
                 cleaned_value = str(value).strip().replace(' ', '').replace(',', '.')
@@ -388,7 +288,7 @@ def column_renaming():
         'rotation_speed': 'Частота вращения',
         'power': 'Мощность',
     }
-    column_names = ['name', 'family', 'feed', 'pressure', 'cavitation', 'rotation_speed', 'power',]
+    column_names = ['name', 'family', 'feed', 'pressure', 'cavitation', 'rotation_speed', 'power', ]
 
     renamed_columns = [column_mapping.get(col, col) for col in column_names]
     return renamed_columns

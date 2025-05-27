@@ -1,25 +1,3 @@
-.container {
-    display: flex;
-    justify-content: flex-start;
-    overflow: hidden;
-    transition: max-height 0.3s ease-in-out;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    flex-direction: column;
-    gap: 30px;
-}
-
-.chart_and_wrapper {
-    display: flex;
-    gap: 50px;
-    flex-wrap: wrap;
-}
-
-.wrapper {
-    flex: 1;
-    min-width: 300px;
-}
 
 .form {
     display: flex;
@@ -27,40 +5,23 @@
     gap: 25px;
 }
 
-.menu_select {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    justify-content: space-between;
-}
 
-.Select {
-    width: 200px;
-    padding: 8px;
-    /*border: 1px solid #002845;*/
-    border-radius: 5px;
-}
+/*.button {*/
+/*    background-color: #002845;*/
+/*    color: #fff;*/
+/*    padding: 12px 25px;*/
+/*    border: none;*/
+/*    border-radius: 8px;*/
+/*    cursor: pointer;*/
+/*    transition: background-color 0.3s;*/
+/*    align-self: flex-end;*/
+/*}*/
 
-.button {
-    background-color: #002845;
-    color: #fff;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    align-self: flex-end;
-}
+/*.button:hover {*/
+/*    background-color: #004d99;*/
+/*}*/
 
-.button:hover {
-    background-color: #004d99;
-}
 
-.chart {
-    flex: 1;
-    min-width: 300px;
-    max-width: 600px;
-}
 
 .table-responsive {
     width: 100%;
@@ -119,23 +80,7 @@
     font-weight: bold;
 }
 
-.no-results {
-    padding: 20px;
-    text-align: center;
-    color: #6c757d;
-}
 
-.alert {
-    padding: 15px;
-    border-radius: 5px;
-    margin: 15px 0;
-}
-
-.alert-danger {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
-}
 
 .debug-section {
     padding: 20px;
