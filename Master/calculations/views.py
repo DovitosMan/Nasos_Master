@@ -57,7 +57,8 @@ def wheel_calc(request):
             format_context_list(context)  # форматирование текста
 
             r_list, angle_total_list, number_of_blades, thickness, b_list_updated = calculations_2(flow_rate, pressure,
-                                                                                                   density, rotation_speed)
+                                                                                                   density,
+                                                                                                   rotation_speed)
             contour_1, contour_2, contour_3, heihgt_blades = create_section_meridional(flow_rate, pressure, density,
                                                                                        rotation_speed,
                                                                                        r_list,
@@ -143,13 +144,27 @@ def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
     n_vol = round(data[5] / 100, 3)
     n_hydro = round(data[6] / 100, 3)
     d_hub = data[14]  # dвт в мм
-    number_of_blade = 7
+
+    if 50 <= data[0] <= 60:
+        number_of_blade = 9 if data[0] < 55 else 8
+    elif 60 < data[0] <= 180:
+        number_of_blade = 8 if data[0] < 120 else 6
+    elif 180 < data[0] <= 350:
+        number_of_blade = 6
+    elif 350 < data[0] <= 600:
+        number_of_blade = 6 if data[0] < 475 else 5
+    else:
+        raise ValueError("Удельная скорость ns вне диапазона (50…600)")
+
+    flow_rate_m_s = flow_rate / 3600
 
     r_outer = data[1] / 2  # d2 / 2
     r_inner = data[13] / 2  # d1 / 2
+    v_t_1 = (4 * flow_rate_m_s) / (n_vol * math.pi * (math.pow(2 * r_inner / 1000, 2) -
+                                                      math.pow(d_hub / 1000, 2)))
+    u_2 = math.pi * (2 * r_outer / 1000) * rotation_speed / 60
 
-    v_t_0 = data[15]
-    v_t_1 = 0
+    m = round(r_outer / r_inner)
 
     def linear_interpolate_or_extrapolate(x, x_table, y_table):
         return round(float(np.interp(x, x_table, y_table, left=None, right=None)), 1)
@@ -165,9 +180,7 @@ def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
     thickness_of_blade_outlet = linear_interpolate_or_extrapolate(d2, d2_table, delta_2_table)
     thickness_of_blade_max = linear_interpolate_or_extrapolate(d2, d2_table, delta_max_table)
 
-    print(thickness_of_blade_inlet)
-    print(thickness_of_blade_outlet)
-    print(thickness_of_blade_max)
+    # def calculate_angles():
 
     if data[0] < 50:
         angle_b_l_2_range = (20, 25)
@@ -183,53 +196,61 @@ def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
     angle_b_l_1_range = (15, 30)
     attack_angle_b_range = (3, 8)
 
-    angle_b_l_2 = 28
-
-    velocity_inlet = (4 * flow_rate / 3600) / (n_vol * math.pi * (math.pow(2 * r_inner / 1000, 2) -
-                                                                  math.pow(d_hub / 1000, 2)))
-    width_in_inlet_of_work_field = (flow_rate / 3600) / (n_vol * math.pi * (2 * r_inner / 1000) * velocity_inlet)
-    print(velocity_inlet, width_in_inlet_of_work_field)
+    v_t_0 = data[15]
+    b_1 = flow_rate_m_s / (n_vol * math.pi * (2 * r_inner / 1000) * v_t_1)
     u_1 = math.pi * (2 * r_inner / 1000) * rotation_speed / 60
-    angle_b_1 = round(math.atan(velocity_inlet / u_1) * 180 / math.pi)
+    angle_b_1 = round(math.atan(v_t_1 / u_1) * 180 / math.pi)
 
-    attack_angle_b = 4
+    found = False  # флаг для выхода из вложенных циклов
 
-    angle_b_l_1 = angle_b_1 + attack_angle_b
+    for angle in range(max(angle_b_l_2_range), min(angle_b_l_2_range), -1):
+        for attack_angle in range(min(attack_angle_b_range), max(attack_angle_b_range), 1):
+            angle_b_l_1 = angle_b_1 + attack_angle
+            if min(angle_b_l_1_range) <= angle_b_l_1 <= max(angle_b_l_1_range):
+                flow_resistance_koef_1 = 1 - (number_of_blade * thickness_of_blade_inlet /
+                                              (math.pi * 2 * r_inner * math.sin(angle_b_l_1 * math.pi / 180)))
+                v_t_2 = v_t_1 / flow_resistance_koef_1
 
-    flow_resistance_koef_1 = 1 - (number_of_blade * thickness_of_blade_inlet /
-                                  (math.pi * 2 * r_inner * math.sin(angle_b_l_1 * math.pi / 180)))
-    velocity_on_blades = velocity_inlet / flow_resistance_koef_1
+                flow_resistance_koef_2 = 1 - (number_of_blade * thickness_of_blade_outlet /
+                                              (math.pi * 2 * r_outer * math.sin(angle * math.pi / 180)))
 
-    flow_resistance_koef_2 = 1 - (number_of_blade * thickness_of_blade_outlet /
-                                  (math.pi * 2 * r_outer * math.sin(angle_b_l_2 * math.pi / 180)))
+                v_t_3 = flow_rate_m_s / (
+                            flow_resistance_koef_2 * math.pi * 2 * r_outer / 1000 * data[2])
+                v_t_4 = v_t_3 * flow_resistance_koef_2
 
-    velocity_on_outlet = (flow_rate / 3600) / (flow_resistance_koef_2 * math.pi * 2 * r_outer / 1000 * data[2])
-    u_2 = math.pi * (2 * r_outer / 1000) * rotation_speed / 60
+                angle_b_2 = angle - attack_angle
 
-    velocity_after_outlet = velocity_on_outlet * flow_resistance_koef_2
+                if data[0] < 150:
+                    fi = 0.6 + 0.6 * math.sin(angle_b_2 * math.pi / 180)
+                elif 150 <= data[0] <= 200:
+                    fi = (1.6 * math.sin(angle_b_2 * math.pi / 180) + math.sin(angle_b_1 * math.pi / 180) *
+                          math.pow(r_inner / r_outer, 2))
+                else:
+                    fi = (math.sin(angle_b_1 * math.pi / 180) *
+                          (1.7 + 13.3 * math.pow((v_t_4 / (u_2 * math.tan(angle_b_2 * math.pi / 180))), 2)))
+                mu = math.pow((1 + ((2 * fi * (2 * r_outer / 1000)) / (
+                        number_of_blade * (math.pow(2 * r_outer / 1000, 2) - math.pow(2 * r_inner / 1000, 2))))),
+                              -1)
+                v_u_2_inf = 9.81 * pressure / (mu * n_hydro * u_2)
+                pressure_inf = v_u_2_inf * u_2 / 9.81
+                pressure_check = pressure_inf * mu * n_hydro
+                cot_b_l_1 = (u_2 - v_u_2_inf) / v_t_4
+                number_of_blade_checked = round(6.5 * ((m + 1) / (m - 1)) *
+                                                math.sin((angle_b_l_1 + angle) * math.pi / 2 / 180))
 
-    angle_b_2 = angle_b_l_2 - attack_angle_b
+                angle_b_l_2_checked = (2 * math.asin((number_of_blade_checked*(m - 1)) / (6.5 * (m + 1))) * 180 / math.pi - angle_b_l_1)
+                if abs(angle - angle_b_l_2_checked) < 0.5:  # допустимая погрешность 0.5°
+                    angle_b_l_2 = angle_b_l_2_checked
+                    found = True
+                    print(f"Найдено решение:")
+                    print(f"angle_b_l_1 = {round(angle_b_l_1, 1)}")
+                    print(f"angle_b_l_2 = {round(angle_b_l_2, 1)}")
+                    print(f"attack_angle = {attack_angle}")
+                    print(f"number_of_blade_checked = {number_of_blade_checked}")
+                    break  # выход из внутреннего цикла
 
-    if data[0] < 150:
-        fi = 0.6 + 0.6 * math.sin(angle_b_2 * math.pi / 180)
-    elif 150 <= data[0] <= 200:
-        fi = (1.6 * math.sin(angle_b_2 * math.pi / 180) + math.sin(angle_b_1 * math.pi / 180) *
-              math.pow(r_inner / r_outer, 2))
-    else:
-        fi = (math.sin(angle_b_1 * math.pi / 180) *
-              (1.7 + 13.3 * math.pow((velocity_on_outlet / (u_2 * math.tan(angle_b_2 * math.pi / 180))), 2)))
-
-    mu = math.pow((1 + ((2 * fi * (2 * r_outer / 1000)) / (
-            number_of_blade * (math.pow(2 * r_outer / 1000, 2) - math.pow(2 * r_inner / 1000, 2))))), -1)
-
-    velocity_u_2_inf = 9.81 * pressure / (mu * n_hydro * u_2)
-    pressure_inf = velocity_u_2_inf * u_2 / 9.81
-    pressure_check = pressure_inf * mu * n_hydro
-
-    cot_b_l_1 = (u_2 - velocity_u_2_inf) / velocity_on_outlet
-    m = round(r_outer / r_inner)
-    number_of_blade_checked = round(6.5 * ((m + 1) / (m - 1)) *
-                                    math.sin((angle_b_l_1 + angle_b_l_2) * math.pi / 2 / 180))
+                if found:
+                    break
 
     r_step = (r_outer - r_inner) / num_items
 
@@ -237,8 +258,8 @@ def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
     for i in range(num_items):
         r_list.append(r_list[i] + r_step)
 
-    v_dependence_k = (velocity_after_outlet - velocity_inlet) / (r_outer / 1000 - r_inner / 1000)
-    v_dependence_b = velocity_after_outlet - v_dependence_k * r_outer / 1000
+    v_dependence_k = (v_t_4 - v_t_1) / (r_outer / 1000 - r_inner / 1000)
+    v_dependence_b = v_t_4 - v_dependence_k * r_outer / 1000
 
     v_list = []
     for i in range(len(r_list)):
