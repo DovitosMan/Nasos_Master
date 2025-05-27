@@ -11,9 +11,6 @@
     <div id="block_application" class="block_application">
         <div class="secondary_block_application">
             <button class="button_menu" id="toggle_block">☰ Калькулятор рабочего колеса</button>
-            {% if error %}
-                <div class="message alert">{{ error }}</div>
-            {% endif %}
             <form action="{% url 'wheel_calc' %}" method="post" class="container">
                 {% csrf_token %}
                 {% for select in selects %}
