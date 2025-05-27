@@ -4,6 +4,7 @@
     Калькулятор рабочего колеса
 {% endblock %}
 {% block settings %}
+    <link rel="stylesheet" href="{% static 'calculations/css/calculations.css' %}">
     <link rel="stylesheet" href="{% static 'menu_block/css/menu_block.css' %}">
 {% endblock %}
 {% block calculations %}
@@ -11,7 +12,7 @@
         <div class="secondary_block_application">
             <button class="button_menu" id="toggle_block">☰ Калькулятор рабочего колеса</button>
             {% if error %}
-                <div style="color: red; font-weight: bold;">{{ error }}</div>
+                <div class="message alert">{{ error }}</div>
             {% endif %}
             <form action="{% url 'wheel_calc' %}" method="post" class="container">
                 {% csrf_token %}

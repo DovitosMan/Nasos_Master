@@ -27,7 +27,15 @@
 .sidebar.open {
     left: 0; /* Показываем меню */
 }
-
+.content {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    height: 100%;
+    margin-left: 0;
+    padding: 20px;
+    transition: margin-left 0.3s ease-in-out;
+}
 .overlay {
     position: fixed;
     top: 0;
