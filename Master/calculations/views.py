@@ -175,7 +175,7 @@ def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
                                                                   math.pow(d_hub / 1000, 2)))
     width_in_inlet_of_work_field = (flow_rate / 3600) / (n_vol * math.pi * (2 * r_inner / 1000) * velocity_inlet)
     print(velocity_inlet, width_in_inlet_of_work_field)
-    u_1 = math.pi * (2 * r_inner / 1000) * speed / 60
+    u_1 = math.pi * (2 * r_inner / 1000) * rotation_speed / 60
     angle_b_1 = round(math.atan(velocity_inlet / u_1) * 180 / math.pi)
 
     attack_angle_b = 4
@@ -294,8 +294,8 @@ def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
     return r_list, angle_total_list, number_of_blade_checked, thickness_list, b_list_updated
 
 
-def create_section_meridional(flow_rate, pressure, density, speed, r_list, b_list_updated, debug_mode=True):
-    data = calculations(flow_rate, pressure, density, speed)
+def create_section_meridional(flow_rate, pressure, density, rotation_speed, r_list, b_list_updated, debug_mode=True):
+    data = calculations(flow_rate, pressure, density, rotation_speed)
 
     r_list_mm = [round(i, 2) for i in r_list]
     b_list_updated_mm = [round(i * 1000, 2) for i in b_list_updated]
@@ -646,7 +646,7 @@ def wheel_calc(request):
                    {'type': 'input', 'placeholder': 'Расход, м3/ч', 'name': 'flow_rate', 'value': '', },
                    {'type': 'input', 'placeholder': 'Напор, м', 'name': 'pressure', 'value': '', },
                    {'type': 'input', 'placeholder': 'Плотность, кг/м3', 'name': 'density', 'value': '', },
-                   {'type': 'input', 'placeholder': 'Частота вр., об/мин', 'name': 'speed', 'value': '', },
+                   {'type': 'input', 'placeholder': 'Частота вр., об/мин', 'name': 'rotation_speed', 'value': '', },
                ],
                'error': None,
                'plots': [],
@@ -657,18 +657,18 @@ def wheel_calc(request):
         flow_rate = float(request.POST.get("flow_rate", 0))
         pressure = float(request.POST.get("pressure", 0))
         density = float(request.POST.get("density", 0))
-        speed = float(request.POST.get("speed", 0))
+        rotation_speed = float(request.POST.get("rotation_speed", 0))
         for select in context['selects']:
             if select['type'] == 'input':
                 name = select['name']
                 select['value'] = request.POST.get(name, "")
-        calculated_values = calculations(flow_rate, pressure, density, speed)  # Получаем расчёты
+        calculated_values = calculations(flow_rate, pressure, density, rotation_speed)  # Получаем расчёты
         update_context(context, calculated_values)  # Обновляем context
         format_context_list(context)  # форматирование текста
 
         r_list, angle_total_list, number_of_blades, thickness, b_list_updated = calculations_2(flow_rate, pressure,
-                                                                                               density, speed)
-        contour_1, contour_2, contour_3, heihgt_blades = create_section_meridional(flow_rate, pressure, density, speed,
+                                                                                               density, rotation_speed)
+        contour_1, contour_2, contour_3, heihgt_blades = create_section_meridional(flow_rate, pressure, density, rotation_speed,
                                                                                    r_list,
                                                                                    b_list_updated)
         create_wheel(contour_1, contour_2, contour_3, heihgt_blades, r_list, angle_total_list, number_of_blades,
@@ -677,24 +677,24 @@ def wheel_calc(request):
     return render(request, 'calculations.html', context)
 
 
-def calculations(flow_rate, pressure, density, speed):
+def calculations(flow_rate, pressure, density, rotation_speed):
     # Коэффициент быстроходности насоса
-    pump_speed_coef = round((3.65 * speed * math.sqrt(flow_rate / 60 / 60)) / (pressure ** (3 / 4)))
+    pump_speed_coef = round((3.65 * rotation_speed * math.sqrt(flow_rate / 60 / 60)) / (pressure ** (3 / 4)))
     # Наружный диаметр рабочего колеса
     k_od = 9.35 * math.sqrt(100 / pump_speed_coef)
-    outer_diam_of_work_wheel = round((k_od * (flow_rate / 3600 / speed) ** (1 / 3)), 4) * 1000
+    outer_diam_of_work_wheel = round((k_od * (flow_rate / 3600 / rotation_speed) ** (1 / 3)), 4) * 1000
     # Ширина лопастного канала рабочего колеса на входе
     if pump_speed_coef <= 200:
         k_w = 0.8 * math.sqrt(pump_speed_coef / 100)
     else:
         k_w = 0.635 * (pump_speed_coef / 100) ** (5 / 6)
-    width_in_enter_of_work_wheel = round(k_w * (flow_rate / 3600 / speed) ** (1 / 3), 4)
+    width_in_enter_of_work_wheel = round(k_w * (flow_rate / 3600 / rotation_speed) ** (1 / 3), 4)
     # Приведенный диаметр входа в рабочее колесо
     k_in = 6
-    inner_diam_of_work_wheel_1 = round(k_in * (flow_rate / 60 / speed) ** (2 / 3), 4)
+    inner_diam_of_work_wheel_1 = round(k_in * (flow_rate / 60 / rotation_speed) ** (2 / 3), 4)
     number_of_blade = 7
     alpha = 0.1
-    v_0 = alpha * (flow_rate / 3600 * speed ** 2) ** (1 / 3)
+    v_0 = alpha * (flow_rate / 3600 * rotation_speed ** 2) ** (1 / 3)
     inner_diam_of_work_wheel_2 = round((4 * flow_rate / 3600 / (math.pi * v_0)) ** (1 / 2), 4)
     # Предварительная оценка КПД
     n_0 = (1 + (0.68 / (pump_speed_coef ** (2 / 3)))) ** (-1) * 100
@@ -709,7 +709,7 @@ def calculations(flow_rate, pressure, density, speed):
     k_n = 1.1
     power_max = power * k_n
     # Определение размеров вала и втулки (ступицы) колеса
-    m_max = round(power_max * 30 * 1000 / (math.pi * speed), 3)
+    m_max = round(power_max * 30 * 1000 / (math.pi * rotation_speed), 3)
     tau = 600 * 10 ** 5
     shaft_diameter = math.ceil(((m_max / (0.2 * tau)) ** (1 / 3) * 1000) / 10) * 10
     # Определение диаметра входной рабочего колеса и диаметра входа в рабочее колесо
