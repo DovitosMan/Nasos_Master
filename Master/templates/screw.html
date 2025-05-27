@@ -1,41 +1,35 @@
 {% extends 'Master.html' %}
 {% load static %}
 {% block title %}
-    Screw
+    Винтовой насос
 {% endblock %}
-
 {% block settings %}
+    <link rel="stylesheet" href="{% static 'menu_block/css/menu_block.css' %}">
     <link rel="stylesheet" href="{% static 'Screw/css/Screw.css' %}"/>
 {% endblock %}
-
 {% block Screw %}
-    <div>
-        <form action="{% url 'screw' %}" method="post" class="form" id="screw-form">
-            {% csrf_token %}
-            {% for cal in calc %}
-                <label>
-                    {% if cal.name == "diam" and calculated_diam %}
-                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ calculated_diam }}">
-                    {% elif cal.name == "rotation_speed" and calculated_rotation_speed %}
-                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ calculated_rotation_speed }}">
-                    {% elif cal.name == "feed" and input_feed is not None %}
-                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ input_feed }}">
-                    {% elif cal.name == "pressure" and input_pressure is not None %}
-                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ input_pressure }}">
-                    {% elif cal.name == "turns" and turns is not None %}
-                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ turns }}">
-                    {% elif cal.name == "viscosity" and input_viscosity is not None %}
-                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}" value="{{ input_viscosity }}">
-                    {% else %}
-                        <input type="{{ cal.type }}" name="{{ cal.name }}" placeholder="{{ cal.placeholder }}">
-                    {% endif %}
-                </label>
-            {% endfor %}
-            <input class="button" type="submit" name="calculate_params" value="Вычислить параметры">
-            <input class="button" type="button" id="reset-button" value="Сброс значений">
-            <input class="button" type="submit" name="calculate_params" value="Построить график">
-            <input class="button" type="submit" name="download_model" value="Скачать модель">
-        </form>
+    <div id="block_application" class="block_application">
+        <div class="secondary_block_application">
+            <button class="button_menu" id="toggle_block">☰ Расчет винтового насоса</button>
+            {% if error %}
+                <div class="message alert">{{ error }}</div>
+            {% endif %}
+            <form action="{% url 'screw' %}" method="post" class="container" id="screw-form">
+                {% csrf_token %}
+                {% for cal in calc %}
+                    <div class="menu_select">
+                        <span class="Select">{{ cal.placeholder }}</span>
+                        <label class="Select">
+                            <input class="Select" type="number" Zname="{{ cal.name }}" value="{{ cal.value }}">
+                        </label>
+                    </div>
+                {% endfor %}
+                <input class="button" type="submit" name="calculate_params" value="Вычислить параметры">
+                <input class="button" type="button" id="reset-button" value="Сброс значений">
+                <input class="button" type="submit" name="calculate_params" value="Построить график">
+                <input class="button" type="submit" name="download_model" value="Скачать модель">
+            </form>
+        </div>
     </div>
 
     <!-- Отображение ошибок -->
@@ -62,16 +56,16 @@
     <!-- Отображение фактического расхода, КПД и мощности -->
     <div>
         {% if feed_real is not None %}
-        <h3>Результаты расчета:</h3>
-        <p>Фактический расход: {{ feed_real|floatformat:3 }} м³/ч</p>
-        <p>Напор: {{ user_pressure|floatformat:3 }} м</p>
-        <p>Объемный КПД: {{ kpd_volumetric|floatformat:3 }} %</p>
-        <p>Механический КПД: {{ kpd_mechanical|floatformat:3 }} %</p>
-        <p>Полный КПД: {{ kpd_total|floatformat:3 }} %</p>
-        <p>Теоретическая мощность: {{ power_t|floatformat:3 }} кВт</p>
-        <p>Эффективная мощность: {{ power_eff|floatformat:3 }} кВт</p>
-        <p>Номинальная мощность: {{ power_nominal|floatformat:3 }} кВт</p>
-    {% endif %}
+            <h3>Результаты расчета:</h3>
+            <p>Фактический расход: {{ feed_real|floatformat:3 }} м³/ч</p>
+            <p>Напор: {{ user_pressure|floatformat:3 }} м</p>
+            <p>Объемный КПД: {{ kpd_volumetric|floatformat:3 }} %</p>
+            <p>Механический КПД: {{ kpd_mechanical|floatformat:3 }} %</p>
+            <p>Полный КПД: {{ kpd_total|floatformat:3 }} %</p>
+            <p>Теоретическая мощность: {{ power_t|floatformat:3 }} кВт</p>
+            <p>Эффективная мощность: {{ power_eff|floatformat:3 }} кВт</p>
+            <p>Номинальная мощность: {{ power_nominal|floatformat:3 }} кВт</p>
+        {% endif %}
     </div>
 
     <!-- Отображение логов -->
@@ -79,7 +73,7 @@
         <ul>
             {% for log in logs %}
                 <li>{{ log }}</li>
-            {% empty %}
+                {% empty %}
 
             {% endfor %}
         </ul>
@@ -111,8 +105,8 @@
             form.submit();
         }
 
-            // Функция для сброса значений
-        document.getElementById('reset-button').addEventListener('click', function() {
+        // Функция для сброса значений
+        document.getElementById('reset-button').addEventListener('click', function () {
             // Находим только поля ввода (исключая кнопки)
             const inputs = document.querySelectorAll('#screw-form input[type="text"], #screw-form input[type="number"], #screw-form input[type="float"]');
             inputs.forEach(input => {

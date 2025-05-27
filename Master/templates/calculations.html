@@ -5,11 +5,15 @@
 {% endblock %}
 {% block settings %}
     <link rel="stylesheet" href="{% static 'calculations/css/calculations.css' %}">
+    <link rel="stylesheet" href="{% static 'menu_block/css/menu_block.css' %}">
 {% endblock %}
 {% block calculations %}
     <div id="block_application" class="block_application">
-        <div>
+        <div class="secondary_block_application">
             <button class="button_menu" id="toggle_block">☰ Калькулятор рабочего колеса</button>
+            {% if error %}
+                <div class="message alert">{{ error }}</div>
+            {% endif %}
             <form action="{% url 'wheel_calc' %}" method="post" class="container">
                 {% csrf_token %}
                 {% for select in selects %}
@@ -25,19 +29,31 @@
                             </label>
                         {% elif select.type == 'input' %}
                             <label class="Select">
-                                <input class="Select" type="number" name="{{ select.name }}" value="{{ select.value }}" >
+                                <input class="Select" type="number" name="{{ select.name }}" value="{{ select.value }}">
                             </label>
                         {% endif %}
                     </div>
                 {% endfor %}
-                <input type="submit" value="{{ button.1 }}">
-                <input class="button" type="submit" name="download_model" value="Скачать модель">
+                <input type="submit" value="Получить размеры">
+
             </form>
-            {% for calculation in calculations %}
-                {% if calculation.value is not None %}
+            {% if calculation.value is not None %}
+                {% for calculation in calculations %}
                     <div>{{ calculation.name }}{{ calculation.value }}{{ calculation.unit }}</div><br>
+                {% endfor %}
+                <input type="submit" value="Скачать модель" name="download_model">
+            {% else %}
+                {% if error %}
+                    <div class="message alert">
+                        {{ error }}
+                    </div>
+                {% else %}
+                    <div class="message">
+                        Нет результатов, соответствующих критериям
+                    </div>
                 {% endif %}
-            {% endfor %}
-        </div>
+                </div>
+            {% endif %}
+    </div>
     </div>
 {% endblock calculations %}

@@ -8,124 +8,127 @@
 
 {% block settings %}
     <link rel="stylesheet" href="{% static 'Pump_selection/css/pump_selection.css' %}"/>
+    <link rel="stylesheet" href="{% static 'menu_block/css/menu_block.css' %}">
+
 {% endblock %}
 
 {% block pump_selection %}
     <div id="block_application" class="block_application">
-        <div class="chart_and_wrapper">
-            <div class="wrapper">
-                <button class="button_menu" id="toggle_block">☰ Подбор насоса</button>
-                <form action="{% url 'pump_selection' %}" method="post" class="form" id="myForm">
-                    {% csrf_token %}
-                    {% for select in selects %}
-                        <div class="menu_select">
-                            <span class="Select">{{ select.placeholder }}</span>
-                            {% if select.type == 'option' %}
-                                <label class="Select">
-                                    <select class="Select" type="number">
-                                        {% for key in select.keys %}
-                                            <option value="{{ key.value }}">{{ key.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </label>
-                            {% elif select.type == 'input' %}
-                                <label class="Select">
-                                    <input type="number" name="{{ select.name }}" step="0.01">
-                                </label>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                    <input class="button" type="submit" value="{{ button.1 }}">
-                </form>
-            </div>
-            <div class="chart">
-                {% if calculations.graph_url %}
-                    <img src="data:image/png;base64,{{ calculations.graph_url }}" alt="Graph" width="500">
+        <div class="secondary_block_application">
+            <button class="button_menu" id="toggle_block">☰ Подбор насоса</button>
+            <form action="{% url 'pump_selection' %}" method="post" class="container" id="myForm">
+                {% csrf_token %}
+                {% for select in selects %}
+                    <div class="menu_select">
+                        <span class="Select">{{ select.placeholder }}</span>
+                        {% if select.type == 'option' %}
+                            <label class="Select">
+                                <select class="Select" type="number">
+                                    {% for key in select.keys %}
+                                        <option value="{{ key.value }}">{{ key.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                        {% elif select.type == 'input' %}
+                            <label class="Select">
+                                <input class="Select" type="number" name="{{ select.name }}"
+                                       value="{{ select.value }}" step="0.01">
+                            </label>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <input type="submit" value="Подобрать насос">
+            </form>
+            <div class="debug-info">
+                {% if calculations.user_data is not None and debug_test %}
+                    <div class="debug-section">
+                        <h4>Отладочная информация:</h4>
+                        <p>Вы ввели: {{ calculations.user_data }}</p>
+                        <p>Список a0: {{ calculations.total_a0 }}</p>
+                        <p>Список b0: {{ calculations.total_b0 }}</p>
+                        <p>Список c0: {{ calculations.total_c0 }}</p>
+                        <p>Для всех насосов Q2: {{ calculations.calc_q2_all }}</p>
+                        <p>Для всех насосов H2: {{ calculations.calc_h2_all }}</p>
+                        <p>Для всех насосов a: {{ calculations.calc_a_all }}</p>
+                        <p>Для 1-го насоса Q2: {{ calculations.calc_q2 }}</p>
+                        <p>Для 1-го насоса H2: {{ calculations.calc_h2 }}</p>
+                        <p>Для 1-го насоса a: {{ calculations.calc_a }}</p>
+                    </div>
                 {% endif %}
             </div>
         </div>
-
-        <div class="debug-info">
-            {% if calculations.user_data is not None and debug_test %}
-                <div class="debug-section">
-                    <h4>Отладочная информация:</h4>
-                    <p>Вы ввели: {{ calculations.user_data }}</p>
-                    <p>Список a0: {{ calculations.total_a0 }}</p>
-                    <p>Список b0: {{ calculations.total_b0 }}</p>
-                    <p>Список c0: {{ calculations.total_c0 }}</p>
-                    <p>Для всех насосов Q2: {{ calculations.calc_q2_all }}</p>
-                    <p>Для всех насосов H2: {{ calculations.calc_h2_all }}</p>
-                    <p>Для всех насосов a: {{ calculations.calc_a_all }}</p>
-                    <p>Для 1-го насоса Q2: {{ calculations.calc_q2 }}</p>
-                    <p>Для 1-го насоса H2: {{ calculations.calc_h2 }}</p>
-                    <p>Для 1-го насоса a: {{ calculations.calc_a }}</p>
-                </div>
-            {% endif %}
-        </div>
-
         <div class="results-section">
             {% if calculations.filter_pumps %}
                 <div class="table-responsive">
-                    <table class="results-table" border="1">>
+                    <table class="results-table" border="1">
                         <thead>
-                            <tr>
-                                {% for column in columns %}
-                                    <th>{{ column }}</th>
-                                {% endfor %}
-                                <th>Совпадений</th>
-                                <th>Соответствие</th>
-                                <th>Несоответствия</th>
-                            </tr>
+                        <tr>
+                            {% for column in columns %}
+                                <th>{{ column }}</th>
+                            {% endfor %}
+                            <th>Совпадений</th>
+                            <th>Соответствие</th>
+                            <th>Несоответствия</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            {% for result in calculations.filter_pumps %}
-                                <tr>
-                                    <td>{{ result.pump.name }}</td>
-                                    <td>{{ result.pump.family.name }}</td>
-                                    <td>{{ result.pump.feed|floatformat:2 }}</td>
-                                    <td>{{ result.pump.pressure|floatformat:2 }}</td>
-                                    <td>{{ result.pump.cavitation|floatformat:2 }}</td>
-                                    <td>{{ result.pump.rotation_speed }}</td>
-                                    <td>{{ result.pump.power|floatformat:2 }}</td>
-                                    <td>
-                                        {{ result.score }}/{{ result.total }}
-                                    </td>
+                        {% for result in calculations.filter_pumps %}
+                            <tr>
+                                <td>{{ result.pump.name }}</td>
+                                <td>{{ result.pump.family.name }}</td>
+                                <td>{{ result.pump.feed|floatformat:2 }}</td>
+                                <td>{{ result.pump.pressure|floatformat:2 }}</td>
+                                <td>{{ result.pump.cavitation|floatformat:2 }}</td>
+                                <td>{{ result.pump.rotation_speed }}</td>
+                                <td>{{ result.pump.power|floatformat:2 }}</td>
+                                <td>
+                                    {{ result.score }}/{{ result.total }}
+                                </td>
 
-                                    <td>
-                                        <div class="progress">
-                                            <div class="progress-bar"
-                                                style="width: {{ result.score|div:result.total|mul:100 }}%">
-                                                {{ result.score|div:result.total|mul:100|floatformat:0 }}%
-                                            </div>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar"
+                                             style="width: {{ result.score|div:result.total|mul:100 }}%">
+                                            {{ result.score|div:result.total|mul:100|floatformat:0 }}%
                                         </div>
-                                    </td>
+                                    </div>
+                                </td>
 
-                                    <td>
-                                        {% if result.failed %}
-                                            <ul class="error-list">
-                                                {% for error in result.failed %}
-                                                    <li>{{ error }}</li>
-                                                {% endfor %}
-                                            </ul>
-                                        {% else %}
-                                            <span class="full-match">✓ Все критерии выполнены</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
+                                <td>
+                                    {% if result.failed %}
+                                        <ul class="error-list">
+                                            {% for error in result.failed %}
+                                                <li>{{ error }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <span class="full-match">✓ Все критерии выполнены</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                <form method="post" class="container" action="{% url 'wheel_calc' %}">
+                    {% csrf_token %}
+                    {% for select in selects %}
+                        {% if select.type == "input" %}
+                            <input type="hidden" name="{{ select.name }}" value="{{ select.value }}">
+                        {% endif %}
+                    {% endfor %}
+                    <input type="submit" value="Перейти к следующему расчету">
+                </form>
             {% else %}
-                <div class="no-results">
-                    {% if error %}
-                        <div class="alert alert-danger">
-                            {{ error }}
-                        </div>
-                    {% else %}
-                        <p class="no-data">Нет результатов, соответствующих критериям</p>
-                    {% endif %}
-                </div>
+                {% if error %}
+                    <div class="message alert">
+                        {{ error }}
+                    </div>
+                {% else %}
+                    <div class="message">
+                        Нет результатов, соответствующих критериям
+                    </div>
+                {% endif %}
             {% endif %}
         </div>
     </div>
