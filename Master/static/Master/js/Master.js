@@ -16,7 +16,7 @@ function toggleApplicationBlock() {
   block_application.classList.toggle('toggled');
 
   if (block_application.classList.contains('toggled')) {
-    block_application.style.maxHeight = '38px';
+    block_application.style.maxHeight = '40px';
   } else {
     block_application.style.maxHeight = block_application.scrollHeight + 'px';
   }
