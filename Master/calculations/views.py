@@ -506,7 +506,15 @@ def calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity, nu
 
     fig_1 = create_plotly_figure(plots_1, 'Характеристика напора', 'Подача, м3/ч', 'Напор, м')
 
-    return fig_1.to_html(full_html=False)
+    plots_2 = [
+        {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, kpd_total_values * 100), 'name': 'КПД по воде, %'},
+        {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, kpd_total_values_vis * 100),
+         'name': 'КПД по вязкой жидкости, %'},
+    ]
+
+    fig_2 = create_plotly_figure(plots_2, 'Характеристика КПД', 'Подача, м3/ч', 'КПД, %')
+
+    return [fig_1.to_html(full_html=False), fig_2.to_html(full_html=False)]
 
 
 def create_plotly_figure(plots, title, xaxis_title, yaxis_title):
