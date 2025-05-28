@@ -40,10 +40,15 @@ def wheel_calc(request):
         'error': None,
         'plots': [],
         'input_data': {},
+        'pause_calculations': False
 
     }
 
     if request.method == "POST":
+        if 'calculate_params' in request.POST:
+            context['pause_calculations'] = True
+        else:
+            context['pause_calculations'] = False
         # Получаем данные из формы
         try:
             flow_rate = float(request.POST.get("flow_rate"))
@@ -54,19 +59,15 @@ def wheel_calc(request):
                 if select['type'] == 'input':
                     name = select['name']
                     select['value'] = request.POST.get(name, "")
-            calculated_values = calculations(flow_rate, pressure, density, rotation_speed)  # Получаем расчёты
-            update_context(context, calculated_values)  # Обновляем context
-            format_context_list(context)  # форматирование текста
+            if context['pause_calculations']:
+                calculated_values = calculations(flow_rate, pressure, density, rotation_speed)  # Получаем расчёты
+                update_context(context, calculated_values)  # Обновляем context
+                format_context_list(context)  # форматирование текста
 
-            r_list, angle_total_list, number_of_blades, thickness, b_list_updated = calculations_2(flow_rate, pressure,
-                                                                                                   density,
-                                                                                                   rotation_speed)
-            contour_1, contour_2, contour_3, heihgt_blades = create_section_meridional(flow_rate, pressure, density,
-                                                                                       rotation_speed,
-                                                                                       r_list,
-                                                                                       b_list_updated)
-            create_wheel(flow_rate, pressure, density, rotation_speed, contour_1, contour_2, contour_3, heihgt_blades, r_list, angle_total_list, number_of_blades,
-                         thickness)
+                r_list, angle_total_list, number_of_blades, thickness, b_list_updated = calculations_2(flow_rate, pressure, density, rotation_speed)
+                contour_1, contour_2, contour_3, heihgt_blades = create_section_meridional(flow_rate, pressure, density, rotation_speed, r_list, b_list_updated)
+                create_wheel(flow_rate, pressure, density, rotation_speed, contour_1, contour_2, contour_3, heihgt_blades, r_list, angle_total_list, number_of_blades,
+                             thickness)
 
             # find_valid_combinations()
 
@@ -243,7 +244,7 @@ def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
                                             math.sin((angle_b_l_1 + angle) * math.pi / 2 / 180))
 
             angle_b_l_2_checked = (
-                2 * math.asin((number_of_blade_checked * (m - 1)) / (6.5 * (m + 1))) * 180 / math.pi - angle_b_l_1)
+                    2 * math.asin((number_of_blade_checked * (m - 1)) / (6.5 * (m + 1))) * 180 / math.pi - angle_b_l_1)
 
             v_dependence_k = (v_t_4 - v_t_1) / ((r_outer - r_inner) / 1000)
             v_dependence_b = v_t_4 - v_dependence_k * r_outer / 1000

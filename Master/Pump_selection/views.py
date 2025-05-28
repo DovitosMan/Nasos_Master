@@ -79,7 +79,7 @@ def pump_selection(request):
             {'type': 'input', 'placeholder': 'Плотность, кг/м³:', 'name': 'density', 'value': '', },
             {'type': 'input', 'placeholder': 'Вязкость среды, мПа · с:', 'name': 'viscosity', 'value': ''},
             {'type': 'input', 'placeholder': 'Температура эксп., ℃:', 'name': 'temperature', 'value': '' },
-            {'type': 'input', 'placeholder': 'Тmax среды, ℃:', 'name': 'max_temperature', 'class': 'Select_a_value_4', 'value': ''},
+            {'type': 'hz', 'placeholder': 'Тmax среды, ℃:', 'name': 'max_temperature', 'class': 'Select_a_value_4', 'value': ''},
             {'type': 'input', 'placeholder': 'Pmax на входе, МПа:', 'name': 'max_pressure', 'class': 'Select_a_value_5', 'value': ''},
             {'type': 'hz', 'placeholder1': 'Список насосов',
              'keys': ['Насосы консольные "К"', 'Насосы консольные моноблочные "КМ"', 'Насосы линейные циркуляционные', 'Насосы двухстороннего входа', 'Насосы секционные',

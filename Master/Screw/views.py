@@ -22,6 +22,7 @@ def screw(request):
             {'type': 'float', 'placeholder': 'Диаметр винта, мм', 'name': 'diam', 'value': ''},
             {'type': 'float', 'placeholder': 'Число витков, шт.', 'name': 'turns', 'value': ''},
             {'type': 'float', 'placeholder': 'Частота вращения, об/мин', 'name': 'rotation_speed', 'value': ''},
+            {'type': 'hz', 'placeholder': 'Плотность, кг/м³:', 'name': 'density', 'value': ''},
         ],
         'error': "",
         'message': "",
@@ -32,24 +33,28 @@ def screw(request):
         'pause_calculations': False
 
     }
-    print('до пост')
     if request.method == "POST":
         if 'calculate_params' in request.POST:
             context['pause_calculations'] = True
         else:
             context['pause_calculations'] = False
-        print(context['pause_calculations'])
-        print('после пост')
         for select in context['calc']:
-            if select['type'] == 'float':
-                name = select['name']
-                select['value'] = request.POST.get(name, "")
-        # print(context['calc'])
+            # if select['type'] == 'float':
+            name = select['name']
+            select['value'] = request.POST.get(name, "")
+
         flow_rate = float(request.POST.get("flow_rate").replace(',', '.'))
         pressure = float(request.POST.get("pressure").replace(',', '.'))
-        viscosity = float(request.POST.get("viscosity").replace(',', '.'))
+
+        viscosity = float(request.POST.get("viscosity", "").replace(',', '.'))
+        # density_str = request.POST.get("density", "").replace(',', '.').strip()
+        # if not density_str:
+        #     raise ValueError("Плотность не указана.")
+        # density = float(density_str)
+        # print(f"density = '{density}'")
         if flow_rate and pressure:
             try:
+                # context['input_viscosity'] = (viscosity / density) * 1000
                 context['input_viscosity'] = viscosity
                 rotation_speed = request.POST.get("rotation_speed")
                 if rotation_speed:
@@ -107,10 +112,10 @@ def screw(request):
                     context['power_eff'] = float(power_eff_p)  # Эффективная мощность
                     context['power_nominal'] = float(power_nominal_p)  # Номинальная мощность
 
-                    if 'download_model' in request.POST:
-                        response = handle_download_model(request, context)
-                        if response:
-                            return response
+                if 'download_model' in request.POST:
+                    response = handle_download_model(request, context)
+                    if response:
+                        return response
 
             except ValueError as e:
                 context['error'] = f"Ошибка ввода: {str(e)}"

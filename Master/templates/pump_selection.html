@@ -19,23 +19,25 @@
             <form action="{% url 'pump_selection' %}" method="post" class="container" id="myForm">
                 {% csrf_token %}
                 {% for select in selects %}
-                    <div class="menu_select">
-                        <span class="Select">{{ select.placeholder }}</span>
-                        {% if select.type == 'option' %}
-                            <label class="Select">
-                                <select class="Select" type="number">
-                                    {% for key in select.keys %}
-                                        <option value="{{ key.value }}">{{ key.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </label>
-                        {% elif select.type == 'input' %}
-                            <label class="Select">
-                                <input class="Select" type="number" name="{{ select.name }}"
-                                       value="{{ select.value }}" step="0.01">
-                            </label>
-                        {% endif %}
-                    </div>
+                    {% if select.type != 'hz' %}
+                        <div class="menu_select">
+                            <span class="Select">{{ select.placeholder }}</span>
+                            {% if select.type == 'option' %}
+                                <label class="Select">
+                                    <select class="Select" type="number">
+                                        {% for key in select.keys %}
+                                            <option value="{{ key.value }}">{{ key.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+                            {% elif select.type == 'input' %}
+                                <label class="Select">
+                                    <input class="Select" type="number" name="{{ select.name }}"
+                                           value="{{ select.value }}" step="0.01">
+                                </label>
+                            {% endif %}
+                        </div>
+                    {% endif %}
                 {% endfor %}
                 <input type="submit" value="Подобрать насос">
             </form>
