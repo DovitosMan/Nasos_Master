@@ -82,7 +82,7 @@ def wheel_calc(request):
                              thickness)
 
             # find_valid_combinations()
-            calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity)
+            # calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity)
 
             if 'download_model' in request.POST:
                 response = handle_download_model(request, context)
