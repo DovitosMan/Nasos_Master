@@ -33,25 +33,21 @@ def screw(request):
         'pause_calculations': False
 
     }
+
     if request.method == "POST":
         if 'calculate_params' in request.POST:
             context['pause_calculations'] = True
         else:
             context['pause_calculations'] = False
         for select in context['calc']:
-            # if select['type'] == 'float':
-            name = select['name']
-            select['value'] = request.POST.get(name, "")
+            if select['type'] == 'float':
+                name = select['name']
+                select['value'] = request.POST.get(name, "")
 
+        # print(context['calc'])
         flow_rate = float(request.POST.get("flow_rate").replace(',', '.'))
         pressure = float(request.POST.get("pressure").replace(',', '.'))
-
-        viscosity = float(request.POST.get("viscosity", "").replace(',', '.'))
-        # density_str = request.POST.get("density", "").replace(',', '.').strip()
-        # if not density_str:
-        #     raise ValueError("Плотность не указана.")
-        # density = float(density_str)
-        # print(f"density = '{density}'")
+        viscosity = float(request.POST.get("viscosity").replace(',', '.'))
         if flow_rate and pressure:
             try:
                 # context['input_viscosity'] = (viscosity / density) * 1000
