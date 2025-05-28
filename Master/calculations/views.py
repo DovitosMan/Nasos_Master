@@ -89,7 +89,6 @@ def wheel_calc(request):
                 if response:
                     return response
 
-
         except ZeroDivisionError:
             context['error'] = 'Ошибка: деление на ноль. Были выбраны неправильные данные.'
         except ValueError:
@@ -505,7 +504,9 @@ def calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity, nu
         {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, pressure_values_m_vis), 'name': 'Напор по вязкой жидкости, м'},
     ]
 
-    return w, k1, k_1, k3, k_3, k_2
+    fig_1 = create_plotly_figure(plots_1, 'Характеристика напора', 'Подача, м3/ч', 'Напор, м')
+
+    return fig_1.to_html(full_html=False)
 
 
 def create_plotly_figure(plots, title, xaxis_title, yaxis_title):
