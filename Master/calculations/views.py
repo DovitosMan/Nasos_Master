@@ -7,6 +7,7 @@ from cadquery import exporters
 import numpy as np
 import os
 from pathlib import Path
+import plotly.graph_objects as go
 
 
 def wheel_calc(request):
@@ -69,6 +70,7 @@ def wheel_calc(request):
                          thickness)
 
             # find_valid_combinations()
+            calculate_graphs(flow_rate, pressure, density, rotation_speed, 230)
 
         except ZeroDivisionError:
             context['error'] = 'Ошибка: деление на ноль. Были выбраны неправильные данные.'
@@ -339,6 +341,167 @@ def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
         angle_total_list.append(round(cumulative, 1))
 
     return r_list, angle_total_list, number_of_blade_checked, thickness_list, b_list_updated
+
+
+def calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity, num_points=50):
+    data = calculations(flow_rate, pressure, density, rotation_speed)
+    ns = data[0]
+    kpd = data[8] / 100
+
+    w = round((math.pi * rotation_speed / 30), 3)
+
+    # Коэффициенты a и b в зависимости от ns
+    ns_coeffs = [
+        (50, 80, {'a1': 0.0015, 'a3': -0.000675, 'b1': 0.686, 'b3': 0.339}),
+        (80, 151, {'a1': 0.0022, 'a3': -0.002, 'b1': 0.63, 'b3': 0.125})
+    ]
+    a1 = a3 = b1 = b3 = 0
+    for lower, upper, coeff in ns_coeffs:
+        if lower <= ns < upper:
+            a1, a3 = coeff['a1'], coeff['a3']
+            b1, b3 = coeff['b1'], coeff['b3']
+            break
+
+    # Коэффициенты b_ и kpd_ в зависимости от kpd
+    kpd_coeffs = [
+        (0.0, 0.7,   {'b_1': 1.7, 'b_3': 1.3, 'kpd_1': 0.7,  'kpd_3': 0.7}),
+        (0.7, 0.75,  {'b_1': 0.0, 'b_3': 0.0, 'kpd_1': 0.0,  'kpd_3': 0.0}),
+        (0.75, 1.0,  {'b_1': 0.8, 'b_3': 0.3, 'kpd_1': 0.75, 'kpd_3': 0.75})
+    ]
+    b_1 = b_3 = kpd_1 = kpd_3 = 1e-12  # Default for out-of-range kpd
+    for lower, upper, coeff in kpd_coeffs:
+        if lower <= kpd <= upper:
+            b_1, b_3 = coeff['b_1'], coeff['b_3']
+            kpd_1, kpd_3 = coeff['kpd_1'], coeff['kpd_3']
+            break
+
+    flow_rate_sec = flow_rate / 60
+    w2 = w ** 2
+    q2 = flow_rate_sec ** 2
+
+    k1 = round(a1 * ns + b1 + b_1 * (kpd - kpd_1), 6)
+    k_1 = round(pressure * k1 / (kpd * w2), 6)
+    k3 = round(a3 * ns + b3 + b_3 * (kpd - kpd_3), 6)
+    k_3 = round(pressure * k3 / (kpd * q2), 6)
+    k_2 = round((pressure - k_1 * w2 + k_3 * q2) / (w * flow_rate_sec), 6)
+
+    h = -k_3
+    q = k_1 * w ** 2
+    q_2 = k_2 * w
+
+    q_values_m_h = np.linspace(0, flow_rate * 1.2, num=num_points)
+    q_values_m_min = q_values_m_h / 60
+    pressure_values_m = []
+
+    for q_val in q_values_m_min:
+        value = h * q_val ** 2 + q_2 * q_val + q
+        rounded_value = round(value, 1)
+        pressure_values_m.append(rounded_value)
+    pressure_values_m = [float(x) for x in pressure_values_m]
+
+    n_s_values = []
+
+    for q_val, p_val in zip(q_values_m_min, pressure_values_m):
+        value = 3.65 * rotation_speed * math.sqrt(q_val / 60) / (p_val ** 0.75)
+        rounded = round(value, 0)
+        n_s_values.append(rounded)
+    n_s_values = [float(x) for x in n_s_values]
+
+    kpd_vol_values = []
+    for n_s in n_s_values:
+        if n_s == 0:
+            kpd_vol_values.append(0.0)
+        else:
+            value = (1 + (0.68 / (n_s ** (2 / 3)))) ** -1
+            kpd_vol_values.append(round(value, 3))
+    kpd_vol_values = [float(x) for x in kpd_vol_values]
+
+    kpd_mech_values = []
+    for n_s in n_s_values:
+        if n_s == 0:
+            kpd_mech_values.append(0.0)
+        else:
+            value = (1 + (28.6 / n_s) ** 2) ** -1
+            kpd_mech_values.append(round(value, 3))
+    kpd_mech_values = [float(x) for x in kpd_mech_values]
+
+    kpd_hydro = data[6] / 100
+
+    kpd_total_values = []
+    for kpd_vol, kpd_mech in zip(kpd_vol_values, kpd_mech_values):
+        kpd_total_values.append(round(kpd_vol * kpd_hydro * kpd_mech, 3))
+
+    power_values = []
+    for q_val, p_val, kpd_val in zip(q_values_m_min, pressure_values_m, kpd_total_values):
+        if kpd_val == 0:
+            power_values.append(0.0)
+        else:
+            power_values.append(round(((density * 9.81 * p_val * q_val) / (kpd_val * 60 * 1000)), 1))
+    power_values = [float(x) for x in power_values]
+
+    if ns <= 60 * 3.65:
+        b = ((16.5 * (viscosity ** 0.5) * (max(pressure_values_m) ** 0.0625)) /
+             ((flow_rate ** 0.375) * (rotation_speed ** 0.25)))
+    else:
+        b = None
+
+    if b <= 1:
+        c_q = 1
+    else:
+        c_q = 2.71 ** (-0.165 * (math.log10(b) ** 3.15))
+
+    if b <= 1:
+        c_kpd = 1
+    elif b < 40:
+        c_kpd = b ** (-0.0547 * (b ** 0.69))
+    else:
+        c_kpd = None
+
+    c_h_val = []
+    for q_val in q_values_m_min:
+        if b <= 1:
+            c_h_val.append(1)
+        else:
+            c_h_val.append(1 - (1 - c_q) * ((q_val * 60 / flow_rate) ** 0.75))
+    c_h_val = [float(x) for x in c_h_val]
+
+    q_values_m_min_vis = []
+    for q_val in q_values_m_min:
+        q_values_m_min_vis.append(c_q * q_val)
+    q_values_m_min_vis = [float(x) for x in q_values_m_min_vis]
+
+    q_values_m_h_vis = q_values_m_min_vis * 60
+
+    pressure_values_m_vis = []
+    for p_val, c_h in zip(pressure_values_m, c_h_val):
+        pressure_values_m_vis.append(round(p_val * c_h, 1))
+    pressure_values_m_vis = [float(x) for x in pressure_values_m_vis]
+
+    kpd_total_values_vis = []
+    for kpd_val in kpd_total_values:
+        kpd_total_values_vis.append(round(kpd_val * c_kpd, 3))
+    kpd_total_values_vis = [float(x) for x in kpd_total_values_vis]
+
+    plots_1 = [
+        {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, pressure_values_m), 'name': 'Напор по воде, м'},
+        {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, pressure_values_m_vis), 'name': 'Напор по вязкой жидкости, м'},
+    ]
+
+    return w, k1, k_1, k3, k_3, k_2
+
+
+def create_plotly_figure(plots, title, xaxis_title, yaxis_title):
+    fig = go.Figure()
+    for plot in plots:
+        fig.add_scatter(**plot)
+    fig.update_layout(
+        title=title,
+        xaxis_title=xaxis_title,
+        yaxis_title=yaxis_title,
+        hovermode='x',
+        showlegend=True
+    )
+    return fig
 
 
 def create_section_meridional(flow_rate, pressure, density, rotation_speed, r_list, b_list_updated, debug_mode=True):
