@@ -9,6 +9,7 @@ import numpy as np
 import os
 from pathlib import Path
 import plotly.graph_objects as go
+from plotly.offline import plot
 import zipfile
 import logging
 
@@ -48,7 +49,8 @@ def wheel_calc(request):
         'error': None,
         'plots': [],
         'input_data': {},
-        'pause_calculations': False
+        'pause_calculations': False,
+        'show_plot': False
 
     }
 
@@ -63,7 +65,8 @@ def wheel_calc(request):
             pressure = float(request.POST.get("pressure"))
             density = float(request.POST.get("density"))
             rotation_speed = float(request.POST.get("rotation_speed"))
-            viscosity = float(request.POST.get("viscosity").replace(',', '.'))
+            viscosity = float(request.POST.get("viscosity"))
+            print(f"density_str = '{viscosity}'")
             for select in context['selects']:
                 if select['type'] != 'option':
                     name = select['name']
@@ -75,14 +78,38 @@ def wheel_calc(request):
                 calculated_values = calculations(flow_rate, pressure, density, rotation_speed)  # Получаем расчёты
                 update_context(context, calculated_values)  # Обновляем context
                 format_context_list(context)  # форматирование текста
+                if 'calculate_params' in request.POST:
+                    context['show_plot'] = True
+                else:
+                    context['show_plot'] = False
+                # q_values_m_h, pressure_values_m, pressure_values_m_vis, kpd_total_values, kpd_total_values_vis = calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity)
+                # q_plot = plot_q(q_values_m_h, pressure_values_m, pressure_values_m_vis)
+                # kpd_plot = plot_kpd(q_values_m_h,kpd_total_values, kpd_total_values_vis)
+                #
+                # if context['show_plot']:
+                #     plots = [
+                #         q_plot,
+                #         kpd_plot
+                #     ]
+                # else:
+                #     plots = []
+                # context['plots'] = plots
+                fig1, fig2 = plot_impeller_graphs(flow_rate, pressure, density, rotation_speed, viscosity)
 
+                # Преобразуем фигуры в HTML
+                plot_div1 = plot(fig1, output_type='div', include_plotlyjs=False)
+                plot_div2 = plot(fig2, output_type='div', include_plotlyjs=False)
+
+                context = {
+                    'plots': [plot_div1, plot_div2]
+                }
                 r_list, angle_total_list, number_of_blades, thickness, b_list_updated = calculations_2(flow_rate, pressure, density, rotation_speed)
                 contour_1, contour_2, contour_3, heihgt_blades = create_section_meridional(flow_rate, pressure, density, rotation_speed, r_list, b_list_updated)
                 create_wheel(flow_rate, pressure, density, rotation_speed, contour_1, contour_2, contour_3, heihgt_blades, r_list, angle_total_list, number_of_blades,
                              thickness)
 
             # find_valid_combinations()
-            calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity)
+            # calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity)
 
             if 'download_model' in request.POST:
                 response = handle_download_model(request, context)
@@ -262,7 +289,7 @@ def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
                                             math.sin((angle_b_l_1 + angle) * math.pi / 2 / 180))
 
             angle_b_l_2_checked = (
-                2 * math.asin((number_of_blade_checked * (m - 1)) / (6.5 * (m + 1))) * 180 / math.pi - angle_b_l_1)
+                    2 * math.asin((number_of_blade_checked * (m - 1)) / (6.5 * (m + 1))) * 180 / math.pi - angle_b_l_1)
 
             v_dependence_k = (v_t_4 - v_t_1) / ((r_outer - r_inner) / 1000)
             v_dependence_b = v_t_4 - v_dependence_k * r_outer / 1000
@@ -381,9 +408,9 @@ def calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity, nu
 
     # Коэффициенты b_ и kpd_ в зависимости от kpd
     kpd_coeffs = [
-        (0.0, 0.7,   {'b_1': 1.7, 'b_3': 1.3, 'kpd_1': 0.7,  'kpd_3': 0.7}),
-        (0.7, 0.75,  {'b_1': 0.0, 'b_3': 0.0, 'kpd_1': 0.0,  'kpd_3': 0.0}),
-        (0.75, 1.0,  {'b_1': 0.8, 'b_3': 0.3, 'kpd_1': 0.75, 'kpd_3': 0.75})
+        (0.0, 0.7, {'b_1': 1.7, 'b_3': 1.3, 'kpd_1': 0.7, 'kpd_3': 0.7}),
+        (0.7, 0.75, {'b_1': 0.0, 'b_3': 0.0, 'kpd_1': 0.0, 'kpd_3': 0.0}),
+        (0.75, 1.0, {'b_1': 0.8, 'b_3': 0.3, 'kpd_1': 0.75, 'kpd_3': 0.75})
     ]
     b_1 = b_3 = kpd_1 = kpd_3 = 1e-12  # Default for out-of-range kpd
     for lower, upper, coeff in kpd_coeffs:
@@ -498,37 +525,85 @@ def calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity, nu
     for kpd_val in kpd_total_values:
         kpd_total_values_vis.append(round(kpd_val * c_kpd, 3))
     kpd_total_values_vis = [float(x) for x in kpd_total_values_vis]
+    print(q_values_m_h, pressure_values_m, pressure_values_m_vis, kpd_total_values, kpd_total_values_vis)
 
-    plots_1 = [
-        {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, pressure_values_m), 'name': 'Напор по воде, м'},
-        {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, pressure_values_m_vis), 'name': 'Напор по вязкой жидкости, м'},
-    ]
-
-    fig_1 = create_plotly_figure(plots_1, 'Характеристика напора', 'Подача, м3/ч', 'Напор, м')
-
-    plots_2 = [
-        {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, kpd_total_values * 100), 'name': 'КПД по воде, %'},
-        {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, kpd_total_values_vis * 100),
-         'name': 'КПД по вязкой жидкости, %'},
-    ]
-
-    fig_2 = create_plotly_figure(plots_2, 'Характеристика КПД', 'Подача, м3/ч', 'КПД, %')
-
-    return [fig_1.to_html(full_html=False), fig_2.to_html(full_html=False)]
+    return q_values_m_h, pressure_values_m, pressure_values_m_vis, kpd_total_values, kpd_total_values_vis
 
 
-def create_plotly_figure(plots, title, xaxis_title, yaxis_title):
-    fig = go.Figure()
-    for plot in plots:
-        fig.add_scatter(**plot)
-    fig.update_layout(
-        title=title,
-        xaxis_title=xaxis_title,
-        yaxis_title=yaxis_title,
-        hovermode='x',
-        showlegend=True
+def plot_impeller_graphs(flow_rate, pressure, density, rotation_speed, viscosity):
+    (
+        q_values_m_h,
+        pressure_values_m,
+        pressure_values_m_vis,
+        kpd_total_values,
+        kpd_total_values_vis
+    ) = calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity)
+
+    # --- График давления ---
+    fig1 = go.Figure()
+    fig1.add_trace(go.Scatter(x=q_values_m_h, y=pressure_values_m,
+                              mode='lines+markers',
+                              name='Напор (без вязкости)'))
+    fig1.add_trace(go.Scatter(x=q_values_m_h, y=pressure_values_m_vis,
+                              mode='lines+markers',
+                              name='Напор (с вязкостью)'))
+    fig1.update_layout(
+        title='Зависимость напора от подачи',
+        xaxis_title='Подача, м³/ч',
+        yaxis_title='Напор, м',
+        template='plotly_white'
     )
-    return fig
+
+    # --- График КПД ---
+    fig2 = go.Figure()
+    fig2.add_trace(go.Scatter(x=q_values_m_h, y=kpd_total_values,
+                              mode='lines+markers',
+                              name='КПД (без вязкости)'))
+    fig2.add_trace(go.Scatter(x=q_values_m_h, y=kpd_total_values_vis,
+                              mode='lines+markers',
+                              name='КПД (с вязкостью)'))
+    fig2.update_layout(
+        title='Зависимость КПД от подачи',
+        xaxis_title='Подача, м³/ч',
+        yaxis_title='КПД',
+        template='plotly_white'
+    )
+
+    return fig1, fig2
+# def plot_q(q_values_m_h, pressure_values_m, pressure_values_m_vis):
+#     plots_1 = [
+#         {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, pressure_values_m), 'name': 'Напор по воде, м'},
+#         {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, pressure_values_m_vis), 'name': 'Напор по вязкой жидкости, м'},
+#     ]
+#
+#     fig_1 = create_plotly_figure(plots_1, 'Характеристика напора', 'Подача, м3/ч', 'Напор, м')
+#
+#     return fig_1.to_html(full_html=False)
+#
+#
+# def plot_kpd(q_values_m_h, kpd_total_values, kpd_total_values_vis):
+#     plots_2 = [
+#         {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, kpd_total_values * 100), 'name': 'КПД по воде, %'},
+#         {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, kpd_total_values_vis * 100),
+#          'name': 'КПД по вязкой жидкости, %'},
+#     ]
+#
+#     fig_2 = create_plotly_figure(plots_2, 'Характеристика КПД', 'Подача, м3/ч', 'КПД, %')
+#     return fig_2.to_html(full_html=False)
+#
+#
+# def create_plotly_figure(plots, title, xaxis_title, yaxis_title):
+#     fig = go.Figure()
+#     for plot in plots:
+#         fig.add_scatter(**plot)
+#     fig.update_layout(
+#         title=title,
+#         xaxis_title=xaxis_title,
+#         yaxis_title=yaxis_title,
+#         hovermode='x',
+#         showlegend=True
+#     )
+#     return fig
 
 
 def create_section_meridional(flow_rate, pressure, density, rotation_speed, r_list, b_list_updated, debug_mode=True):
@@ -758,7 +833,7 @@ def create_wheel(flow_rate, pressure, density, rotation_speed, contour1, contour
         file_name = f"Wheel_{d_str}.step"
 
         # 5. Экспорт
-        cq.exporters.export(final_body, file_name, 'STEP')
+        # cq.exporters.export(final_body, file_name, 'STEP')
 
         return final_body
 
@@ -962,6 +1037,7 @@ def handle_download_model(request, context):
     # Имя файла
     d_str = f"{d_2:.1f}".replace('.', '_')
     filename = f"Wheel_{d_str}.step"
+    cq.exporters.export(final_body, filename, 'STEP')
 
     # Проверяем, что файл существует
     if not os.path.exists(filename):
@@ -969,59 +1045,3 @@ def handle_download_model(request, context):
 
     # Возвращаем как загрузку
     return FileResponse(open(filename, 'rb'), as_attachment=True, filename=filename)
-
-# def handle_download_model(request, context):
-#     try:
-#         flow_rate = float(request.POST.get("flow_rate", "").replace(',', '.'))
-#         pressure = float(request.POST.get("pressure", "").replace(',', '.'))
-#         density = float(request.POST.get("density", "").replace(',', '.'))
-#         rotation_speed = float(request.POST.get("rotation_speed", "").replace(',', '.'))
-#
-#         # Здесь получи или сгенерируй контуры, списки и параметры
-#         contour1 = context.get('contour1')  # например, сохранено ранее
-#         contour2 = context.get('contour2')
-#         contour3 = context.get('contour3')
-#         r_list = context.get('r_list')
-#         angle_total_list = context.get('angle_total_list')
-#         number_of_blades = context.get('number_of_blades')
-#         thickness = context.get('blade_thickness')
-#         height = context.get('blade_height')
-#
-#         if not all([contour1, contour2, contour3, r_list, angle_total_list, number_of_blades, thickness, height]):
-#             raise ValueError("Не все геометрические параметры заданы")
-#
-#         context['logs'].append("Начинаем создание модели рабочего колеса...")
-#         wheel = create_wheel(
-#             flow_rate, pressure, density, rotation_speed,
-#             contour1, contour2, contour3,
-#             height, r_list, angle_total_list,
-#             number_of_blades, thickness
-#         )
-#
-#         if not wheel:
-#             raise RuntimeError("Не удалось создать рабочее колесо")
-#
-#         # Добавляем имя файла
-#         d_str = f"{wheel.val().BoundingBox().zlen:.1f}".replace('.', '_')  # или другое имя
-#         file_name = f"Wheel_{d_str}.step"
-#
-#         files_to_zip = [file_name, 'screw_lead.step', 'screw_driven.step', 'stator.step', 'pump_assembly.step']
-#
-#         # Проверка существования
-#         if not all(os.path.exists(file) for file in files_to_zip):
-#             raise FileNotFoundError("Некоторые файлы моделей не найдены")
-#
-#         zip_filename = 'screw_models.zip'
-#         with zipfile.ZipFile(zip_filename, 'w') as zipf:
-#             for file in files_to_zip:
-#                 zipf.write(file, arcname=os.path.basename(file))
-#
-#         with open(zip_filename, 'rb') as f:
-#             response = HttpResponse(f.read(), content_type='application/zip')
-#             response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
-#             return response
-#
-#     except Exception as e:
-#         context['error'] = f"Ошибка при создании модели: {e}"
-#         logger.error(f"Ошибка при экспорте модели: {e}", exc_info=True)
-#         return None

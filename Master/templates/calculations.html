@@ -59,18 +59,17 @@
                 </div>
             {% endif %}
     </div>
+    {% if plots %}
+        <div class="table-responsive">
+            {% for plot in plots %}
+                <div class="plot-container">
+                    {{ plot|safe }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script>
-        function forcePlot() {
-            const form = document.getElementById('wheel-form');
-            // Добавляем скрытое поле для force_plot
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'force_plot';
-            input.value = '1';
-            form.appendChild(input);
-            // Отправляем форму
-            form.submit();
-        }
 
         // Функция для сброса значений
         document.getElementById('reset-button').addEventListener('click', function () {
