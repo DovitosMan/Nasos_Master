@@ -18,10 +18,11 @@ def screw(request):
         'calc': [
             {'type': 'float', 'placeholder': 'Подача, м³/ч', 'name': 'flow_rate', 'value': ''},
             {'type': 'float', 'placeholder': 'Напор, м', 'name': 'pressure', 'value': ''},
-            {'type': 'float', 'placeholder': 'Вязкость · 10⁻⁶, м²/с', 'name': 'viscosity', 'value': ''},
+            {'type': 'float', 'placeholder': 'Вязкость, мм²/с', 'name': 'viscosity', 'value': ''},
             {'type': 'float', 'placeholder': 'Диаметр винта, мм', 'name': 'diam', 'value': ''},
             {'type': 'float', 'placeholder': 'Число витков, шт.', 'name': 'turns', 'value': ''},
             {'type': 'float', 'placeholder': 'Частота вращения, об/мин', 'name': 'rotation_speed', 'value': ''},
+            {'type': 'hz', 'placeholder': 'Плотность, кг/м³:', 'name': 'density', 'value': ''},
         ],
         'error': "",
         'message': "",
@@ -38,7 +39,6 @@ def screw(request):
             context['pause_calculations'] = True
         else:
             context['pause_calculations'] = False
-        print(context['pause_calculations'])
         for select in context['calc']:
             if select['type'] == 'float':
                 name = select['name']
@@ -50,6 +50,7 @@ def screw(request):
         viscosity = float(request.POST.get("viscosity").replace(',', '.'))
         if flow_rate and pressure:
             try:
+                # context['input_viscosity'] = (viscosity / density) * 1000
                 context['input_viscosity'] = viscosity
                 rotation_speed = request.POST.get("rotation_speed")
                 if rotation_speed:
