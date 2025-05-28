@@ -32,84 +32,92 @@ def screw(request):
         'pause_calculations': False
 
     }
-
+    print('до пост')
     if request.method == "POST":
-        for select in context['calc']:
-            if select['type'] == 'float':
-                name = select['name']
-                select['value'] = request.POST.get(name, "")
-
         if 'calculate_params' in request.POST:
             context['pause_calculations'] = True
         else:
             context['pause_calculations'] = False
         print(context['pause_calculations'])
+        print('после пост')
+        for select in context['calc']:
+            if select['type'] == 'float':
+                name = select['name']
+                select['value'] = request.POST.get(name, "")
+        # print(context['calc'])
         flow_rate = float(request.POST.get("flow_rate").replace(',', '.'))
         pressure = float(request.POST.get("pressure").replace(',', '.'))
         viscosity = float(request.POST.get("viscosity").replace(',', '.'))
         if flow_rate and pressure:
             try:
-                if flow_rate <= 0 or pressure <= 0:
-                    raise ValueError("Все входные значения должны быть положительными числами.")
-
                 context['input_viscosity'] = viscosity
+                rotation_speed = request.POST.get("rotation_speed")
+                if rotation_speed:
+                    rotation_speed = float(rotation_speed.replace(',', '.'))
+                else:
+                    rotation_speed = None
+
                 context['input_feed'] = flow_rate
                 context['input_pressure'] = pressure
-                rotation_speed = request.POST.get("rotation_speed")
                 context['input_rotation_speed'] = rotation_speed
 
-                # if context['pause_calculations']:
-                n_rec, d_rec, feed_rec, powers = calculate_data(flow_rate, pressure, rotation_speed)
-                turns = calculate_turns(pressure)
-                context['turns'] = turns
-                if d_rec:
-                    context['calculated_diam'] = (d_rec[0] if isinstance(d_rec, list) else d_rec) * 1000  # Переводим в мм
-                if n_rec:
-                    context['calculated_rotation_speed'] = n_rec[0] if isinstance(n_rec, list) else n_rec
-                qh_plot = calculate_qh_characteristic(d_rec, feed_rec, pressure)
+                if context['pause_calculations']:
+                    turns = calculate_turns(pressure)
+                    context['turns'] = turns
+                    if flow_rate <= 0 or pressure <= 0:
+                        raise ValueError("Все входные значения должны быть положительными числами.")
+                    n_rec, d_rec, feed_rec, powers = calculate_data(flow_rate, pressure, rotation_speed)
 
-                kpd_plot, is_low_pressure = calculate_kpd_characteristic(d_rec, feed_rec, pressure, viscosity,
-                                                                         rotation_speed)
-                power_plot, is_power_error = calculate_power_characteristic(d_rec, feed_rec, pressure, viscosity, turns, rotation_speed)
-                feed_p, kpd_volumetric_p, kpd_mechanical_p, kpd_total_p, power_t_p, power_eff_p, power_nominal_p = (
-                    print_data(d_rec, pressure, rotation_speed, viscosity, turns))
-                force_plot = 'force_plot' in request.POST
+                    if d_rec:
+                        context['calculated_diam'] = (d_rec[0] if isinstance(d_rec, list) else d_rec) * 1000  # Переводим в мм
+                    if n_rec:
+                        context['calculated_rotation_speed'] = n_rec[0] if isinstance(n_rec, list) else n_rec
+                    qh_plot = calculate_qh_characteristic(d_rec, feed_rec, pressure)
 
-                if (is_low_pressure or is_power_error) and not force_plot:
-                    context['error'] = "Внимание: давление слишком низкое, что может привести к некорректной работе насоса."
-                    context['is_low_pressure'] = True
-                    plots = []
-                else:
-                    plots = [
-                        qh_plot,
-                        kpd_plot,
-                        power_plot,
-                    ]
-                    context['is_low_pressure'] = False
-                context['plots'] = plots
+                    kpd_plot, is_low_pressure = calculate_kpd_characteristic(d_rec, feed_rec, pressure, viscosity,
+                                                                             rotation_speed)
+                    power_plot, is_power_error = calculate_power_characteristic(d_rec, feed_rec, pressure, viscosity, turns,
+                                                                                rotation_speed)
 
-                # Передаем значения в контекст
-                context['feed_real'] = float(feed_p)  # Фактический расход
-                context['user_pressure'] = float(pressure)
-                context['kpd_volumetric'] = float(kpd_volumetric_p)  # Объемный КПД
-                context['kpd_mechanical'] = float(kpd_mechanical_p)  # Механический КПД
-                context['kpd_total'] = float(kpd_total_p)  # Полный КПД
-                context['power_t'] = float(power_t_p)  # Теоретическая мощность
-                context['power_eff'] = float(power_eff_p)  # Эффективная мощность
-                context['power_nominal'] = float(power_nominal_p)  # Номинальная мощность
+                    feed_p, kpd_volumetric_p, kpd_mechanical_p, kpd_total_p, power_t_p, power_eff_p, power_nominal_p = (
+                        print_data(d_rec, pressure, rotation_speed, viscosity, turns))
 
-                if 'download_model' in request.POST:
-                    response = handle_download_model(request, context)
-                    if response:
-                        return response
+                    force_plot = 'force_plot' in request.POST
+
+                    if (is_low_pressure or is_power_error) and not force_plot:
+                        context['error'] = "Внимание: давление слишком низкое, что может привести к некорректной работе насоса."
+                        context['is_low_pressure'] = True
+                        plots = []
+                    else:
+                        plots = [
+                            qh_plot,
+                            kpd_plot,
+                            power_plot,
+                        ]
+                        context['is_low_pressure'] = False
+                    context['plots'] = plots
+
+                    # Передаем значения в контекст
+                    context['feed_real'] = float(feed_p)  # Фактический расход
+                    context['user_pressure'] = float(pressure)
+                    context['kpd_volumetric'] = float(kpd_volumetric_p)  # Объемный КПД
+                    context['kpd_mechanical'] = float(kpd_mechanical_p)  # Механический КПД
+                    context['kpd_total'] = float(kpd_total_p)  # Полный КПД
+                    context['power_t'] = float(power_t_p)  # Теоретическая мощность
+                    context['power_eff'] = float(power_eff_p)  # Эффективная мощность
+                    context['power_nominal'] = float(power_nominal_p)  # Номинальная мощность
+
+                    if 'download_model' in request.POST:
+                        response = handle_download_model(request, context)
+                        if response:
+                            return response
 
             except ValueError as e:
-            context['error'] = f"Ошибка ввода: {str(e)}"
-            logger.warning(f"Некорректный ввод: {str(e)}")
-        except Exception as e:
-        context['message'] = f"Нажмите кнопку Построить график"
-        logger.error(f"Ошибка генерации: {str(e)}", exc_info=True)
-
+                context['error'] = f"Ошибка ввода: {str(e)}"
+                logger.warning(f"Некорректный ввод: {str(e)}")
+            except Exception as e:
+                context['message'] = f"Нажмите кнопку Построить график"
+                logger.error(f"Ошибка генерации: {str(e)}", exc_info=True)
 
     return render(request, 'screw.html', context)
 
