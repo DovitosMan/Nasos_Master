@@ -1,9 +1,13 @@
 @import url('sidebar.css');
 
 :root {
-    --primary-color: #002845;
-    --hover-color: #1f6194;
-    --secondary-color: #094775;
+    /*--primary-color: #002845;*/
+    /*--hover-color: #1f6194;*/
+    /*--secondary-color: #094775;*/
+    /*--white-color: #ffffff;*/
+    --primary-color: #1a3569;       /* Глубокий синий с лёгкой серой ноткой — база */
+    --secondary-color: #1a73e8;     /* Яркий и чистый синий для кнопок и акцентов */
+    --hover-color: #4a5893;
     --white-color: #ffffff;
 }
 * {
@@ -36,6 +40,9 @@ input[type=button], input[type=submit]{
     height: 50px;
     border-radius: 10px;
     border: none;
+}
+input[type=button]:hover, input[type=submit]:hover {
+    background-color: var(--hover-color);
 }
 
 .button_menu{

@@ -52,7 +52,7 @@ def pump_selection(request):
                       {'name': 'Челябинск', 'value': 'Chelyabinsk'},
                       {'name': 'Чебоксары', 'value': 'Cheboksary'},
                       {'name': 'Ярославль', 'value': 'Yaroslavl'}, ], },
-            {'type': 'input', 'placeholder': 'Расход, м3/ч:', 'name': 'flow_rate', 'value': ''},
+            {'type': 'input', 'placeholder': 'Расход, м³/ч:', 'name': 'flow_rate', 'value': ''},
             {'type': 'input', 'placeholder': 'Напор, м:', 'name': 'pressure', 'value': ''},
             {'type': 'input', 'placeholder': 'Высота всасывания, м:', 'name': 'pump_lift', 'value': ''},
             {'type': 'input', 'placeholder': 'Доп. кав. запас, м:', 'name': 'cav_reserve', 'value': ''},
@@ -76,8 +76,8 @@ def pump_selection(request):
                       {'name': 'Нет', 'value': 'No'}, ], },
             {'type': 'input', 'placeholder': 'Об. конц. тв. включ., %:', 'name': 'solid_content', 'value': ''},
             {'type': 'input', 'placeholder': 'Макс. лин. р-р тв. включ.,мм:', 'name': 'solid_size','value': ''},
-            {'type': 'input', 'placeholder': 'Плотность, кг/м3:', 'name': 'density', 'value': '', },
-            {'type': 'input', 'placeholder': 'Вязкость среды, мПа*с:', 'name': 'viscosity', 'value': ''},
+            {'type': 'input', 'placeholder': 'Плотность, кг/м³:', 'name': 'density', 'value': '', },
+            {'type': 'input', 'placeholder': 'Вязкость среды, мПа · с:', 'name': 'viscosity', 'value': ''},
             {'type': 'input', 'placeholder': 'Температура эксп., ℃:', 'name': 'temperature', 'value': '' },
             {'type': 'input', 'placeholder': 'Тmax среды, ℃:', 'name': 'max_temperature', 'class': 'Select_a_value_4', 'value': ''},
             {'type': 'input', 'placeholder': 'Pmax на входе, МПа:', 'name': 'max_pressure', 'class': 'Select_a_value_5', 'value': ''},
@@ -116,7 +116,7 @@ def pump_selection(request):
             'graph_url': None,
         },
         'columns': None,
-        'debug_test': True
+        'debug_test': False
     }
     if request.method == "POST":
 
