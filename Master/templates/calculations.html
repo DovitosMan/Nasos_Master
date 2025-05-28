@@ -11,7 +11,7 @@
     <div id="block_application" class="block_application">
         <div class="secondary_block_application">
             <button class="button_menu" id="toggle_block">☰ Калькулятор рабочего колеса</button>
-            <form action="{% url 'wheel_calc' %}" method="post" class="container">
+            <form action="{% url 'wheel_calc' %}" method="post" class="container" id="wheel-form">
                 {% csrf_token %}
                 {% for select in selects %}
                     <div class="menu_select">
@@ -24,15 +24,22 @@
                                     {% endfor %}
                                 </select>
                             </label>
-                        {% elif select.type == 'input' %}
+                        {% elif select.type == 'input'%}
                             <label class="Select">
                                 <input class="Select" type="number" name="{{ select.name }}" value="{{ select.value }}">
+                            </label>
+                        {% elif select.type == 'float'%}
+                            <label class="Select">
+                                <input class="Select" type="{{ select.type }}" name="{{ select.name }}" value="{{ select.value }}">
                             </label>
                         {% endif %}
                     </div>
                 {% endfor %}
-                <input type="submit" name="calculate_params" value="Получить размеры">
-
+                {#                <input type="submit" name="calculate_params" value="Получить размеры">#}
+{#                <input type="submit" name="calculate_params" value="Вычислить параметры">#}
+                <input type="button" id="reset-button" value="Сброс значений">
+                <input type="submit" name="calculate_params" value="Построить график">
+                <input type="submit" name="download_model" value="Скачать модель">
             </form>
             {% if calculation.value is not None %}
                 {% for calculation in calculations %}
@@ -52,5 +59,27 @@
                 </div>
             {% endif %}
     </div>
-    </div>
+    <script>
+        function forcePlot() {
+            const form = document.getElementById('wheel-form');
+            // Добавляем скрытое поле для force_plot
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'force_plot';
+            input.value = '1';
+            form.appendChild(input);
+            // Отправляем форму
+            form.submit();
+        }
+
+        // Функция для сброса значений
+        document.getElementById('reset-button').addEventListener('click', function () {
+            // Находим только поля ввода (исключая кнопки)
+            const inputs = document.querySelectorAll('#wheel-form input[type="text"], #wheel-form input[type="number"], #wheel-form input[type="float"]');
+            inputs.forEach(input => {
+                // Очищаем значение каждого поля
+                input.value = '';
+            });
+        });
+    </script>
 {% endblock calculations %}

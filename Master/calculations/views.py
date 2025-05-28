@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.http import FileResponse
 from django.shortcuts import redirect
 import math
 import cadquery as cq
@@ -7,6 +8,12 @@ from cadquery import exporters
 import numpy as np
 import os
 from pathlib import Path
+import plotly.graph_objects as go
+import zipfile
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def wheel_calc(request):
@@ -18,6 +25,7 @@ def wheel_calc(request):
             {'type': 'input', 'placeholder': 'Напор, м', 'name': 'pressure', 'value': ''},
             {'type': 'input', 'placeholder': 'Плотность, кг/м³', 'name': 'density', 'value': ''},
             {'type': 'input', 'placeholder': 'Частота вр., об/мин', 'name': 'rotation_speed', 'value': ''},
+            {'type': 'float', 'placeholder': 'Вязкость, мм²/с', 'name': 'viscosity', 'value': ''},
         ],
         'calculations': [
             {'name': 'Коэффициент быстроходности насоса: ', 'value': None, 'round': 0, 'unit': '', },
@@ -55,10 +63,14 @@ def wheel_calc(request):
             pressure = float(request.POST.get("pressure"))
             density = float(request.POST.get("density"))
             rotation_speed = float(request.POST.get("rotation_speed"))
+            viscosity = float(request.POST.get("viscosity").replace(',', '.'))
             for select in context['selects']:
-                if select['type'] == 'input':
+                if select['type'] != 'option':
                     name = select['name']
-                    select['value'] = request.POST.get(name, "")
+                    value = request.POST.get(name, "")
+                    if select['type'] == 'float':
+                        value = value.replace(',', '.')
+                    select['value'] = value
             if context['pause_calculations']:
                 calculated_values = calculations(flow_rate, pressure, density, rotation_speed)  # Получаем расчёты
                 update_context(context, calculated_values)  # Обновляем context
@@ -70,7 +82,10 @@ def wheel_calc(request):
                              thickness)
 
             # find_valid_combinations()
-
+            if 'download_model' in request.POST:
+                response = handle_download_model(request, context)
+                if response:
+                    return response
         except ZeroDivisionError:
             context['error'] = 'Ошибка: деление на ноль. Были выбраны неправильные данные.'
         except ValueError:
@@ -253,13 +268,13 @@ def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
                 angle_b_l_2 = angle_b_l_2_checked
                 found = True
 
-                print(f"Найдено решение:")
-                print(f"d_2 = {round(d2, 1)}")
-                print(f"d_hub = {d_hub}")
-                print(f"angle_b_l_1 = {round(angle_b_l_1, 1)}")
-                print(f"angle_b_l_2 = {round(angle_b_l_2, 1)}")
-                print(f"attack_angle = {attack_angle}")
-                print(f"number_of_blade_checked = {number_of_blade_checked}")
+                # print(f"Найдено решение:")
+                # print(f"d_2 = {round(d2, 1)}")
+                # print(f"d_hub = {d_hub}")
+                # print(f"angle_b_l_1 = {round(angle_b_l_1, 1)}")
+                # print(f"angle_b_l_2 = {round(angle_b_l_2, 1)}")
+                # print(f"attack_angle = {attack_angle}")
+                # print(f"number_of_blade_checked = {number_of_blade_checked}")
                 break
         if found:
             break
@@ -746,3 +761,93 @@ def find_valid_combinations():
         print(f"  Частота вращения: от {r_min} до {r_max} об/мин\n")
 
     return valid_combinations
+
+
+def handle_download_model(request, context):
+    # ... получаем параметры ...
+    # Параметры передаются или создаются:
+    flow_rate = float(request.POST.get("flow_rate"))
+    pressure = float(request.POST.get("pressure"))
+    density = float(request.POST.get("density"))
+    rotation_speed = float(request.POST.get("rotation_speed"))
+    r_list, angle_total_list, number_of_blades, thickness, b_list_updated = calculations_2(flow_rate, pressure, density, rotation_speed)
+    contour_1, contour_2, contour_3, heihgt_blades = create_section_meridional(flow_rate, pressure, density, rotation_speed, r_list, b_list_updated)
+    data = calculations(flow_rate, pressure, density, rotation_speed)
+    d_2 = data[1]
+
+    if not all([contour_1, contour_2, contour_3, heihgt_blades, r_list, angle_total_list, number_of_blades, thickness, b_list_updated]):
+        raise ValueError("Не все геометрические параметры заданы")
+
+    # Создаём модель и экспортируем
+    final_body = create_wheel(flow_rate, pressure, density, rotation_speed, contour_1, contour_2, contour_3, heihgt_blades, r_list, angle_total_list, number_of_blades,
+                              thickness)
+
+    if final_body is None:
+        raise ValueError("Модель не была создана")
+
+    # Имя файла
+    d_str = f"{d_2:.1f}".replace('.', '_')
+    filename = f"Wheel_{d_str}.step"
+
+    # Проверяем, что файл существует
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"Файл {filename} не найден")
+
+    # Возвращаем как загрузку
+    return FileResponse(open(filename, 'rb'), as_attachment=True, filename=filename)
+
+# def handle_download_model(request, context):
+#     try:
+#         flow_rate = float(request.POST.get("flow_rate", "").replace(',', '.'))
+#         pressure = float(request.POST.get("pressure", "").replace(',', '.'))
+#         density = float(request.POST.get("density", "").replace(',', '.'))
+#         rotation_speed = float(request.POST.get("rotation_speed", "").replace(',', '.'))
+#
+#         # Здесь получи или сгенерируй контуры, списки и параметры
+#         contour1 = context.get('contour1')  # например, сохранено ранее
+#         contour2 = context.get('contour2')
+#         contour3 = context.get('contour3')
+#         r_list = context.get('r_list')
+#         angle_total_list = context.get('angle_total_list')
+#         number_of_blades = context.get('number_of_blades')
+#         thickness = context.get('blade_thickness')
+#         height = context.get('blade_height')
+#
+#         if not all([contour1, contour2, contour3, r_list, angle_total_list, number_of_blades, thickness, height]):
+#             raise ValueError("Не все геометрические параметры заданы")
+#
+#         context['logs'].append("Начинаем создание модели рабочего колеса...")
+#         wheel = create_wheel(
+#             flow_rate, pressure, density, rotation_speed,
+#             contour1, contour2, contour3,
+#             height, r_list, angle_total_list,
+#             number_of_blades, thickness
+#         )
+#
+#         if not wheel:
+#             raise RuntimeError("Не удалось создать рабочее колесо")
+#
+#         # Добавляем имя файла
+#         d_str = f"{wheel.val().BoundingBox().zlen:.1f}".replace('.', '_')  # или другое имя
+#         file_name = f"Wheel_{d_str}.step"
+#
+#         files_to_zip = [file_name, 'screw_lead.step', 'screw_driven.step', 'stator.step', 'pump_assembly.step']
+#
+#         # Проверка существования
+#         if not all(os.path.exists(file) for file in files_to_zip):
+#             raise FileNotFoundError("Некоторые файлы моделей не найдены")
+#
+#         zip_filename = 'screw_models.zip'
+#         with zipfile.ZipFile(zip_filename, 'w') as zipf:
+#             for file in files_to_zip:
+#                 zipf.write(file, arcname=os.path.basename(file))
+#
+#         with open(zip_filename, 'rb') as f:
+#             response = HttpResponse(f.read(), content_type='application/zip')
+#             response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
+#             return response
+#
+#     except Exception as e:
+#         context['error'] = f"Ошибка при создании модели: {e}"
+#         logger.error(f"Ошибка при экспорте модели: {e}", exc_info=True)
+#         return None

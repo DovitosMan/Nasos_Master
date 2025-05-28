@@ -153,7 +153,7 @@
         // Функция для сброса значений
         document.getElementById('reset-button').addEventListener('click', function () {
             // Находим только поля ввода (исключая кнопки)
-            const inputs = document.querySelectorAll('#screw-form input[type="text"], #screw-form input[type="number"], #screw-form input[type="float"]');
+            const inputs = document.querySelectorAll('#screw-form input[type="text"], #screw-form input[type="number"], #screw-form input[type="input"]',);
             inputs.forEach(input => {
                 // Очищаем значение каждого поля
                 input.value = '';

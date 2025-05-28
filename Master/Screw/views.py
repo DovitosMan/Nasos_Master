@@ -18,7 +18,7 @@ def screw(request):
         'calc': [
             {'type': 'float', 'placeholder': 'Подача, м³/ч', 'name': 'flow_rate', 'value': ''},
             {'type': 'float', 'placeholder': 'Напор, м', 'name': 'pressure', 'value': ''},
-            {'type': 'float', 'placeholder': 'Вязкость · 10⁻⁶, м²/с', 'name': 'viscosity', 'value': ''},
+            {'type': 'float', 'placeholder': 'Вязкость, мм²/с', 'name': 'viscosity', 'value': ''},
             {'type': 'float', 'placeholder': 'Диаметр винта, мм', 'name': 'diam', 'value': ''},
             {'type': 'float', 'placeholder': 'Число витков, шт.', 'name': 'turns', 'value': ''},
             {'type': 'float', 'placeholder': 'Частота вращения, об/мин', 'name': 'rotation_speed', 'value': ''},
