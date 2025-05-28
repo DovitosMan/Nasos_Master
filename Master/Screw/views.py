@@ -32,18 +32,18 @@ def screw(request):
         'pause_calculations': False
 
     }
-    print('до пост')
+
     if request.method == "POST":
         if 'calculate_params' in request.POST:
             context['pause_calculations'] = True
         else:
             context['pause_calculations'] = False
         print(context['pause_calculations'])
-        print('после пост')
         for select in context['calc']:
             if select['type'] == 'float':
                 name = select['name']
                 select['value'] = request.POST.get(name, "")
+
         # print(context['calc'])
         flow_rate = float(request.POST.get("flow_rate").replace(',', '.'))
         pressure = float(request.POST.get("pressure").replace(',', '.'))
@@ -107,10 +107,10 @@ def screw(request):
                     context['power_eff'] = float(power_eff_p)  # Эффективная мощность
                     context['power_nominal'] = float(power_nominal_p)  # Номинальная мощность
 
-                    if 'download_model' in request.POST:
-                        response = handle_download_model(request, context)
-                        if response:
-                            return response
+                if 'download_model' in request.POST:
+                    response = handle_download_model(request, context)
+                    if response:
+                        return response
 
             except ValueError as e:
                 context['error'] = f"Ошибка ввода: {str(e)}"
