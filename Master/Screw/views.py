@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def screw(request):
     context = {
         'calc': [
-            {'type': 'float', 'placeholder': 'Подача, м³/ч', 'name': 'feed', 'value': ''},
+            {'type': 'float', 'placeholder': 'Подача, м³/ч', 'name': 'flow_rate', 'value': ''},
             {'type': 'float', 'placeholder': 'Напор, м', 'name': 'pressure', 'value': ''},
             {'type': 'float', 'placeholder': 'Вязкость · 10⁻⁶, м²/с', 'name': 'viscosity', 'value': ''},
             {'type': 'float', 'placeholder': 'Диаметр винта, мм', 'name': 'diam', 'value': ''},
@@ -28,56 +28,51 @@ def screw(request):
         'logs': [],
         'input_data': {},
         'recommendations': [],
-        'debug_test': False
+        'debug_test': False,
+        'pause_calculations': False
+
     }
 
     if request.method == "POST":
-        feed = float(request.POST.get("feed").replace(',', '.'))
+        for select in context['calc']:
+            if select['type'] == 'float':
+                name = select['name']
+                select['value'] = request.POST.get(name, "")
+
+        if 'calculate_params' in request.POST:
+            context['pause_calculations'] = True
+        else:
+            context['pause_calculations'] = False
+        print(context['pause_calculations'])
+        flow_rate = float(request.POST.get("flow_rate").replace(',', '.'))
         pressure = float(request.POST.get("pressure").replace(',', '.'))
-        if feed and pressure:
+        viscosity = float(request.POST.get("viscosity").replace(',', '.'))
+        if flow_rate and pressure:
             try:
-                feed = float(request.POST.get("feed").replace(',', '.'))
-                pressure = float(request.POST.get("pressure").replace(',', '.'))
-                viscosity = float(request.POST.get("viscosity").replace(',', '.'))
-                # for select in context['calc']:
-                #     if select['type'] == 'float':
-                #         name = select['name']
-                #         select['value'] = request.POST.get(name, "")
-                if feed <= 0 or pressure <= 0:
+                if flow_rate <= 0 or pressure <= 0:
                     raise ValueError("Все входные значения должны быть положительными числами.")
 
                 context['input_viscosity'] = viscosity
-
+                context['input_feed'] = flow_rate
+                context['input_pressure'] = pressure
                 rotation_speed = request.POST.get("rotation_speed")
-                if rotation_speed:
-                    rotation_speed = float(rotation_speed.replace(',', '.'))
-                else:
-                    rotation_speed = None
+                context['input_rotation_speed'] = rotation_speed
 
-                n_rec, d_rec, feed_rec, powers = calculate_data(feed, pressure, rotation_speed)
-
+                # if context['pause_calculations']:
+                n_rec, d_rec, feed_rec, powers = calculate_data(flow_rate, pressure, rotation_speed)
+                turns = calculate_turns(pressure)
+                context['turns'] = turns
                 if d_rec:
                     context['calculated_diam'] = (d_rec[0] if isinstance(d_rec, list) else d_rec) * 1000  # Переводим в мм
                 if n_rec:
                     context['calculated_rotation_speed'] = n_rec[0] if isinstance(n_rec, list) else n_rec
-
-                context['input_feed'] = feed
-                context['input_pressure'] = pressure
-                context['input_rotation_speed'] = rotation_speed
-
-                turns = calculate_turns(pressure)
-                context['turns'] = turns
-
                 qh_plot = calculate_qh_characteristic(d_rec, feed_rec, pressure)
 
                 kpd_plot, is_low_pressure = calculate_kpd_characteristic(d_rec, feed_rec, pressure, viscosity,
                                                                          rotation_speed)
-                power_plot, is_power_error = calculate_power_characteristic(d_rec, feed_rec, pressure, viscosity, turns,
-                                                                            rotation_speed)
-
+                power_plot, is_power_error = calculate_power_characteristic(d_rec, feed_rec, pressure, viscosity, turns, rotation_speed)
                 feed_p, kpd_volumetric_p, kpd_mechanical_p, kpd_total_p, power_t_p, power_eff_p, power_nominal_p = (
                     print_data(d_rec, pressure, rotation_speed, viscosity, turns))
-
                 force_plot = 'force_plot' in request.POST
 
                 if (is_low_pressure or is_power_error) and not force_plot:
@@ -109,11 +104,12 @@ def screw(request):
                         return response
 
             except ValueError as e:
-                context['error'] = f"Ошибка ввода: {str(e)}"
-                logger.warning(f"Некорректный ввод: {str(e)}")
-            except Exception as e:
-                context['message'] = f"Нажмите кнопку Построить график"
-                logger.error(f"Ошибка генерации: {str(e)}", exc_info=True)
+            context['error'] = f"Ошибка ввода: {str(e)}"
+            logger.warning(f"Некорректный ввод: {str(e)}")
+        except Exception as e:
+        context['message'] = f"Нажмите кнопку Построить график"
+        logger.error(f"Ошибка генерации: {str(e)}", exc_info=True)
+
 
     return render(request, 'screw.html', context)
 
@@ -450,9 +446,9 @@ def create_assembly(d):
         raise
 
 
-def calculate_data(feed, pressure, rotation_speed=None):
+def calculate_data(flow_rate, pressure, rotation_speed=None):
     kpd_vol_pre = 0.85
-    feed_ls = feed * 5 / 18  # Перевод из м3/ч в л/с
+    feed_ls = flow_rate * 5 / 18  # Перевод из м3/ч в л/с
     pressure_kg_sm = pressure * 0.1  # Перевод из м в кгс/см2
 
     rotation_speed_max = math.floor(8175 / math.sqrt(feed_ls / kpd_vol_pre))
@@ -473,7 +469,7 @@ def calculate_data(feed, pressure, rotation_speed=None):
     for i in range(1, len_iterations + 1):
         n_i = 50 * i
         n, d, f, p = calculate_parameters(n_i)
-        if f >= feed:
+        if f >= flow_rate:
             n_rec.append(n)
             d_rec.append(d)
             feed_rec.append(f)
@@ -544,13 +540,13 @@ def create_plotly_figure(plots, title, xaxis_title, yaxis_title):
     return fig
 
 
-def calculate_qh_characteristic(d, feed, pressure):
+def calculate_qh_characteristic(d, flow_rate, pressure):
     velocity, pressure_values = calculate_common_params(d, pressure)
     feed_loss = calculate_feed_loss(d, velocity, pressure_values)
-    feed_real = feed - feed_loss
+    feed_real = flow_rate - feed_loss
 
     plots = [
-        {'x': pressure_values, 'y': np.full_like(pressure_values, feed), 'name': 'Теоретическая подача'},
+        {'x': pressure_values, 'y': np.full_like(pressure_values, flow_rate), 'name': 'Теоретическая подача'},
         {'x': pressure_values, 'y': feed_real, 'name': 'Фактическая подача'}
     ]
 
@@ -558,10 +554,10 @@ def calculate_qh_characteristic(d, feed, pressure):
     return fig.to_html(full_html=False)
 
 
-def calculate_kpd_characteristic(d, feed, pressure, viscosity, rotation_speed):
+def calculate_kpd_characteristic(d, flow_rate, pressure, viscosity, rotation_speed):
     velocity, pressure_values = calculate_common_params(d, pressure)
     feed_loss = calculate_feed_loss(d, velocity, pressure_values)
-    feed_real = feed - feed_loss
+    feed_real = flow_rate - feed_loss
 
     power_t = (pressure_values / 10) * (feed_real * 1000 / 60 / 60)
 
@@ -585,8 +581,8 @@ def calculate_kpd_characteristic(d, feed, pressure, viscosity, rotation_speed):
     )
 
     kpd_volumetric = np.where(
-        feed != 0,
-        np.clip(100 * (feed_real / feed), 0, 100),
+        flow_rate != 0,
+        np.clip(100 * (feed_real / flow_rate), 0, 100),
         0
     )
 
@@ -604,12 +600,12 @@ def calculate_kpd_characteristic(d, feed, pressure, viscosity, rotation_speed):
     return fig.to_html(full_html=False), is_low_pressure
 
 
-def calculate_power_characteristic(d, feed, pressure, viscosity, num_turns, rotation_speed):
+def calculate_power_characteristic(d, flow_rate, pressure, viscosity, num_turns, rotation_speed):
     velocity, pressure_values = calculate_common_params(d, pressure)
     feed_loss = calculate_feed_loss(d, velocity, pressure_values)
-    feed_real = feed - feed_loss
+    feed_real = flow_rate - feed_loss
 
-    kpd_volumetric = (feed_real / feed) * 100
+    kpd_volumetric = (feed_real / flow_rate) * 100
 
     power_t = (pressure_values / 10) * (feed_real * 1000 / 60 / 60)
 
@@ -635,7 +631,7 @@ def calculate_power_characteristic(d, feed, pressure, viscosity, num_turns, rota
     kpd = kpd_volumetric / 100 * kpd_mechanical / 100
 
     feed_loss_user = calculate_feed_loss(d, velocity, np.array([pressure]))[0]
-    feed_real_user = feed - feed_loss_user
+    feed_real_user = flow_rate - feed_loss_user
 
     power_eff = np.zeros_like(power_t)
     power_eff[1:] = power_t[1:] - power_loss[1:] - power_length_loss[1:]
@@ -661,13 +657,13 @@ def calculate_power_characteristic(d, feed, pressure, viscosity, num_turns, rota
     return fig.to_html(full_html=False), False
 
 
-def calculate_start_power(d, pressure, rotation_speed, feed, viscosity):
+def calculate_start_power(d, pressure, rotation_speed, flow_rate, viscosity):
     frictional_koef = 0.05
 
     force_radial = 1.399945 * (pressure / 10) * math.pow(d * 10, 2) * 100
     moment_frictional = force_radial * frictional_koef * (d * 10 / 2)
 
-    power_t_user = (pressure / 10) * (feed * 1000 / 60 / 60)
+    power_t_user = (pressure / 10) * (flow_rate * 1000 / 60 / 60)
     moment_exp = power_t_user * 936.55 / rotation_speed
 
     moment_start = (moment_frictional + moment_exp) * 10

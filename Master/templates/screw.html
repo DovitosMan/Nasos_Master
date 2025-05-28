@@ -21,7 +21,7 @@
                     {#                        <label class="Select">#}
                     {#                            <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}" value="{{ cal.value }}">#}
                     {#                        </label>#}
-                    {% if cal.name == "diam" and calculated_diam %}
+                    {% if cal.name == "diam"%}
                         <div class="menu_select">
                             <span class="Select">{{ cal.placeholder }}</span>
                             <label class="Select">
@@ -29,7 +29,7 @@
                                        value="{{ calculated_diam }}">
                             </label>
                         </div>
-                    {% elif cal.name == "rotation_speed" and calculated_rotation_speed %}
+                    {% elif cal.name == "rotation_speed"%}
                         <div class="menu_select">
                             <span class="Select">{{ cal.placeholder }}</span>
                             <label class="Select">
@@ -37,7 +37,7 @@
                                        value="{{ calculated_rotation_speed }}">
                             </label>
                         </div>
-                    {% elif cal.name == "feed" and input_feed is not None %}
+                    {% elif cal.name == "flow_rate" and input_feed is not None %}
                         <div class="menu_select">
                             <span class="Select">{{ cal.placeholder }}</span>
                             <label class="Select">
@@ -136,15 +136,6 @@
                 </div>
             {% endfor %}
         </div>
-        <form method="post" class="container" action="{% url 'wheel_calc' %}">
-            {% csrf_token %}
-            {% for select in selects %}
-                {% if select.type == "float" %}
-                    <input type="hidden" name="{{ select.name }}" value="{{ select.value }}">
-                {% endif %}
-            {% endfor %}
-            <input type="submit" value="Перейти к следующему расчету">
-        </form>
     {% endif %}
     <script>
         function forcePlot() {
