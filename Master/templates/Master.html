@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <title>{% block title %}{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap"
+          rel="stylesheet">
     <link rel="stylesheet" href="{% static 'Master/css/Master.css' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,10 +23,12 @@
 <div id="menuSelect" class="sidebar">
     {% csrf_token %}
     {% for button in menu_buttons %}
-        <form action="{% url button.url_name %}">
-            <input type="submit" value="{{ button.value }}">
-            <br>
-        </form>
+        {% if button.key %}
+            <form action="{% url button.url_name %}">
+                <input class="button_sidebar" type="submit" value="{{ button.value }}">
+                <br>
+            </form>
+        {% endif %}
     {% endfor %}
 </div>
 <!-- Затемнение экрана при развороте меню -->
@@ -33,18 +36,18 @@
 </div>
 <!-- Основной контент -->
 <div class="content">
-{% block home %}
-{% endblock home %}
-{% block calculations %}
-{% endblock calculations %}
-{% block characteristics %}
-{% endblock characteristics %}
-{% block pump_selection %}
-{% endblock pump_selection %}
-{% block index %}
-{% endblock index %}
-{% block Screw %}
-{% endblock Screw %}
+    {% block home %}
+    {% endblock home %}
+    {% block calculations %}
+    {% endblock calculations %}
+    {% block characteristics %}
+    {% endblock characteristics %}
+    {% block pump_selection %}
+    {% endblock pump_selection %}
+    {% block index %}
+    {% endblock index %}
+    {% block Screw %}
+    {% endblock Screw %}
 </div>
 <!-- Футер -->
 <div class="footer">

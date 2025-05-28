@@ -117,7 +117,16 @@
                             <input type="hidden" name="{{ select.name }}" value="{{ select.value }}">
                         {% endif %}
                     {% endfor %}
-                    <input type="submit" value="Перейти к следующему расчету">
+                    <input type="submit" value="Перейти к расчету колеса центробежного насоса">
+                </form>
+                <form method="post" class="container" action="{% url 'screw' %}">
+                    {% csrf_token %}
+                    {% for select in selects %}
+                        {% if select.type == "input" %}
+                            <input type="hidden" name="{{ select.name }}" value="{{ select.value }}">
+                        {% endif %}
+                    {% endfor %}
+                    <input type="submit" value="Перейти к расчету винтового насоса">
                 </form>
             {% else %}
                 {% if error %}

@@ -1,0 +1,115 @@
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+.results-table th,
+.results-table td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+.results-table th {
+    background-color: #002845;
+    color: white;
+}
+
+.results-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.progress {
+    height: 20px;
+    background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #28a745;
+    transition: width 0.3s ease;
+}
+
+.error-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    color: #dc3545;
+    font-size: 0.9em;
+}
+
+.error-list li {
+    margin: 3px 0;
+}
+
+.full-match {
+    color: #28a745;
+    font-weight: bold;
+}
+
+
+
+.debug-section {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+@media (max-width: 768px) {
+    .chart_and_wrapper {
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .menu_select {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .Select {
+        width: 100%;
+    }
+}
+
+.pump-family-link {
+  color: #002845;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pump-family-link:hover {
+  color: #004d99;
+  text-decoration: none;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}

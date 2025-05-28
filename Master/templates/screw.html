@@ -11,18 +11,71 @@
     <div id="block_application" class="block_application">
         <div class="secondary_block_application">
             <button class="button_menu" id="toggle_block">☰ Расчет винтового насоса</button>
-            {% if error %}
-                <div class="message alert">{{ error }}</div>
+            {% if message %}
+                <div class="message">{{ message }}</div>
             {% endif %}
             <form action="{% url 'screw' %}" method="post" class="container" id="screw-form">
                 {% csrf_token %}
                 {% for cal in calc %}
-                    <div class="menu_select">
-                        <span class="Select">{{ cal.placeholder }}</span>
-                        <label class="Select">
-                            <input class="Select" type="number" Zname="{{ cal.name }}" value="{{ cal.value }}">
-                        </label>
-                    </div>
+                    {#                        <span class="Select">{{ cal.placeholder }}</span>#}
+                    {#                        <label class="Select">#}
+                    {#                            <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}" value="{{ cal.value }}">#}
+                    {#                        </label>#}
+                    {% if cal.name == "diam"%}
+                        <div class="menu_select">
+                            <span class="Select">{{ cal.placeholder }}</span>
+                            <label class="Select">
+                                <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}"
+                                       value="{{ calculated_diam }}">
+                            </label>
+                        </div>
+                    {% elif cal.name == "rotation_speed"%}
+                        <div class="menu_select">
+                            <span class="Select">{{ cal.placeholder }}</span>
+                            <label class="Select">
+                                <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}"
+                                       value="{{ calculated_rotation_speed }}">
+                            </label>
+                        </div>
+                    {% elif cal.name == "flow_rate" and input_feed is not None %}
+                        <div class="menu_select">
+                            <span class="Select">{{ cal.placeholder }}</span>
+                            <label class="Select">
+                                <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}"
+                                       value="{{ input_feed }}">
+                            </label>
+                        </div>
+                    {% elif cal.name == "pressure" and input_pressure is not None %}
+                        <div class="menu_select">
+                            <span class="Select">{{ cal.placeholder }}</span>
+                            <label class="Select">
+                                <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}"
+                                       value="{{ input_pressure }}">
+                            </label>
+                        </div>
+                    {% elif cal.name == "turns" and turns is not None %}
+                        <div class="menu_select">
+                            <span class="Select">{{ cal.placeholder }}</span>
+                            <label class="Select">
+                                <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}" value="{{ turns }}">
+                            </label>
+                        </div>
+                    {% elif cal.name == "viscosity" and input_viscosity is not None %}
+                        <div class="menu_select">
+                            <span class="Select">{{ cal.placeholder }}</span>
+                            <label class="Select">
+                                <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}"
+                                       value="{{ input_viscosity }}">
+                            </label>
+                        </div>
+                    {% else %}
+                        <div class="menu_select">
+                            <span class="Select">{{ cal.placeholder }}</span>
+                            <label class="Select">
+                                <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}">
+                            </label>
+                        </div>
+                    {% endif %}
                 {% endfor %}
                 <input class="button" type="submit" name="calculate_params" value="Вычислить параметры">
                 <input class="button" type="button" id="reset-button" value="Сброс значений">
@@ -33,65 +86,57 @@
     </div>
 
     <!-- Отображение ошибок -->
+
+    <div class="alert alert-danger" role="alert">
+        {{ error }}
+    </div>
+
     {% if error %}
-        <div class="alert alert-danger" role="alert">
-            {{ error }}
+        <!-- Отображение рассчитанного диаметра -->
+        <div>
+            {% if calculations.user_diam is not None %}
+                <p>Диаметр винта: {{ calculations.user_diam }}</p>
+            {% endif %}
         </div>
-    {% endif %}
 
-    <!-- Отображение предупреждения о низком давлении -->
-    {% if is_low_pressure %}
-        <div class="alert alert-warning" role="alert">
-            Внимание: давление слишком низкое, что может привести к некорректной работе насоса.
+        <!-- Отображение фактического расхода, КПД и мощности -->
+        <div>
+            {% if feed_real is not None %}
+                <h3>Результаты расчета:</h3>
+                <p>Фактический расход: {{ feed_real|floatformat:3 }} м³/ч</p>
+                <p>Напор: {{ user_pressure|floatformat:3 }} м</p>
+                <p>Объемный КПД: {{ kpd_volumetric|floatformat:3 }} %</p>
+                <p>Механический КПД: {{ kpd_mechanical|floatformat:3 }} %</p>
+                <p>Полный КПД: {{ kpd_total|floatformat:3 }} %</p>
+                <p>Теоретическая мощность: {{ power_t|floatformat:3 }} кВт</p>
+                <p>Эффективная мощность: {{ power_eff|floatformat:3 }} кВт</p>
+                <p>Номинальная мощность: {{ power_nominal|floatformat:3 }} кВт</p>
+            {% endif %}
         </div>
+
+        <!-- Отображение логов -->
+        {% if debug_test %}
+            <div class="logs">
+                <ul>
+                    {% for log in logs %}
+                        <li>{{ log }}</li>
+                        {% empty %}
+
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
     {% endif %}
-
-    <!-- Отображение рассчитанного диаметра -->
-    <div>
-        {% if calculations.user_diam is not None %}
-            <p>Диаметр винта: {{ calculations.user_diam }}</p>
-        {% endif %}
-    </div>
-
-    <!-- Отображение фактического расхода, КПД и мощности -->
-    <div>
-        {% if feed_real is not None %}
-            <h3>Результаты расчета:</h3>
-            <p>Фактический расход: {{ feed_real|floatformat:3 }} м³/ч</p>
-            <p>Напор: {{ user_pressure|floatformat:3 }} м</p>
-            <p>Объемный КПД: {{ kpd_volumetric|floatformat:3 }} %</p>
-            <p>Механический КПД: {{ kpd_mechanical|floatformat:3 }} %</p>
-            <p>Полный КПД: {{ kpd_total|floatformat:3 }} %</p>
-            <p>Теоретическая мощность: {{ power_t|floatformat:3 }} кВт</p>
-            <p>Эффективная мощность: {{ power_eff|floatformat:3 }} кВт</p>
-            <p>Номинальная мощность: {{ power_nominal|floatformat:3 }} кВт</p>
-        {% endif %}
-    </div>
-
-    <!-- Отображение логов -->
-    <div class="logs">
-        <ul>
-            {% for log in logs %}
-                <li>{{ log }}</li>
-                {% empty %}
-
-            {% endfor %}
-        </ul>
-    </div>
-
     <!-- Отображение графиков -->
-    <div>
-        {% if plots %}
+    {% if plots %}
+        <div class="table-responsive">
             {% for plot in plots %}
                 <div class="plot-container">
                     {{ plot|safe }}
                 </div>
             {% endfor %}
-        {% else %}
-
-        {% endif %}
-    </div>
-
+        </div>
+    {% endif %}
     <script>
         function forcePlot() {
             const form = document.getElementById('screw-form');

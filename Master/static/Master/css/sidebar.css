@@ -14,15 +14,12 @@
     position: absolute;
     width: max-content;
     z-index: 10;
-    height: 100vh;
+    height: calc(100% - 80px);
     color: white;
     padding: 20px;
     left: calc(-100%);
     transition: left 0.3s ease-in-out;
     background-color: var(--primary-color);
-}
-.sidebar input:hover {
-    background-color: var(--hover-color);
 }
 .sidebar.open {
     left: 0; /* Показываем меню */
@@ -51,3 +48,7 @@
     display: block;
     background-color: rgba(0, 0, 0, 0.5);
 }
+/*.button_sidebar{*/
+/*    background-color: var(--primary-color) !important;*/
+
+/*}*/
