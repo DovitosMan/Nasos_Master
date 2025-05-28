@@ -94,15 +94,24 @@ def wheel_calc(request):
                 # else:
                 #     plots = []
                 # context['plots'] = plots
-                fig1, fig2 = plot_impeller_graphs(flow_rate, pressure, density, rotation_speed, viscosity)
+                q_mh, p_water, p_visc, kpd_water, kpd_visc = calculate_graphs(
+                    flow_rate, pressure, density, rotation_speed, viscosity
+                )
 
-                # Преобразуем фигуры в HTML
-                plot_div1 = plot(fig1, output_type='div', include_plotlyjs=False)
-                plot_div2 = plot(fig2, output_type='div', include_plotlyjs=False)
+                # Генерация графиков
+                plots = generate_plots(q_mh, p_water, p_visc, kpd_water, kpd_visc)
 
                 context = {
-                    'plots': [plot_div1, plot_div2]
+                    'plots': plots,
+                    'flow_rate': flow_rate,
+                    'pressure': pressure,
+                    'density': density,
+                    'rotation_speed': rotation_speed,
+                    'viscosity': viscosity,
                 }
+
+                # Преобразуем фигуры в HTML
+
                 r_list, angle_total_list, number_of_blades, thickness, b_list_updated = calculations_2(flow_rate, pressure, density, rotation_speed)
                 contour_1, contour_2, contour_3, heihgt_blades = create_section_meridional(flow_rate, pressure, density, rotation_speed, r_list, b_list_updated)
                 create_wheel(flow_rate, pressure, density, rotation_speed, contour_1, contour_2, contour_3, heihgt_blades, r_list, angle_total_list, number_of_blades,
@@ -529,47 +538,28 @@ def calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity, nu
 
     return q_values_m_h, pressure_values_m, pressure_values_m_vis, kpd_total_values, kpd_total_values_vis
 
-
-def plot_impeller_graphs(flow_rate, pressure, density, rotation_speed, viscosity):
-    (
-        q_values_m_h,
-        pressure_values_m,
-        pressure_values_m_vis,
-        kpd_total_values,
-        kpd_total_values_vis
-    ) = calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity)
-
-    # --- График давления ---
+def generate_plots(q_values_m_h, pressure_values_m, pressure_values_m_vis,
+                   kpd_total_values, kpd_total_values_vis):
+    # Первый график: Напор
     fig1 = go.Figure()
-    fig1.add_trace(go.Scatter(x=q_values_m_h, y=pressure_values_m,
-                              mode='lines+markers',
-                              name='Напор (без вязкости)'))
-    fig1.add_trace(go.Scatter(x=q_values_m_h, y=pressure_values_m_vis,
-                              mode='lines+markers',
-                              name='Напор (с вязкостью)'))
-    fig1.update_layout(
-        title='Зависимость напора от подачи',
-        xaxis_title='Подача, м³/ч',
-        yaxis_title='Напор, м',
-        template='plotly_white'
-    )
+    fig1.add_trace(go.Scatter(x=q_values_m_h, y=pressure_values_m, mode='lines', name='Напор (вода)'))
+    fig1.add_trace(go.Scatter(x=q_values_m_h, y=pressure_values_m_vis, mode='lines', name='Напор (вязкая)'))
+    fig1.update_layout(title='Зависимость напора от подачи',
+                       xaxis_title='Подача (м³/ч)', yaxis_title='Напор (м)')
 
-    # --- График КПД ---
+    # Второй график: КПД
     fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(x=q_values_m_h, y=kpd_total_values,
-                              mode='lines+markers',
-                              name='КПД (без вязкости)'))
-    fig2.add_trace(go.Scatter(x=q_values_m_h, y=kpd_total_values_vis,
-                              mode='lines+markers',
-                              name='КПД (с вязкостью)'))
-    fig2.update_layout(
-        title='Зависимость КПД от подачи',
-        xaxis_title='Подача, м³/ч',
-        yaxis_title='КПД',
-        template='plotly_white'
-    )
+    fig2.add_trace(go.Scatter(x=q_values_m_h, y=kpd_total_values, mode='lines', name='КПД (вода)'))
+    fig2.add_trace(go.Scatter(x=q_values_m_h, y=kpd_total_values_vis, mode='lines', name='КПД (вязкая)'))
+    fig2.update_layout(title='Зависимость КПД от подачи',
+                       xaxis_title='Подача (м³/ч)', yaxis_title='КПД')
 
-    return fig1, fig2
+    # Сохраняем как HTML div (без полной страницы)
+    plot1_html = fig1.to_html(full_html=False, include_plotlyjs=False)
+    plot2_html = fig2.to_html(full_html=False, include_plotlyjs=False)
+
+    return [plot1_html, plot2_html]
+
 # def plot_q(q_values_m_h, pressure_values_m, pressure_values_m_vis):
 #     plots_1 = [
 #         {'x': q_values_m_h, 'y': np.full_like(q_values_m_h, pressure_values_m), 'name': 'Напор по воде, м'},

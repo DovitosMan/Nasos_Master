@@ -59,16 +59,16 @@
                 </div>
             {% endif %}
     </div>
-    {% if plots %}
-        <div class="table-responsive">
-            {% for plot in plots %}
-                <div class="plot-container">
-                    {{ plot|safe }}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+{#    {% if plots %}#}
+{#        <div class="table-responsive">#}
+{#            {% for plot in plots %}#}
+{#                <div class="plot-container">#}
+{#                    {{ plot|safe }}#}
+{#                </div>#}
+{#            {% endfor %}#}
+{#        </div>#}
+{#    {% endif %}#}
+{#    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>#}
     <script>
 
         // Функция для сброса значений
