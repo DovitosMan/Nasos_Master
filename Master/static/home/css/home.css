@@ -13,23 +13,37 @@
     padding: 20px;
 }
 
-.header_home h1 {
-    font-size: 3rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 0.25rem;
-}
+.header_home {
+    width: 100%;
 
+    display: flex;
+    /*flex-direction: column;*/
+    color: #ffffff;
+    /*margin-bottom: 0.25rem;*/
+}
+.header_home_group{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+
+}
+.header_home_start{
+    display: flex;
+    text-align: center;
+    font-size: 3rem;
+    font-weight: bold;
+}
 .highlight {
-    font-size:2rem;
+    font-size:1rem;
     color: #c2d2f5;
     font-style: italic;
 }
 
 .subtitle {
     display: flex;
-
-    font-size: 1.5rem;
+    padding: 0 10% ;
+    font-size: 1rem;
     color: #d2def5;
 }
 
