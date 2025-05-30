@@ -68,8 +68,8 @@ def pump_selection(request):
             {'type': 'input', 'placeholder': 'Потребляемая мощность, кВт:', 'name': 'power', 'value': ''},
             {'type': 'option', 'placeholder': 'Среда:',
              'keys': [{'name': 'Вода', 'value': 'Water'},
-                      {'name': 'Этиленгликоль', 'value': 'Ethylene_Glycol'},
-                      {'name': 'Пропиленгликоль', 'value': 'Propylene_Glycol'}], 'value': ''},
+                      {'name': 'Масло турбинное', 'value': 'Ethylene_Glycol'},
+                      {'name': 'Нефть+газ', 'value': 'Propylene_Glycol'}], 'value': ''},
             {'type': 'input', 'placeholder': 'Содержание газа, %:', 'name': 'gas_content', },
             {'type': 'option', 'placeholder': 'Наличие твердых включений, (да/нет)',
              'keys': [{'name': 'Да', 'value': 'Yes'},
@@ -257,7 +257,7 @@ def pump_selection(request):
         pumps_with_score.sort(key=lambda x: (-x['score']))
 
         # Выбираем топ-3 результата
-        context['calculations']['filter_pumps'] = pumps_with_score[:2]
+        context['calculations']['filter_pumps'] = pumps_with_score[:10]
 
         context['columns'] = column_renaming()
 

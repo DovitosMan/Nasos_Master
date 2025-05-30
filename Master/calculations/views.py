@@ -12,6 +12,9 @@ import plotly.graph_objects as go
 from plotly.offline import plot
 import zipfile
 import logging
+import csv
+import time
+from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -94,21 +97,21 @@ def wheel_calc(request):
                 # else:
                 #     plots = []
                 # context['plots'] = plots
-                q_mh, p_water, p_visc, kpd_water, kpd_visc = calculate_graphs(
-                    flow_rate, pressure, density, rotation_speed, viscosity
-                )
+                # q_mh, p_water, p_visc, kpd_water, kpd_visc = calculate_graphs(
+                #     flow_rate, pressure, density, rotation_speed, viscosity
+                # )
 
                 # Генерация графиков
-                plots = generate_plots(q_mh, p_water, p_visc, kpd_water, kpd_visc)
+                # plots = generate_plots(q_mh, p_water, p_visc, kpd_water, kpd_visc)
 
-                context = {
-                    'plots': plots,
-                    'flow_rate': flow_rate,
-                    'pressure': pressure,
-                    'density': density,
-                    'rotation_speed': rotation_speed,
-                    'viscosity': viscosity,
-                }
+                # context = {
+                #     'plots': plots,
+                #     'flow_rate': flow_rate,
+                #     'pressure': pressure,
+                #     'density': density,
+                #     'rotation_speed': rotation_speed,
+                #     'viscosity': viscosity,
+                # }
 
                 # Преобразуем фигуры в HTML
 
@@ -117,8 +120,8 @@ def wheel_calc(request):
                 create_wheel(flow_rate, pressure, density, rotation_speed, contour_1, contour_2, contour_3, heihgt_blades, r_list, angle_total_list, number_of_blades,
                              thickness)
 
-            # find_valid_combinations()
-            # calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity)
+            # find_valid_combinations_fixed_params()
+            # calculate_graphs( flow_rate, pressure, density, rotation_speed, viscosity)
 
             if 'download_model' in request.POST:
                 response = handle_download_model(request, context)
@@ -199,7 +202,6 @@ def calculations(flow_rate, pressure, density, rotation_speed):
 
 def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
     data = calculations(flow_rate, pressure, density, rotation_speed)
-    print(data[0])
 
     n_vol = round(data[5] / 100, 3)
     n_hydro = round(data[6] / 100, 3)
@@ -303,17 +305,17 @@ def calculations_2(flow_rate, pressure, density, rotation_speed, num_items=10):
             v_dependence_k = (v_t_4 - v_t_1) / ((r_outer - r_inner) / 1000)
             v_dependence_b = v_t_4 - v_dependence_k * r_outer / 1000
 
-            if abs(angle - angle_b_l_2_checked) < 0.5:
+            if abs(angle - angle_b_l_2_checked) < 0.1:
                 angle_b_l_2 = angle_b_l_2_checked
                 found = True
 
-                print(f"Найдено решение:")
-                print(f"d_2 = {round(d2, 1)}")
-                print(f"d_hub = {d_hub}")
-                print(f"angle_b_l_1 = {round(angle_b_l_1, 1)}")
-                print(f"angle_b_l_2 = {round(angle_b_l_2, 1)}")
-                print(f"attack_angle = {attack_angle}")
-                print(f"number_of_blade_checked = {number_of_blade_checked}")
+                # print(f"Найдено решение:")
+                # print(f"d_2 = {round(d2, 1)}")
+                # print(f"d_hub = {d_hub}")
+                # print(f"angle_b_l_1 = {round(angle_b_l_1, 1)}")
+                # print(f"angle_b_l_2 = {round(angle_b_l_2, 1)}")
+                # print(f"attack_angle = {attack_angle}")
+                # print(f"number_of_blade_checked = {number_of_blade_checked}")
                 break
         if found:
             break
@@ -534,7 +536,6 @@ def calculate_graphs(flow_rate, pressure, density, rotation_speed, viscosity, nu
     for kpd_val in kpd_total_values:
         kpd_total_values_vis.append(round(kpd_val * c_kpd, 3))
     kpd_total_values_vis = [float(x) for x in kpd_total_values_vis]
-    print(q_values_m_h, pressure_values_m, pressure_values_m_vis, kpd_total_values, kpd_total_values_vis)
 
     return q_values_m_h, pressure_values_m, pressure_values_m_vis, kpd_total_values, kpd_total_values_vis
 
@@ -758,14 +759,14 @@ def create_section_meridional(flow_rate, pressure, density, rotation_speed, r_li
                 .close()
                 )
 
-    if debug_mode:
-        # Экспорт основного контура
-        main_wp = cq.Workplane("XY").add(result.val())
-        cq.exporters.export(main_wp, 'debug_main_contour.step', 'STEP')
-
-        # Экспорт дополнительного контура
-        additional_wp = cq.Workplane("XY").add(result_1.val())
-        cq.exporters.export(additional_wp, 'debug_additional_contour.step', 'STEP')
+    # if debug_mode:
+    #     # Экспорт основного контура
+    #     main_wp = cq.Workplane("XY").add(result.val())
+    #     cq.exporters.export(main_wp, 'debug_main_contour.step', 'STEP')
+    #
+    #     # Экспорт дополнительного контура
+    #     additional_wp = cq.Workplane("XY").add(result_1.val())
+    #     cq.exporters.export(additional_wp, 'debug_additional_contour.step', 'STEP')
 
     return result, result_1, result_2, height
 
@@ -950,54 +951,93 @@ def format_context_list(data_list):
     return data_list
 
 
-def find_valid_combinations():
-    from collections import defaultdict
+def find_valid_combinations_fixed_params():
+    import traceback
+
+    # Фиксированная плотность
+    target_density = 1000  # кг/м³
+
+    # Диапазоны параметров
+    flow_rate_range = range(1, 100, 1)         # Подача, м³/ч (91 значение)
+    pressure_range = range(10, 100, 1)             # Напор, м (91 значение)
+    rotation_speed_range = range(500, 2001, 1)   # Частота вращения, об/мин (41 значение)
 
     valid_combinations = []
-    grouped_results = defaultdict(lambda: {
-        "pressures": [],
-        "densities": [],
-        "rotation_speeds": []
-    })
     index = 1
-    total = 0
+    total_combinations = len(flow_rate_range) * len(pressure_range) * len(rotation_speed_range)
 
-    for flow_rate in range(100, 1001, 10):  # Подача, м³/ч
-        for pressure in range(50, 501, 10):  # Напор, м
-            for density in range(900, 1101, 50):  # Плотность, кг/м³
-                for rotation_speed in range(1000, 3001, 50):  # Частота вращения, об/мин
-                    total += 1
-                    try:
-                        pump_speed_coef, *_ = calculations(flow_rate, pressure, density, rotation_speed)
-                        if 50 <= pump_speed_coef <= 600:
-                            valid_combinations.append({
-                                "№": index,
-                                "flow_rate": flow_rate,
-                                "pressure": pressure,
-                                "density": density,
-                                "rotation_speed": rotation_speed
-                            })
-                            index += 1
+    print(f"🔍 Всего комбинаций для проверки: {total_combinations}")
+    start_time = time.time()
 
-                            # Группировка по диапазонам подачи (например, 100-199, 200-299 и т.д.)
-                            range_start = (flow_rate // 100) * 100
-                            range_key = f"{range_start}-{range_start + 99}"
-                            grouped_results[range_key]["pressures"].append(pressure)
-                            grouped_results[range_key]["densities"].append(density)
-                            grouped_results[range_key]["rotation_speeds"].append(rotation_speed)
-                    except Exception:
+    # Обёртка tqdm для прогресс-бара
+    for flow_rate in tqdm(flow_rate_range, desc="Подача"):
+        for rotation_speed in rotation_speed_range:
+            for pressure in pressure_range:
+                try:
+                    # 1. Основные расчёты
+                    calculated_values = calculations(
+                        flow_rate,
+                        pressure,
+                        target_density,
+                        rotation_speed
+                    )
+                    pump_speed_coef = calculated_values[0]
+
+                    if not (50 <= pump_speed_coef <= 600):
                         continue
 
-    print(f"\n✅ Найдено допустимых комбинаций: {len(valid_combinations)} из {total}\n")
+                    # 2. Геометрия
+                    r_list, angle_total_list, number_of_blades, thickness, b_list_updated = calculations_2(
+                        flow_rate,
+                        pressure,
+                        target_density,
+                        rotation_speed
+                    )
 
-    for flow_range, params in grouped_results.items():
-        p_min, p_max = min(params["pressures"]), max(params["pressures"])
-        d_min, d_max = min(params["densities"]), max(params["densities"])
-        r_min, r_max = min(params["rotation_speeds"]), max(params["rotation_speeds"])
-        print(f"Для подачи {flow_range} м³/ч:")
-        print(f"  Напор: от {p_min} до {p_max} м")
-        print(f"  Плотность: от {d_min} до {d_max} кг/м³")
-        print(f"  Частота вращения: от {r_min} до {r_max} об/мин\n")
+                    r_outer = max(r_list)  # мм
+                    d_outer = round(r_outer * 2, 1)  # наружный диаметр
+
+                    # 3. Проверка построения сечения
+                    contour_1, contour_2, contour_3, height_blades = create_section_meridional(
+                        flow_rate,
+                        pressure,
+                        target_density,
+                        rotation_speed,
+                        r_list,
+                        b_list_updated
+                    )
+
+                    # 4. Добавление валидной комбинации
+                    valid_combinations.append({
+                        "№": index,
+                        "flow_rate_m3h": flow_rate,
+                        "pressure_m": pressure,
+                        "density_kgm3": target_density,
+                        "rotation_speed_rpm": rotation_speed,
+                        "n_s": round(pump_speed_coef),
+                        "d_outer_mm": d_outer,
+                        "number_of_blades": number_of_blades
+                    })
+                    index += 1
+
+                except Exception:
+                    continue
+
+    elapsed = time.time() - start_time
+    print(f"\n⏱ Время выполнения: {round(elapsed, 2)} сек.")
+
+    # Сохранение CSV
+    if valid_combinations:
+        filename = "valid_combinations.csv"
+        with open(filename, mode="w", newline='', encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=valid_combinations[0].keys(), delimiter=';')
+            writer.writeheader()
+            writer.writerows(valid_combinations)
+
+        print(f"✅ Найдено {len(valid_combinations)} валидных комбинаций.")
+        print(f"📁 Результаты сохранены в файл: {filename}")
+    else:
+        print("❌ Не найдено ни одной валидной комбинации.")
 
     return valid_combinations
 
