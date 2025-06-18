@@ -68,7 +68,14 @@
                                        value="{{ input_viscosity }}">
                             </label>
                         </div>
-                    {% elif cal.name != "density" %}
+                    {% elif cal.name == "density" %}
+                        <div class="menu_select">
+                            <span class="Select">{{ cal.placeholder }}</span>
+                            <label class="Select">
+                                <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}">
+                            </label>
+                        </div>
+                    {% elif cal.name == "temperature" %}
                         <div class="menu_select">
                             <span class="Select">{{ cal.placeholder }}</span>
                             <label class="Select">
