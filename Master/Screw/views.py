@@ -12,6 +12,7 @@ from scipy.optimize import bisect
 from functools import partial
 from tqdm import tqdm
 import itertools
+import pandas as pd
 
 
 logging.basicConfig(level=logging.INFO)
@@ -116,18 +117,19 @@ def screw(request):
                     context['power_eff'] = float(power_eff_p)  # Эффективная мощность
                     context['power_nominal'] = float(power_nominal_p)  # Номинальная мощность
 
-                    result = twin_screw(flow_rate, pressure, rotation_speed, temperature)
-
-                    print("Лучшие параметры и вычисленные значения:")
-
-                    if result is None:
-                        # Обработка ошибки или возврат значения по умолчанию
-                        # Например:
-                        raise ValueError("Не удалось получить результат из twin_screw, параметры не валидны")
-                    else:
-                        for key, value in result.items():
-                            print(f"{key}: {value}")
-
+                    # result = twin_screw(flow_rate, pressure, rotation_speed, temperature)
+                    #
+                    # print("Лучшие параметры и вычисленные значения:")
+                    #
+                    # if result is None:
+                    #     # Обработка ошибки или возврат значения по умолчанию
+                    #     # Например:
+                    #     raise ValueError("Не удалось получить результат из twin_screw, параметры не валидны")
+                    # else:
+                    #     for key, value in result.items():
+                    #         print(f"{key}: {value}")
+                    # twin_screw_feed_pressure(rotation_speed, temperature)
+                    twin_screw_rotation_temperature(flow_rate, pressure)
                 if 'download_model' in request.POST:
                     response = handle_download_model(request, context)
                     if response:
@@ -916,8 +918,14 @@ def twin_screw(flow_rate, pressure, rotation_speed, temperature, double_inlet=Tr
     logger.info(
         f"Запуск перебора параметров для flow_rate={flow_rate}, pressure={pressure}, rotation_speed={rotation_speed}, temperature={temperature}")
 
-    r_ratio_values = [round(x, 3) for x in np.arange(0.400, 0.701 + 0.001, 0.005)]
-    t_ratio_values = [round(x, 3) for x in np.arange(0.500, 1.250 + 0.001, 0.01)]
+    r_ratio_values = sorted(set(
+        [round(x, 3) for x in np.arange(0.400, 0.500 + 0.001, 0.025)] +
+        [round(x, 3) for x in np.arange(0.505, 0.701 + 0.001, 0.05)]
+    ))
+    t_ratio_values = sorted(set(
+        [round(x, 3) for x in np.arange(0.500, 0.700 + 0.001, 0.025)] +
+        [round(x, 3) for x in np.arange(0.710, 1.250 + 0.001, 0.05)]
+    ))
     alpha_values = [round(x * 0.1, 2) for x in range(0, 100 + 1)]  # 0..10 step 0.1
 
     combinations = list(itertools.product(r_ratio_values, t_ratio_values, alpha_values))
@@ -1071,37 +1079,824 @@ def twin_screw(flow_rate, pressure, rotation_speed, temperature, double_inlet=Tr
     kpd_total = kpd_mech * kpd_vol_2
 
     # Возвращаем результаты
-    return {
-        "r_ratio": r_ratio_b,
-        "t_ratio": t_ratio_b,
-        "alpha": alpha_b,
+    results_dict = {
+        "flow_rate": flow_rate,
+        "pressure": pressure,
+        "rotation_speed": rotation_speed,
+        "temperature": temperature,
+        "flow_rate_real": flow_rate_real,
         "kpd_vol": kpd_vol_2,
-        "ext_radius_mm": ext_r,
-        "int_radius_mm": int_r,
-        "t_mm": t,
-        "phi": phi,
-        "lambda_val": lambda_val,
+        "kpd_mech": kpd_mech,
+        "kpd_total": kpd_total,
         "delta_t_val": delta_t_val,
         "stator_gap": stator_gap,
         "screw_gap": screw_gap,
         "side_gap": side_gap,
+        "power_full": power_full,
+        "effective_koef": power_full / flow_rate_real,
+        "r_ratio": r_ratio_b,
+        "t_ratio": t_ratio_b,
+        "alpha": alpha_b,
+        "ext_radius_mm": ext_r,
+        "int_radius_mm": int_r,
+        "t_mm": t,
+        "axis_dist": axis_dist,
+        "phi": phi,
+        "lambda_val": lambda_val,
         "b_ext_top": b_ext_top,
         "b_int_low": b_int_low,
         "b_ext_low": b_ext_low,
-        "axis_dist": axis_dist,
         "density": density,
         "viscosity_dyn": viscosity_dyn,
         "viscosity_kin": viscosity_kin,
         "capacity_temp": capacity_temp,
         "feed_loss": feed_loss,
         "flow_rate_theory": flow_rate_theory,
-        "flow_rate_real": flow_rate_real,
-        "kpd_mech": kpd_mech,
         "power_gap": power_gap,
         "power_theory": power_theory,
         "power_required": power_required,
-        "power_full": power_full,
-        "kpd_total": kpd_total,
-        "effective_koef": power_full / flow_rate_real
     }
 
+    df = pd.DataFrame([results_dict])  # одна строка таблицы
+
+    # Имя файла по наружному диаметру
+    ext_diam = round(ext_r * 2, 1)
+    filename = f"twin_screw_D{ext_diam}mm.xlsx"
+
+    # Сохранение
+    df.to_excel(filename, index=False)
+    print(f"Результаты сохранены в файл: {filename}")
+
+    return results_dict
+
+
+def twin_screw_temperature(flow_rate, pressure, rotation_speed, double_inlet=True, num_threads=2):
+
+    def pre_calc(r_ratio, t_ratio, alpha, kpd_vol, flow_rate_add):
+        phi = 2 * math.acos((1 + r_ratio) / 2)
+
+        pi = math.pi
+        lambda_val = (
+                2 * pi
+                - phi
+                + math.sin(phi)
+                - pi * (1 + r_ratio ** 2)
+                + (2 * pi * math.tan(math.radians(alpha)) * (1 - r_ratio) ** 3) / (3 * t_ratio)
+        )
+
+        val = 200 * (
+                (
+                        flow_rate_add / (lambda_val * kpd_vol * t_ratio * rotation_speed * 60)
+                ) ** (1 / 3)) * 10
+
+        # Проверяем, что val вещественное число, а не комплексное
+        if isinstance(val, complex):
+            logger.debug(
+                f"pre_calc: комплексное значение val={val} для r_ratio={r_ratio}, t_ratio={t_ratio}, alpha={alpha}")
+            return None
+
+        ext_diam_mm = round(val, 1)
+        ext_radius_mm = round(ext_diam_mm / 2, 2)
+        int_radius_mm = round(ext_radius_mm * r_ratio, 2)
+        t_mm = round(ext_radius_mm * t_ratio, 1)
+        logger.debug(
+            f"pre_calc: r_ratio={r_ratio}, t_ratio={t_ratio}, alpha={alpha} => ext_r={ext_radius_mm}, int_r={int_radius_mm}, t={t_mm}, phi={phi:.3f}, lambda_val={lambda_val:.3f}")
+        return ext_radius_mm, int_radius_mm, t_mm, phi, lambda_val
+
+    def dtheta1_ddelta(theta1, r_ratio, ext_r, t, alpha_deg):
+        alpha_rad = math.radians(alpha_deg)
+        pi = math.pi
+
+        cos_theta = math.cos(theta1)
+        sin_theta = math.sin(theta1)
+
+        num1 = (
+                3 * cos_theta
+                + 3 * r_ratio * cos_theta
+                - 3
+                - 2 * r_ratio
+                - r_ratio ** 2
+        )
+        den1 = (1 + r_ratio - cos_theta) ** 2 + sin_theta ** 2
+
+        first_term = - (t / (2 * pi)) * (num1 / den1)
+
+        numerator2 = (1 + r_ratio) * sin_theta
+        denominator2 = math.sqrt(
+            2 * (1 - cos_theta) * (1 + r_ratio) + r_ratio ** 2
+        )
+
+        second_term = ext_r * math.tan(alpha_rad) * (numerator2 / denominator2)
+
+        return first_term + second_term
+
+    def delta_t(theta1_max, r_ratio, R, t, alpha_deg):
+        alpha_rad = math.radians(alpha_deg)
+        pi = math.pi
+
+        arctan_part = math.atan(
+            math.sin(theta1_max) / (1 + r_ratio - math.cos(theta1_max))
+        )
+        first_term = (t / (2 * pi)) * (arctan_part - theta1_max)
+
+        root_argument = 2 * (1 - math.cos(theta1_max)) * (1 + r_ratio) + r_ratio ** 2
+        second_term = R * math.tan(alpha_rad) * (math.sqrt(root_argument) - r_ratio)
+
+        return first_term - second_term
+
+    def gap_calc(delt_t, t, ext_r, int_r, alpha, num):
+        b_ext_top = round(t / 2 - (delt_t + 2 * (ext_r - int_r) * math.tan(math.radians(alpha))), 1) / num
+        b_ext_low = round(t - num * b_ext_top, 1) / num
+        b_int_low = round(b_ext_low - 2 * math.tan(math.radians(alpha)) * (ext_r - int_r), 1)
+
+        stator_gap = round(round(delt_t / 0.05) * 0.05, 2)
+        screw_gap = round(round(0.7 * delt_t / 0.05) * 0.05, 2)
+        side_gap = round((b_int_low - b_ext_top) / 2, 2)
+
+        axis_dist = round((ext_r + int_r + screw_gap) / 0.1) * 0.1
+        # Если зазор отрицательный, уменьшать число заходов num
+        return stator_gap, screw_gap, side_gap, b_ext_top, b_int_low, b_ext_low, axis_dist
+
+    def calc_liquid_prop(temp):
+        temp_20 = 20
+
+        density_20 = 998.2
+        density_koef = 0.0002
+        density = round(density_20 * (1 - density_koef * (temp - temp_20)), 2)
+
+        viscosity_dyn_20 = 1.003
+        viscosity_dyn_koef = 0.023
+        viscosity_dyn = round(viscosity_dyn_20 * math.exp(-viscosity_dyn_koef * (temp - temp_20)), 3)
+
+        viscosity_kin = round(viscosity_dyn / density * 1000, 3)
+
+        capacity_temp = round(4212 - 3.2 * temp + 0.014 * math.pow(temp, 2), 2)
+
+        return density, viscosity_dyn, viscosity_kin, capacity_temp
+
+    flow_rate_adj = flow_rate / 2 if double_inlet else flow_rate
+    kpd_vol_pre_fixed = 0.933
+    r_ratio_values = sorted(set(
+        [round(x, 3) for x in np.arange(0.400, 0.500 + 0.001, 0.025)] +
+        [round(x, 3) for x in np.arange(0.505, 0.701 + 0.001, 0.05)]
+    ))
+    t_ratio_values = sorted(set(
+        [round(x, 3) for x in np.arange(0.500, 0.700 + 0.001, 0.025)] +
+        [round(x, 3) for x in np.arange(0.710, 1.250 + 0.001, 0.05)]
+    ))
+    alpha_values = [round(x * 0.1, 2) for x in range(0, 100 + 1)]  # 0..10 step 0.1
+    combinations = list(itertools.product(r_ratio_values, t_ratio_values, alpha_values))
+
+    temperature_values = list(range(20, 101))
+    results_list = []
+
+    for temperature in tqdm(temperature_values, desc="Поиск по температурам"):
+        best_params = None
+        min_effective_koef = float('inf')
+
+        for r_ratio, t_ratio, alpha in combinations:
+            try:
+                pre_calc_result = pre_calc(r_ratio, t_ratio, alpha, kpd_vol_pre_fixed, flow_rate_adj)
+                if pre_calc_result is None:
+                    continue  # Пропускаем комплексные значения
+
+                ext_r, int_r, t, phi, lambda_val = pre_calc(r_ratio, t_ratio, alpha, kpd_vol_pre_fixed,
+                                                            flow_rate_adj)
+                f = partial(dtheta1_ddelta, r_ratio=r_ratio, ext_r=ext_r, t=t, alpha_deg=alpha)
+                theta1_root = bisect(f, 0.01, math.pi - 0.01, xtol=1e-6)
+                delta_t_val = delta_t(theta1_root, r_ratio, ext_r, t, alpha)
+                stator_gap, screw_gap, side_gap, b_ext_top, b_int_low, b_ext_low, axis_dist = gap_calc(delta_t_val, t,
+                                                                                                 ext_r, int_r,
+                                                                                                   alpha,
+                                                                                                   num_threads)
+                density, viscosity_dyn, viscosity_kin, capacity_temp = calc_liquid_prop(temperature)
+
+                pressure_mpa = 0.009806649643957326 * pressure
+                k = 0.94
+                dp_per_turn = 0.71 * (viscosity_kin / 1) ** k
+                dp_per_turn = max(0.5, min(dp_per_turn, 5))
+
+                pressure_kgs_sm = 10.197162 * pressure_mpa
+                turns_est = round(round(pressure_kgs_sm / dp_per_turn, 1) / 10, 2)
+                thread_length_mm = round(turns_est * t, 1)
+
+                stator_gap_koef = 0.7
+                feed_loss_stator = 60 * 60 * 2 * ((stator_gap * stator_gap_koef / 1000 / 2) ** 3) * (
+                        (2 * math.pi - phi) * ext_r / 1000) * (pressure_mpa * 1_000_000) / (
+                                           12 * (viscosity_dyn / 1000) * (thread_length_mm / 1000))
+
+                screw_gap_koef = 1
+                feed_loss_screw = 60 * 60 * ((screw_gap * screw_gap_koef / 1000 / 2) ** 3) * (
+                        phi * ext_r / 1000) * (pressure_mpa * 1_000_000) / (
+                                              12 * (viscosity_dyn / 1000) * (thread_length_mm / 1000))
+
+                side_gap_koef = 1
+                feed_loss_side = 60 * 60 * ((side_gap * side_gap_koef / 1000 / 2) ** 3) * (
+                        side_gap * side_gap_koef * (math.sin(phi / 2) * ext_r / 1000)) * (
+                                             pressure_mpa * 1_000_000) / (
+                                             12 * (viscosity_dyn / 1000) * (thread_length_mm / 1000))
+
+                feed_loss = feed_loss_stator + feed_loss_screw + feed_loss_side
+
+                multiplier = 2 if double_inlet else 1
+                flow_rate_theory = round(
+                            multiplier * lambda_val * ext_r ** 2 * t * rotation_speed * 60 / 1_000_000_000, 1)
+
+                kpd_vol_2 = round(1 - feed_loss / flow_rate_theory, 3)
+                flow_rate_real = kpd_vol_2 * flow_rate_theory
+
+                w = math.pi * rotation_speed / 30
+                k_t = density * capacity_temp * temperature / ((viscosity_dyn / 1000) * w)
+                g = pressure_mpa * 1_000_000 / (viscosity_dyn / 1000) / w
+                f_m = (thread_length_mm / t) * math.pow(k_t, 0.55) * math.pow(g, -1)
+                k_m = 15 * math.pow(ext_r / int_r, -2.7)
+
+                kpd_mech = round(1 / (1 + f_m * k_m), 3)
+
+                power_gap = round(pressure_mpa * (feed_loss / 60 / 60) * 1000, 3)
+                power_theory = round(pressure_mpa * (flow_rate_theory / 60 / 60) * 1000, 3)
+                power_required = round(power_theory / kpd_mech, 3)
+                power_full = round(power_required + power_gap, 3)
+
+                kpd_total = round(kpd_mech * kpd_vol_2, 3)
+
+                effective_koef = power_full / flow_rate_real
+                if effective_koef > 0 and effective_koef < min_effective_koef:
+                    min_effective_koef = effective_koef
+                    best_params = {
+                        "temperature": temperature,
+                        "flow_rate": flow_rate,
+                        "pressure": pressure,
+                        "rotation_speed": rotation_speed,
+                        "flow_rate_real": flow_rate_real,
+                        "kpd_vol": kpd_vol_2,
+                        "kpd_mech": kpd_mech,
+                        "kpd_total": kpd_total,
+                        "delta_t_val": delta_t_val,
+                        "stator_gap": stator_gap,
+                        "screw_gap": screw_gap,
+                        "side_gap": side_gap,
+                        "power_full": power_full,
+                        "effective_koef": effective_koef,
+                        "r_ratio": r_ratio,
+                        "t_ratio": t_ratio,
+                        "alpha": alpha,
+                        "ext_radius_mm": ext_r,
+                        "int_radius_mm": int_r,
+                        "t_mm": t,
+                        "axis_dist": axis_dist,
+                        "phi": phi,
+                        "lambda_val": lambda_val,
+                        "b_ext_top": b_ext_top,
+                        "b_int_low": b_int_low,
+                        "b_ext_low": b_ext_low,
+                        "density": density,
+                        "viscosity_dyn": viscosity_dyn,
+                        "viscosity_kin": viscosity_kin,
+                        "capacity_temp": capacity_temp,
+                        "feed_loss": feed_loss,
+                        "flow_rate_theory": flow_rate_theory,
+                        "power_gap": power_gap,
+                        "power_theory": power_theory,
+                        "power_required": power_required,
+                    }
+            except Exception as e:
+                continue
+
+        if best_params:
+            results_list.append(best_params)
+
+    if results_list:
+        df = pd.DataFrame(results_list)
+        filename = f"twin_screw_temperature_range.xlsx"
+        df.to_excel(filename, index=False)
+        print(f"Результаты сохранены в файл: {filename}")
+    else:
+        print("Не найдено подходящих решений в заданном диапазоне температур.")
+
+    return results_list
+
+
+def twin_screw_feed_pressure(rotation_speed, temperature, double_inlet=True, num_threads=2):
+    flow_rates = list(range(10, 501, 10))
+    pressures = list(range(25, 501, 25))
+
+    results = []
+
+    for flow_rate in tqdm(flow_rates, desc="Перебор подач"):
+        for pressure in tqdm(pressures, desc=f"Перебор напоров для Q={flow_rate}", leave=False):
+            try:
+                result = twin_screw(
+                    flow_rate=flow_rate,
+                    pressure=pressure,
+                    rotation_speed=rotation_speed,
+                    temperature=temperature,
+                    double_inlet=double_inlet,
+                    num_threads=num_threads,
+                )
+                if result:
+                    results.append(result)
+            except Exception as e:
+                logger.warning(f"Ошибка при расчете Q={flow_rate}, H={pressure}: {e}")
+
+    if results:
+        df = pd.DataFrame(results)
+        filename = "twin_screw_QH_range.xlsx"
+        df.to_excel(filename, index=False)
+        print(f"Результаты сохранены в файл: {filename}")
+    else:
+        print("Не найдено подходящих решений в заданных диапазонах подачи и напора.")
+
+
+def twin_screw_rotation(flow_rate, pressure, temperature, double_inlet=True, num_threads=2):
+
+    def pre_calc(r_ratio, t_ratio, alpha, kpd_vol, flow_rate_add):
+        phi = 2 * math.acos((1 + r_ratio) / 2)
+
+        pi = math.pi
+        lambda_val = (
+                2 * pi
+                - phi
+                + math.sin(phi)
+                - pi * (1 + r_ratio ** 2)
+                + (2 * pi * math.tan(math.radians(alpha)) * (1 - r_ratio) ** 3) / (3 * t_ratio)
+        )
+
+        val = 200 * (
+                (
+                        flow_rate_add / (lambda_val * kpd_vol * t_ratio * rotation_speed * 60)
+                ) ** (1 / 3)) * 10
+
+        # Проверяем, что val вещественное число, а не комплексное
+        if isinstance(val, complex):
+            logger.debug(
+                f"pre_calc: комплексное значение val={val} для r_ratio={r_ratio}, t_ratio={t_ratio}, alpha={alpha}")
+            return None
+
+        ext_diam_mm = round(val, 1)
+        ext_radius_mm = round(ext_diam_mm / 2, 2)
+        int_radius_mm = round(ext_radius_mm * r_ratio, 2)
+        t_mm = round(ext_radius_mm * t_ratio, 1)
+        logger.debug(
+            f"pre_calc: r_ratio={r_ratio}, t_ratio={t_ratio}, alpha={alpha} => ext_r={ext_radius_mm}, int_r={int_radius_mm}, t={t_mm}, phi={phi:.3f}, lambda_val={lambda_val:.3f}")
+        return ext_radius_mm, int_radius_mm, t_mm, phi, lambda_val
+
+    def dtheta1_ddelta(theta1, r_ratio, ext_r, t, alpha_deg):
+        alpha_rad = math.radians(alpha_deg)
+        pi = math.pi
+
+        cos_theta = math.cos(theta1)
+        sin_theta = math.sin(theta1)
+
+        num1 = (
+                3 * cos_theta
+                + 3 * r_ratio * cos_theta
+                - 3
+                - 2 * r_ratio
+                - r_ratio ** 2
+        )
+        den1 = (1 + r_ratio - cos_theta) ** 2 + sin_theta ** 2
+
+        first_term = - (t / (2 * pi)) * (num1 / den1)
+
+        numerator2 = (1 + r_ratio) * sin_theta
+        denominator2 = math.sqrt(
+            2 * (1 - cos_theta) * (1 + r_ratio) + r_ratio ** 2
+        )
+
+        second_term = ext_r * math.tan(alpha_rad) * (numerator2 / denominator2)
+
+        return first_term + second_term
+
+    def delta_t(theta1_max, r_ratio, R, t, alpha_deg):
+        alpha_rad = math.radians(alpha_deg)
+        pi = math.pi
+
+        arctan_part = math.atan(
+            math.sin(theta1_max) / (1 + r_ratio - math.cos(theta1_max))
+        )
+        first_term = (t / (2 * pi)) * (arctan_part - theta1_max)
+
+        root_argument = 2 * (1 - math.cos(theta1_max)) * (1 + r_ratio) + r_ratio ** 2
+        second_term = R * math.tan(alpha_rad) * (math.sqrt(root_argument) - r_ratio)
+
+        return first_term - second_term
+
+    def gap_calc(delt_t, t, ext_r, int_r, alpha, num):
+        b_ext_top = round(t / 2 - (delt_t + 2 * (ext_r - int_r) * math.tan(math.radians(alpha))), 1) / num
+        b_ext_low = round(t - num * b_ext_top, 1) / num
+        b_int_low = round(b_ext_low - 2 * math.tan(math.radians(alpha)) * (ext_r - int_r), 1)
+
+        stator_gap = round(round(delt_t / 0.05) * 0.05, 2)
+        screw_gap = round(round(0.7 * delt_t / 0.05) * 0.05, 2)
+        side_gap = round((b_int_low - b_ext_top) / 2, 2)
+
+        axis_dist = round((ext_r + int_r + screw_gap) / 0.1) * 0.1
+        # Если зазор отрицательный, уменьшать число заходов num
+        return stator_gap, screw_gap, side_gap, b_ext_top, b_int_low, b_ext_low, axis_dist
+
+    def calc_liquid_prop(temp):
+        temp_20 = 20
+
+        density_20 = 998.2
+        density_koef = 0.0002
+        density = round(density_20 * (1 - density_koef * (temp - temp_20)), 2)
+
+        viscosity_dyn_20 = 1.003
+        viscosity_dyn_koef = 0.023
+        viscosity_dyn = round(viscosity_dyn_20 * math.exp(-viscosity_dyn_koef * (temp - temp_20)), 3)
+
+        viscosity_kin = round(viscosity_dyn / density * 1000, 3)
+
+        capacity_temp = round(4212 - 3.2 * temp + 0.014 * math.pow(temp, 2), 2)
+
+        return density, viscosity_dyn, viscosity_kin, capacity_temp
+
+    flow_rate_adj = flow_rate / 2 if double_inlet else flow_rate
+    kpd_vol_pre_fixed = 0.933
+    r_ratio_values = sorted(set(
+        [round(x, 3) for x in np.arange(0.400, 0.500 + 0.001, 0.025)] +
+        [round(x, 3) for x in np.arange(0.505, 0.701 + 0.001, 0.05)]
+    ))
+    t_ratio_values = sorted(set(
+        [round(x, 3) for x in np.arange(0.500, 0.700 + 0.001, 0.025)] +
+        [round(x, 3) for x in np.arange(0.710, 1.250 + 0.001, 0.05)]
+    ))
+    alpha_values = [round(x * 0.1, 2) for x in range(0, 100 + 1)]  # 0..10 step 0.1
+    combinations = list(itertools.product(r_ratio_values, t_ratio_values, alpha_values))
+
+    rotation_speed_values = list(range(50, 3001, 50))
+    results_list = []
+
+    for rotation_speed in tqdm(rotation_speed_values, desc="Поиск по частоте вращения"):
+        best_params = None
+        min_effective_koef = float('inf')
+
+        for r_ratio, t_ratio, alpha in combinations:
+            try:
+                pre_calc_result = pre_calc(r_ratio, t_ratio, alpha, kpd_vol_pre_fixed, flow_rate_adj)
+                if pre_calc_result is None:
+                    continue  # Пропускаем комплексные значения
+
+                ext_r, int_r, t, phi, lambda_val = pre_calc(r_ratio, t_ratio, alpha, kpd_vol_pre_fixed,
+                                                            flow_rate_adj)
+                f = partial(dtheta1_ddelta, r_ratio=r_ratio, ext_r=ext_r, t=t, alpha_deg=alpha)
+                theta1_root = bisect(f, 0.01, math.pi - 0.01, xtol=1e-6)
+                delta_t_val = delta_t(theta1_root, r_ratio, ext_r, t, alpha)
+                stator_gap, screw_gap, side_gap, b_ext_top, b_int_low, b_ext_low, axis_dist = gap_calc(delta_t_val, t,
+                                                                                                 ext_r, int_r,
+                                                                                                   alpha,
+                                                                                                   num_threads)
+                density, viscosity_dyn, viscosity_kin, capacity_temp = calc_liquid_prop(temperature)
+
+                pressure_mpa = 0.009806649643957326 * pressure
+                k = 0.94
+                dp_per_turn = 0.71 * (viscosity_kin / 1) ** k
+                dp_per_turn = max(0.5, min(dp_per_turn, 5))
+
+                pressure_kgs_sm = 10.197162 * pressure_mpa
+                turns_est = round(round(pressure_kgs_sm / dp_per_turn, 1) / 10, 2)
+                thread_length_mm = round(turns_est * t, 1)
+
+                stator_gap_koef = 0.7
+                feed_loss_stator = 60 * 60 * 2 * ((stator_gap * stator_gap_koef / 1000 / 2) ** 3) * (
+                        (2 * math.pi - phi) * ext_r / 1000) * (pressure_mpa * 1_000_000) / (
+                                           12 * (viscosity_dyn / 1000) * (thread_length_mm / 1000))
+
+                screw_gap_koef = 1
+                feed_loss_screw = 60 * 60 * ((screw_gap * screw_gap_koef / 1000 / 2) ** 3) * (
+                        phi * ext_r / 1000) * (pressure_mpa * 1_000_000) / (
+                                              12 * (viscosity_dyn / 1000) * (thread_length_mm / 1000))
+
+                side_gap_koef = 1
+                feed_loss_side = 60 * 60 * ((side_gap * side_gap_koef / 1000 / 2) ** 3) * (
+                        side_gap * side_gap_koef * (math.sin(phi / 2) * ext_r / 1000)) * (
+                                             pressure_mpa * 1_000_000) / (
+                                             12 * (viscosity_dyn / 1000) * (thread_length_mm / 1000))
+
+                feed_loss = feed_loss_stator + feed_loss_screw + feed_loss_side
+
+                multiplier = 2 if double_inlet else 1
+                flow_rate_theory = round(
+                            multiplier * lambda_val * ext_r ** 2 * t * rotation_speed * 60 / 1_000_000_000, 1)
+
+                kpd_vol_2 = round(1 - feed_loss / flow_rate_theory, 3)
+                flow_rate_real = kpd_vol_2 * flow_rate_theory
+
+                w = math.pi * rotation_speed / 30
+                k_t = density * capacity_temp * temperature / ((viscosity_dyn / 1000) * w)
+                g = pressure_mpa * 1_000_000 / (viscosity_dyn / 1000) / w
+                f_m = (thread_length_mm / t) * math.pow(k_t, 0.55) * math.pow(g, -1)
+                k_m = 15 * math.pow(ext_r / int_r, -2.7)
+
+                kpd_mech = round(1 / (1 + f_m * k_m), 3)
+
+                power_gap = round(pressure_mpa * (feed_loss / 60 / 60) * 1000, 3)
+                power_theory = round(pressure_mpa * (flow_rate_theory / 60 / 60) * 1000, 3)
+                power_required = round(power_theory / kpd_mech, 3)
+                power_full = round(power_required + power_gap, 3)
+
+                kpd_total = round(kpd_mech * kpd_vol_2, 3)
+
+                effective_koef = power_full / flow_rate_real
+                if 0 < effective_koef < min_effective_koef:
+                    min_effective_koef = effective_koef
+                    best_params = {
+                        "temperature": temperature,
+                        "flow_rate": flow_rate,
+                        "pressure": pressure,
+                        "rotation_speed": rotation_speed,
+                        "flow_rate_real": flow_rate_real,
+                        "kpd_vol": kpd_vol_2,
+                        "kpd_mech": kpd_mech,
+                        "kpd_total": kpd_total,
+                        "delta_t_val": delta_t_val,
+                        "stator_gap": stator_gap,
+                        "screw_gap": screw_gap,
+                        "side_gap": side_gap,
+                        "power_full": power_full,
+                        "effective_koef": effective_koef,
+                        "r_ratio": r_ratio,
+                        "t_ratio": t_ratio,
+                        "alpha": alpha,
+                        "ext_radius_mm": ext_r,
+                        "int_radius_mm": int_r,
+                        "t_mm": t,
+                        "axis_dist": axis_dist,
+                        "phi": phi,
+                        "lambda_val": lambda_val,
+                        "b_ext_top": b_ext_top,
+                        "b_int_low": b_int_low,
+                        "b_ext_low": b_ext_low,
+                        "density": density,
+                        "viscosity_dyn": viscosity_dyn,
+                        "viscosity_kin": viscosity_kin,
+                        "capacity_temp": capacity_temp,
+                        "feed_loss": feed_loss,
+                        "flow_rate_theory": flow_rate_theory,
+                        "power_gap": power_gap,
+                        "power_theory": power_theory,
+                        "power_required": power_required,
+                    }
+            except Exception as e:
+                continue
+
+        if best_params:
+            results_list.append(best_params)
+
+    if results_list:
+        df = pd.DataFrame(results_list)
+        filename = f"twin_screw_rotation_speed_range.xlsx"
+        df.to_excel(filename, index=False)
+        print(f"Результаты сохранены в файл: {filename}")
+    else:
+        print("Не найдено подходящих решений в заданном диапазоне частот вращений.")
+
+    return results_list
+
+
+def twin_screw_rotation_temperature(flow_rate, pressure, double_inlet=True, num_threads=2):
+
+    def pre_calc(r_ratio, t_ratio, alpha, kpd_vol, flow_rate_add):
+        phi = 2 * math.acos((1 + r_ratio) / 2)
+
+        pi = math.pi
+        lambda_val = (
+                2 * pi
+                - phi
+                + math.sin(phi)
+                - pi * (1 + r_ratio ** 2)
+                + (2 * pi * math.tan(math.radians(alpha)) * (1 - r_ratio) ** 3) / (3 * t_ratio)
+        )
+
+        val = 200 * (
+                (
+                        flow_rate_add / (lambda_val * kpd_vol * t_ratio * rotation_speed * 60)
+                ) ** (1 / 3)) * 10
+
+        # Проверяем, что val вещественное число, а не комплексное
+        if isinstance(val, complex):
+            logger.debug(
+                f"pre_calc: комплексное значение val={val} для r_ratio={r_ratio}, t_ratio={t_ratio}, alpha={alpha}")
+            return None
+
+        ext_diam_mm = round(val, 1)
+        ext_radius_mm = round(ext_diam_mm / 2, 2)
+        int_radius_mm = round(ext_radius_mm * r_ratio, 2)
+        t_mm = round(ext_radius_mm * t_ratio, 1)
+        logger.debug(
+            f"pre_calc: r_ratio={r_ratio}, t_ratio={t_ratio}, alpha={alpha} => ext_r={ext_radius_mm}, int_r={int_radius_mm}, t={t_mm}, phi={phi:.3f}, lambda_val={lambda_val:.3f}")
+        return ext_radius_mm, int_radius_mm, t_mm, phi, lambda_val
+
+    def dtheta1_ddelta(theta1, r_ratio, ext_r, t, alpha_deg):
+        alpha_rad = math.radians(alpha_deg)
+        pi = math.pi
+
+        cos_theta = math.cos(theta1)
+        sin_theta = math.sin(theta1)
+
+        num1 = (
+                3 * cos_theta
+                + 3 * r_ratio * cos_theta
+                - 3
+                - 2 * r_ratio
+                - r_ratio ** 2
+        )
+        den1 = (1 + r_ratio - cos_theta) ** 2 + sin_theta ** 2
+
+        first_term = - (t / (2 * pi)) * (num1 / den1)
+
+        numerator2 = (1 + r_ratio) * sin_theta
+        denominator2 = math.sqrt(
+            2 * (1 - cos_theta) * (1 + r_ratio) + r_ratio ** 2
+        )
+
+        second_term = ext_r * math.tan(alpha_rad) * (numerator2 / denominator2)
+
+        return first_term + second_term
+
+    def delta_t(theta1_max, r_ratio, R, t, alpha_deg):
+        alpha_rad = math.radians(alpha_deg)
+        pi = math.pi
+
+        arctan_part = math.atan(
+            math.sin(theta1_max) / (1 + r_ratio - math.cos(theta1_max))
+        )
+        first_term = (t / (2 * pi)) * (arctan_part - theta1_max)
+
+        root_argument = 2 * (1 - math.cos(theta1_max)) * (1 + r_ratio) + r_ratio ** 2
+        second_term = R * math.tan(alpha_rad) * (math.sqrt(root_argument) - r_ratio)
+
+        return first_term - second_term
+
+    def gap_calc(delt_t, t, ext_r, int_r, alpha, num):
+        b_ext_top = round(t / 2 - (delt_t + 2 * (ext_r - int_r) * math.tan(math.radians(alpha))), 1) / num
+        b_ext_low = round(t - num * b_ext_top, 1) / num
+        b_int_low = round(b_ext_low - 2 * math.tan(math.radians(alpha)) * (ext_r - int_r), 1)
+
+        stator_gap = round(round(delt_t / 0.05) * 0.05, 2)
+        screw_gap = round(round(0.7 * delt_t / 0.05) * 0.05, 2)
+        side_gap = round((b_int_low - b_ext_top) / 2, 2)
+
+        axis_dist = round((ext_r + int_r + screw_gap) / 0.1) * 0.1
+        # Если зазор отрицательный, уменьшать число заходов num
+        return stator_gap, screw_gap, side_gap, b_ext_top, b_int_low, b_ext_low, axis_dist
+
+    def calc_liquid_prop(temp):
+        temp_20 = 20
+
+        density_20 = 998.2
+        density_koef = 0.0002
+        density = round(density_20 * (1 - density_koef * (temp - temp_20)), 2)
+
+        viscosity_dyn_20 = 1.003
+        viscosity_dyn_koef = 0.023
+        viscosity_dyn = round(viscosity_dyn_20 * math.exp(-viscosity_dyn_koef * (temp - temp_20)), 3)
+
+        viscosity_kin = round(viscosity_dyn / density * 1000, 3)
+
+        capacity_temp = round(4212 - 3.2 * temp + 0.014 * math.pow(temp, 2), 2)
+
+        return density, viscosity_dyn, viscosity_kin, capacity_temp
+
+    flow_rate_adj = flow_rate / 2 if double_inlet else flow_rate
+    kpd_vol_pre_fixed = 0.933
+    r_ratio_values = sorted(set(
+        [round(x, 3) for x in np.arange(0.400, 0.500 + 0.001, 0.025)] +
+        [round(x, 3) for x in np.arange(0.505, 0.701 + 0.001, 0.05)]
+    ))
+    t_ratio_values = sorted(set(
+        [round(x, 3) for x in np.arange(0.500, 0.700 + 0.001, 0.025)] +
+        [round(x, 3) for x in np.arange(0.710, 1.250 + 0.001, 0.05)]
+    ))
+    alpha_values = [round(x * 0.1, 2) for x in range(0, 100 + 1)]  # 0..10 step 0.1
+    temperature_values = list(range(20, 101, 5))
+    combinations = list(itertools.product(r_ratio_values, t_ratio_values, alpha_values))
+    rotation_speed_values = list(range(100, 3001, 100))
+    results_list = []
+    results_dict = {}
+
+    for rotation_speed in tqdm(rotation_speed_values, desc="Поиск по частоте вращения"):
+        print(f"/{len(rotation_speed_values)}] Проверка rotation_speed = {rotation_speed} об/мин...")
+        for temperature in tqdm(temperature_values, desc=f"  ⏳ Температуры при n={rotation_speed} об/мин", leave=False):
+            for r_ratio, t_ratio, alpha in combinations:
+                try:
+                    pre_calc_result = pre_calc(r_ratio, t_ratio, alpha, kpd_vol_pre_fixed, flow_rate_adj)
+                    if pre_calc_result is None:
+                        continue  # Пропускаем комплексные значения
+
+                    ext_r, int_r, t, phi, lambda_val = pre_calc(r_ratio, t_ratio, alpha, kpd_vol_pre_fixed,
+                                                                flow_rate_adj)
+                    f = partial(dtheta1_ddelta, r_ratio=r_ratio, ext_r=ext_r, t=t, alpha_deg=alpha)
+                    theta1_root = bisect(f, 0.01, math.pi - 0.01, xtol=1e-6)
+                    delta_t_val = delta_t(theta1_root, r_ratio, ext_r, t, alpha)
+                    stator_gap, screw_gap, side_gap, b_ext_top, b_int_low, b_ext_low, axis_dist = gap_calc(delta_t_val, t,
+                                                                                                     ext_r, int_r,
+                                                                                                       alpha,
+                                                                                                       num_threads)
+                    density, viscosity_dyn, viscosity_kin, capacity_temp = calc_liquid_prop(temperature)
+
+                    pressure_mpa = 0.009806649643957326 * pressure
+                    k = 0.94
+                    dp_per_turn = 0.71 * (viscosity_kin / 1) ** k
+                    dp_per_turn = max(0.5, min(dp_per_turn, 5))
+
+                    pressure_kgs_sm = 10.197162 * pressure_mpa
+                    turns_est = round(round(pressure_kgs_sm / dp_per_turn, 1) / 10, 2)
+                    thread_length_mm = round(turns_est * t, 1)
+
+                    stator_gap_koef = 0.7
+                    feed_loss_stator = 60 * 60 * 2 * ((stator_gap * stator_gap_koef / 1000 / 2) ** 3) * (
+                            (2 * math.pi - phi) * ext_r / 1000) * (pressure_mpa * 1_000_000) / (
+                                               12 * (viscosity_dyn / 1000) * (thread_length_mm / 1000))
+
+                    screw_gap_koef = 1
+                    feed_loss_screw = 60 * 60 * ((screw_gap * screw_gap_koef / 1000 / 2) ** 3) * (
+                            phi * ext_r / 1000) * (pressure_mpa * 1_000_000) / (
+                                                  12 * (viscosity_dyn / 1000) * (thread_length_mm / 1000))
+
+                    side_gap_koef = 1
+                    feed_loss_side = 60 * 60 * ((side_gap * side_gap_koef / 1000 / 2) ** 3) * (
+                            side_gap * side_gap_koef * (math.sin(phi / 2) * ext_r / 1000)) * (
+                                                 pressure_mpa * 1_000_000) / (
+                                                 12 * (viscosity_dyn / 1000) * (thread_length_mm / 1000))
+
+                    feed_loss = feed_loss_stator + feed_loss_screw + feed_loss_side
+
+                    multiplier = 2 if double_inlet else 1
+                    flow_rate_theory = round(
+                                multiplier * lambda_val * ext_r ** 2 * t * rotation_speed * 60 / 1_000_000_000, 1)
+
+                    kpd_vol_2 = round(1 - feed_loss / flow_rate_theory, 3)
+                    flow_rate_real = kpd_vol_2 * flow_rate_theory
+
+                    w = math.pi * rotation_speed / 30
+                    k_t = density * capacity_temp * temperature / ((viscosity_dyn / 1000) * w)
+                    g = pressure_mpa * 1_000_000 / (viscosity_dyn / 1000) / w
+                    f_m = (thread_length_mm / t) * math.pow(k_t, 0.55) * math.pow(g, -1)
+                    k_m = 15 * math.pow(ext_r / int_r, -2.7)
+
+                    kpd_mech = round(1 / (1 + f_m * k_m), 3)
+
+                    power_gap = round(pressure_mpa * (feed_loss / 60 / 60) * 1000, 3)
+                    power_theory = round(pressure_mpa * (flow_rate_theory / 60 / 60) * 1000, 3)
+                    power_required = round(power_theory / kpd_mech, 3)
+                    power_full = round(power_required + power_gap, 3)
+
+                    kpd_total = round(kpd_mech * kpd_vol_2, 3)
+
+                    effective_koef = power_full / flow_rate_real
+                    key = (rotation_speed, temperature)
+
+                    if effective_koef > 0:
+                        if key not in results_dict or effective_koef < results_dict[key]['effective_koef']:
+                            results_dict[key] = {
+                                "temperature": temperature,
+                                "flow_rate": flow_rate,
+                                "pressure": pressure,
+                                "rotation_speed": rotation_speed,
+                                "flow_rate_real": flow_rate_real,
+                                "kpd_vol": kpd_vol_2,
+                                "kpd_mech": kpd_mech,
+                                "kpd_total": kpd_total,
+                                "delta_t_val": delta_t_val,
+                                "stator_gap": stator_gap,
+                                "screw_gap": screw_gap,
+                                "side_gap": side_gap,
+                                "power_full": power_full,
+                                "effective_koef": effective_koef,
+                                "r_ratio": r_ratio,
+                                "t_ratio": t_ratio,
+                                "alpha": alpha,
+                                "ext_radius_mm": ext_r,
+                                "int_radius_mm": int_r,
+                                "t_mm": t,
+                                "axis_dist": axis_dist,
+                                "phi": phi,
+                                "lambda_val": lambda_val,
+                                "b_ext_top": b_ext_top,
+                                "b_int_low": b_int_low,
+                                "b_ext_low": b_ext_low,
+                                "density": density,
+                                "viscosity_dyn": viscosity_dyn,
+                                "viscosity_kin": viscosity_kin,
+                                "capacity_temp": capacity_temp,
+                                "feed_loss": feed_loss,
+                                "flow_rate_theory": flow_rate_theory,
+                                "power_gap": power_gap,
+                                "power_theory": power_theory,
+                                "power_required": power_required,
+                            }
+
+                except Exception as e:
+                    continue
+
+    if results_list or results_dict:
+        df = pd.DataFrame(list(results_dict.values()))
+        filename = f"twin_screw_rotation_speed_and_temperature_range.xlsx"
+        df.to_excel(filename, index=False)
+        print(f"✅ Сохранено {len(df)} строк в файл: {filename}")
+    else:
+        print("Не найдено подходящих решений в заданном диапазоне частот вращений.")
+
+    return results_list
