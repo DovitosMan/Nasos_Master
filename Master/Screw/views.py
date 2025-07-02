@@ -117,19 +117,17 @@ def screw(request):
                     context['power_eff'] = float(power_eff_p)  # Эффективная мощность
                     context['power_nominal'] = float(power_nominal_p)  # Номинальная мощность
 
-                    # result = twin_screw(flow_rate, pressure, rotation_speed, temperature)
-                    #
-                    # print("Лучшие параметры и вычисленные значения:")
-                    #
-                    # if result is None:
-                    #     # Обработка ошибки или возврат значения по умолчанию
-                    #     # Например:
-                    #     raise ValueError("Не удалось получить результат из twin_screw, параметры не валидны")
-                    # else:
-                    #     for key, value in result.items():
-                    #         print(f"{key}: {value}")
+                    result = twin_screw(flow_rate, pressure, rotation_speed, temperature)
+
+                    print("Лучшие параметры и вычисленные значения:")
+
+                    if result is None:
+                        raise ValueError("Не удалось получить результат из twin_screw, параметры не валидны")
+                    else:
+                        for key, value in result.items():
+                            print(f"{key}: {value}")
                     # twin_screw_feed_pressure(rotation_speed, temperature)
-                    twin_screw_rotation_temperature(flow_rate, pressure)
+                    # twin_screw_rotation_temperature(flow_rate, pressure)
                 if 'download_model' in request.POST:
                     response = handle_download_model(request, context)
                     if response:
@@ -911,7 +909,7 @@ def twin_screw(flow_rate, pressure, rotation_speed, temperature, double_inlet=Tr
 
     flow_rate_adj = flow_rate / 2 if double_inlet else flow_rate
 
-    kpd_vol_pre_fixed = 0.933
+    kpd_vol_pre_fixed = 0.8
     best_params = None
     min_effective_koef = float('inf')
 
@@ -920,11 +918,11 @@ def twin_screw(flow_rate, pressure, rotation_speed, temperature, double_inlet=Tr
 
     r_ratio_values = sorted(set(
         [round(x, 3) for x in np.arange(0.400, 0.500 + 0.001, 0.025)] +
-        [round(x, 3) for x in np.arange(0.505, 0.701 + 0.001, 0.05)]
+        [round(x, 3) for x in np.arange(0.505, 0.701 + 0.001, 0.025)]
     ))
     t_ratio_values = sorted(set(
         [round(x, 3) for x in np.arange(0.500, 0.700 + 0.001, 0.025)] +
-        [round(x, 3) for x in np.arange(0.710, 1.250 + 0.001, 0.05)]
+        [round(x, 3) for x in np.arange(0.710, 1.250 + 0.001, 0.025)]
     ))
     alpha_values = [round(x * 0.1, 2) for x in range(0, 100 + 1)]  # 0..10 step 0.1
 
@@ -1101,6 +1099,7 @@ def twin_screw(flow_rate, pressure, rotation_speed, temperature, double_inlet=Tr
         "int_radius_mm": int_r,
         "t_mm": t,
         "axis_dist": axis_dist,
+        "thread_length_mm": thread_length_mm,
         "phi": phi,
         "lambda_val": lambda_val,
         "b_ext_top": b_ext_top,
@@ -1345,6 +1344,7 @@ def twin_screw_temperature(flow_rate, pressure, rotation_speed, double_inlet=Tru
                         "int_radius_mm": int_r,
                         "t_mm": t,
                         "axis_dist": axis_dist,
+                        "thread_length_mm": thread_length_mm,
                         "phi": phi,
                         "lambda_val": lambda_val,
                         "b_ext_top": b_ext_top,
@@ -1623,6 +1623,7 @@ def twin_screw_rotation(flow_rate, pressure, temperature, double_inlet=True, num
                         "int_radius_mm": int_r,
                         "t_mm": t,
                         "axis_dist": axis_dist,
+                        "thread_length_mm": thread_length_mm,
                         "phi": phi,
                         "lambda_val": lambda_val,
                         "b_ext_top": b_ext_top,
@@ -1872,6 +1873,7 @@ def twin_screw_rotation_temperature(flow_rate, pressure, double_inlet=True, num_
                                 "int_radius_mm": int_r,
                                 "t_mm": t,
                                 "axis_dist": axis_dist,
+                                "thread_length_mm": thread_length_mm,
                                 "phi": phi,
                                 "lambda_val": lambda_val,
                                 "b_ext_top": b_ext_top,

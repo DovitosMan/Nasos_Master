@@ -47,6 +47,11 @@ def menu_items_context(request):
                 'url_name': "screw",
                 'key': True,
             },
+            {
+                'value': 'Мультифазные смеси',
+                'url_name': "multiphase",
+                'key': True,
+            },
         ],
     }
     return menu_items

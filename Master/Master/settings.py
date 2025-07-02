@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'Pump_selection',
     'characteristics',
     'Screw',
+    'Multiphase',
 
 ]
 
