@@ -8,4 +8,80 @@
     <link rel="stylesheet" href="{% static 'Screw/css/Screw.css' %}"/>
 {% endblock %}
 {% block Multiphase %}
+
+
+<form method="post">
+    {% csrf_token %}
+    {% for cal in calc %}
+    <div class="menu_select">
+                            <span class="Select">{{ cal.placeholder }}</span>
+                            <label class="Select">
+                                <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}"
+                                       value="{{ cal.value }}">
+                            </label>
+                        </div>
+    {% endfor %}
+    <h2>Ввод состава многокомпонентной смеси</h2>
+    <table class="results-table" border="1">
+        <thead>
+            <tr>
+                <th>Компонент</th>
+                <th>Молярная доля</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for component in components %}
+            <tr>
+                <td>{{ component.placeholder }}</td>
+                <td>
+                    <input
+                        type="{{ component.type }}"
+                        name="{{ component.name }}"
+                        step="0.01"
+                        min="0"
+                        max="1"
+                        value="{{ component.value }}"
+                        placeholder="{{ component.placeholder }}"
+                        required
+                    >
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <br>
+    <input class="button" type="submit"  value="Рассчитать">
+</form>
+{% if calc_result_prepared %}
+<h2>Результаты расчёта</h2>
+<table border="1" class="results-table">
+    <thead>
+        <tr>
+            <th>Фаза</th>
+            <th>Плотность, кг/м³</th>
+            <th>Вязкость, мПа·с</th>
+            <th>Теплоёмкость, Дж/(кг·К)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in calc_result_prepared %}
+        <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.density|floatformat:3 }}</td>
+            <td>{{ item.viscosity|floatformat:6 }}</td>
+            <td>{{ item.heat_capacity|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3>Коэффициенты сжимаемости</h3>
+<ul>
+    <li>Жидкость: {{ compression_koef_liquid|default:"-"|floatformat:5 }}</li>
+    <li>Газ: {{ compression_koef_gas|default:"-"|floatformat:3 }}</li>
+</ul>
+
+<h3>Давление насыщенного пара (P_sat)</h3>
+<p>{{ P_sat|default:"Нет данных"|floatformat:2 }} бар</p>
+{% endif %}
 {% endblock %}
