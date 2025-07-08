@@ -6,20 +6,74 @@
 {% block settings %}
     <link rel="stylesheet" href="{% static 'menu_block/css/menu_block.css' %}">
     <link rel="stylesheet" href="{% static 'Screw/css/Screw.css' %}"/>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        #phase-diagram {
+            width: 100%;
+            max-width: 800px;
+            height: 500px;
+            margin: 20px auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        h2.phase-diagram-title {
+            text-align: center;
+            color: #333;
+            margin-top: 30px;
+        }
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .results-table th, .results-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        .button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .menu_select {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+        .menu_select .Select {
+            margin-right: 10px;
+        }
+        .error-message {
+            color: red;
+            text-align: center;
+            margin: 20px 0;
+            font-size: 16px;
+        }
+    </style>
 {% endblock %}
 {% block Multiphase %}
-
-
 <form method="post">
     {% csrf_token %}
     {% for cal in calc %}
     <div class="menu_select">
-                            <span class="Select">{{ cal.placeholder }}</span>
-                            <label class="Select">
-                                <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}"
-                                       value="{{ cal.value }}">
-                            </label>
-                        </div>
+        <span class="Select">{{ cal.placeholder }}</span>
+        <label class="Select">
+            <input class="Select" type="{{ cal.type }}" name="{{ cal.name }}"
+                   value="{{ cal.value }}">
+        </label>
+    </div>
     {% endfor %}
     <h2>Ввод состава многокомпонентной смеси</h2>
     <table class="results-table" border="1">
@@ -35,7 +89,7 @@
                 <td>{{ component.placeholder }}</td>
                 <td>
                     <input
-                        type="{{ component.type }}"
+                        type="number"
                         name="{{ component.name }}"
                         step="0.01"
                         min="0"
@@ -50,38 +104,197 @@
         </tbody>
     </table>
     <br>
-    <input class="button" type="submit"  value="Рассчитать">
+    <input class="button" type="submit" value="Рассчитать">
 </form>
+
+{% if error_message %}
+    <div class="error-message">{{ error_message }}</div>
+{% endif %}
+
 {% if calc_result_prepared %}
 <h2>Результаты расчёта</h2>
-<table border="1" class="results-table">
+<table class="results-table" border="1" >
     <thead>
         <tr>
             <th>Фаза</th>
             <th>Плотность, кг/м³</th>
             <th>Вязкость, мПа·с</th>
             <th>Теплоёмкость, Дж/(кг·К)</th>
+            <th>Массовая доля, %</th>
+            <th>Объемная доля, %</th>
+            <th>Коэффициент сжимаемости</th>
         </tr>
     </thead>
     <tbody>
         {% for item in calc_result_prepared %}
         <tr>
             <td>{{ item.name }}</td>
-            <td>{{ item.density|floatformat:3 }}</td>
-            <td>{{ item.viscosity|floatformat:6 }}</td>
-            <td>{{ item.heat_capacity|floatformat:2 }}</td>
+            <td>{% if item.density %}{{ item.density|floatformat:3 }}{% else %}-{% endif %}</td>
+            <td>{% if item.viscosity %}{{ item.viscosity|floatformat:6 }}{% else %}-{% endif %}</td>
+            <td>{% if item.heat_capacity %}{{ item.heat_capacity|floatformat:2 }}{% else %}-{% endif %}</td>
+            <td>{% if item.mass_fraction %}{{ item.mass_fraction|floatformat:2 }}{% else %}-{% endif %}</td>
+            <td>{% if item.volume_fraction %}{{ item.volume_fraction|floatformat:2 }}{% else %}-{% endif %}</td>
+            <td>{% if item.compression_koef %}{{ item.compression_koef|floatformat:4 }}{% else %}-{% endif %}</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 
-<h3>Коэффициенты сжимаемости</h3>
-<ul>
-    <li>Жидкость: {{ compression_koef_liquid|default:"-"|floatformat:5 }}</li>
-    <li>Газ: {{ compression_koef_gas|default:"-"|floatformat:3 }}</li>
-</ul>
+<h3>Давление насыщенного пара: {% if P_sat %}{{ P_sat|floatformat:3 }} бар{% else %}Нет данных{% endif %}</h3>
 
-<h3>Давление насыщенного пара (P_sat)</h3>
-<p>{{ P_sat|default:"Нет данных"|floatformat:2 }} бар</p>
+{% if phase_diagram_error %}
+    <div class="error-message">{{ phase_diagram_error }}</div>
+{% else %}
+    {% if phase_data %}
+    <h2 class="phase-diagram-title">Фазовая диаграмма (P-T)</h2>
+    <div id="phase-diagram"></div>
+    <script>
+        console.log("Phase data:", {{ phase_data|safe }});
+        const phaseData = JSON.parse('{{ phase_data|safe }}');
+        const validData = phaseData.filter(d => d.P_sat !== null && 0.1 < d.P_sat < 10000);
+        console.log("Valid data:", validData);
+        console.log("Min P_sat:", validData.length ? Math.min(...validData.map(d => d.P_sat)) : "No data");
+        console.log("Max P_sat:", validData.length ? Math.max(...validData.map(d => d.P_sat)) : "No data");
+
+        if (validData.length < 2) {
+            console.error("Not enough valid data points to render phase diagram.");
+            document.getElementById('phase-diagram').innerHTML = "<p class='error-message'>Недостаточно данных для построения фазовой диаграммы.</p>";
+        } else {
+            const temperatures = validData.map(d => d.temperature);
+            const pressures = validData.map(d => d.P_sat);
+
+            // Основная трасса для кривой P_sat
+            const trace = {
+                x: temperatures,
+                y: pressures,
+                mode: 'lines+markers',
+                type: 'scatter',
+                name: 'Фазовая граница',
+                line: {color: '#1f77b4', width: 2},
+                marker: {size: 6}
+            };
+
+            // Заливка области газовой фазы
+            const gasFill = {
+                x: temperatures,
+                y: pressures,
+                mode: 'none',
+                fill: 'tozeroy', // Заполнение от 0 до кривой P_sat
+                fillcolor: 'rgba(255, 165, 0, 0.5)', // Увеличенная непрозрачность
+                name: 'Газовая фаза',
+                showlegend: true
+            };
+
+            // Заливка двухфазной области
+            const twoPhaseFill = {
+                x: temperatures.concat(temperatures.slice().reverse()),
+                y: pressures.map(p => Math.max(p * 0.95, 0.1)).concat(pressures.map(p => Math.min(p * 1.05, 10000)).slice().reverse()),
+                mode: 'none',
+                fill: 'toself', // Закрашиваем замкнутую область
+                fillcolor: 'rgba(128, 128, 128, 0.3)', // Серый цвет для двухфазной области
+                name: 'Двухфазная область',
+                showlegend: true
+            };
+
+            // Заливка области жидкой фазы
+            const liquidFill = {
+                x: temperatures,
+                y: temperatures.map(() => 10000), // Верхняя граница графика
+                mode: 'none',
+                fill: 'tonexty', // Заполнение от кривой P_sat до верхней границы
+                fillcolor: 'rgba(0, 128, 255, 0.5)', // Увеличенная непрозрачность
+                name: 'Жидкая фаза',
+                showlegend: true
+            };
+
+            // Трасса для точки пользователя
+            const userPoint = {{ user_point|safe }};
+            const userTrace = userPoint ? {
+                x: [userPoint.temperature],
+                y: [userPoint.pressure],
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Текущая точка',
+                marker: {size: 10, color: '#ff0000', symbol: 'cross'}
+            } : null;
+
+            // Настройка макета диаграммы
+            const layout = {
+                title: {
+                    text: 'Фазовая диаграмма: Давление насыщения vs Температура',
+                    x: 0.5,
+                    xanchor: 'center',
+                    font: {size: 18, color: '#333'}
+                },
+                xaxis: {
+                    title: 'Температура, °C',
+                    titlefont: {size: 14},
+                    tickfont: {size: 12},
+                    gridcolor: '#e0e0e0'
+                },
+                yaxis: {
+                    title: 'Давление насыщения, бар',
+                    titlefont: {size: 14},
+                    tickfont: {size: 12},
+                    gridcolor: '#e0e0e0',
+                    type: 'linear', // Линейная шкала для теста
+                    range: [0, Math.max(...pressures) * 2 < 10000 ? Math.max(...pressures) * 2 : 10000] // Динамический диапазон
+                },
+                margin: {t: 80, b: 80, l: 80, r: 40},
+                paper_bgcolor: '#f9f9f9',
+                plot_bgcolor: '#ffffff',
+                showlegend: true,
+                legend: {
+                    x: 0.95,
+                    y: 0.95,
+                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                    bordercolor: '#e0e0e0',
+                    borderwidth: 1
+                },
+                hovermode: 'closest',
+                annotations: [
+                    {
+                        x: temperatures[Math.floor(temperatures.length / 4)],
+                        y: Math.min(Math.max(...pressures) * 1.5, 7500), // Позиция для жидкой фазы
+                        text: 'Жидкая фаза',
+                        showarrow: false,
+                        font: {size: 14, color: '#0055cc', weight: 'bold'},
+                        xanchor: 'center',
+                        yanchor: 'middle'
+                    },
+                    {
+                        x: temperatures[Math.floor(temperatures.length * 3 / 4)],
+                        y: Math.max(Math.min(...pressures) / 2, 0.1), // Позиция для газовой фазы
+                        text: 'Газовая фаза',
+                        showarrow: false,
+                        font: {size: 14, color: '#cc5500', weight: 'bold'},
+                        xanchor: 'center',
+                        yanchor: 'middle'
+                    },
+                    {
+                        x: temperatures[Math.floor(temperatures.length / 2)],
+                        y: pressures[Math.floor(pressures.length / 2)],
+                        text: 'Двухфазная область',
+                        showarrow: true,
+                        arrowhead: 2,
+                        ax: 0,
+                        ay: -30,
+                        font: {size: 14, color: '#333333', weight: 'bold'},
+                        xanchor: 'center',
+                        yanchor: 'bottom'
+                    }
+                ]
+            };
+
+            // Собираем трассы
+            const traces = [twoPhaseFill, gasFill, trace, liquidFill];
+            if (userTrace) traces.push(userTrace);
+
+            // Рендерим диаграмму
+            Plotly.newPlot('phase-diagram', traces, layout);
+        }
+    </script>
+    {% endif %}
+{% endif %}
 {% endif %}
 {% endblock %}

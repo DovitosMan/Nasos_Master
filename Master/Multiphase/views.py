@@ -3,6 +3,9 @@ import math
 from scipy.optimize import brentq, minimize_scalar
 import cmath
 import logging
+import numpy as np
+import matplotlib.pyplot as plt
+import json
 
 
 logger = logging.getLogger(__name__)
@@ -370,6 +373,8 @@ def multiphase(request):
         ],
         'components': components,
         'submitted_data': None,
+        'error_message': None,
+        'phase_diagram_error': None,  # Добавляем для ошибок фазовой диаграммы
     }
 
     if request.method == 'POST':
@@ -409,6 +414,19 @@ def multiphase(request):
 
         logger.info(f"Filtered components count: {len(filtered['name'])}")
 
+        # Проверка на наличие компонентов
+        if not filtered['name']:
+            context['error_message'] = "Ошибка: не указаны компоненты с ненулевыми молярными долями."
+            logger.error("No components with non-zero molar fractions provided.")
+            return render(request, 'multiphase.html', context)
+
+        # Проверка суммы молярных долей
+        total_mol_frac = sum([mf for mf in filtered['molar_fraction'] if mf is not None])
+        if abs(total_mol_frac - 1.0) > 1e-6:
+            context['error_message'] = "Ошибка: сумма молярных долей не равна 1."
+            logger.error(f"Sum of molar fractions is {total_mol_frac}, expected 1.0")
+            return render(request, 'multiphase.html', context)
+
         # Преобразуем в кортеж для передачи в calc
         results = zip(
             filtered['name'],
@@ -432,10 +450,10 @@ def multiphase(request):
             pressure = float(request.POST.get('pressure', '0').replace(',', '.'))
             temperature = float(request.POST.get('temperature', '0').replace(',', '.'))
             logger.info(f"Pressure input: {pressure}, Temperature input: {temperature}")
-        except ValueError:
+        except Exception as e:
             logger.error(f"Error parsing pressure or temperature: {e}")
-            pressure = 0.0
-            temperature = 0.0
+            context['error_message'] = "Ошибка: некорректные значения давления или температуры."
+            return render(request, 'multiphase.html', context)
 
         try:
             calc_result = calc(pressure, temperature, results)
@@ -448,53 +466,85 @@ def multiphase(request):
             heat_capacity = calc_result.get('heat_capasity', [])
             compression = calc_result.get('compression_koef', [])
             P_sat = calc_result.get('P_sat', None)
+            mass_fractions = calc_result.get('mass_fraction', [])
+            volume_fractions = calc_result.get('volume_fraction', [])
 
             for i, name in enumerate(names):
-                item = {
+                calc_result_prepared.append({
                     'name': name,
                     'density': density[i] if i < len(density) else None,
                     'viscosity': viscosity[i] if i < len(viscosity) else None,
                     'heat_capacity': heat_capacity[i] if i < len(heat_capacity) else None,
-                }
-                calc_result_prepared.append(item)
+                    'mass_fraction': mass_fractions[i] if i < len(mass_fractions) else None,
+                    'volume_fraction': volume_fractions[i] if i < len(volume_fractions) else None,
+                    'compression_koef': compression[i] if i < len(compression) else None,
+                })
 
-            context['calc_result_prepared'] = calc_result_prepared
-            context['compression_koef_liquid'] = compression[0] if len(compression) > 0 else None
-            context['compression_koef_gas'] = compression[1] if len(compression) > 1 else None
-            context['P_sat'] = P_sat
+            # Расчёт данных для фазовой диаграммы
+            phase_data = []
+            Tc_values = [c['Tc'] for c in components if c['Tc'] is not None]
+            if Tc_values:
+                T_min = max(min(Tc_values) - 100, 100)  # Ограничиваем минимальную температуру
+                T_max = min(max(Tc_values) + 50, 1000)  # Ограничиваем максимальную температуру
+                temp_range = np.linspace(T_min - 273.15, T_max - 273.15, 50)
+                valid_points = 0
+                for temp in temp_range:
+                    try:
+                        # Пересоздаём results для каждой температуры
+                        results = zip(
+                            filtered['name'],
+                            filtered['molar_fraction'],
+                            filtered['Tc'],
+                            filtered['Pc'],
+                            filtered['omega'],
+                            filtered['M'],
+                            filtered['A'],
+                            filtered['B'],
+                            filtered['cp_A'],
+                            filtered['cp_B'],
+                            filtered['cp_C'],
+                            filtered['cp_D'],
+                            filtered['cp_E'],
+                            filtered['cp_b'],
+                            filtered['cp_liquid_25C']
+                        )
+                        temp_result = calc(pressure, temp, results)
+                        P_sat_value = temp_result.get('P_sat')
+                        if P_sat_value is not None and 0 < P_sat_value < 1e6:  # Фильтруем нереалистичные значения
+                            phase_data.append({
+                                'temperature': temp,
+                                'P_sat': P_sat_value
+                            })
+                            valid_points += 1
+                        else:
+                            phase_data.append({'temperature': temp, 'P_sat': None})
+                            logger.warning(f"Invalid P_sat at T={temp}: {P_sat_value}")
+                    except Exception as e:
+                        logger.warning(f"Failed to calculate P_sat at T={temp}: {e}")
+                        phase_data.append({'temperature': temp, 'P_sat': None})
 
-            # Красивый вывод результата
-            print("\n=== Расчётные параметры ===")
-            names = calc_result.get('name', [])
-            density = calc_result.get('density', [])
-            viscosity = calc_result.get('viscosity', [])
-            heat_capacity = calc_result.get('heat_capasity', [])
-            compression = calc_result.get('compression_koef', [])
-            P_sat = calc_result.get('P_sat', None)
+                if valid_points < 2:
+                    logger.error("Not enough valid P_sat points for phase diagram.")
+                    context['phase_diagram_error'] = "Недостаточно данных для построения фазовой диаграммы. Проверьте состав смеси."
 
-            # Вывод для фаз жидкости, газа и смеси
-            for i, phase in enumerate(names):
-                dens = density[i] if i < len(density) else None
-                visc = viscosity[i] if i < len(viscosity) else None
-                cp = heat_capacity[i] if i < len(heat_capacity) else None
-                print(f"{phase}:")
-                print(f"  Плотность (кг/м³): {dens:.3f}" if dens is not None else "  Плотность: N/A")
-                print(f"  Вязкость (мПа·с): {visc:.6f}" if visc is not None else "  Вязкость: N/A")
-                print(f"  Теплоёмкость (Дж/(кг·К)): {cp:.2f}" if cp is not None else "  Теплоёмкость: N/A")
-                print()
-
-            # Коэффициенты сжимаемости для жидкости и газа
-            if len(compression) >= 2:
-                print(f"Коэффициент сжимаемости жидкости: {compression[0]:.5f}")
-                print(f"Коэффициент сжимаемости газа: {compression[1]:.5f}")
-                print()
-
-            if P_sat is not None:
-                print(f"Давление насыщенного пара (бар): {P_sat:.3f}")
-            print("===========================\n")
+            context.update({
+                'calc_result_prepared': calc_result_prepared,
+                'compression_koef_liquid': compression[0] if len(compression) > 0 else None,
+                'compression_koef_gas': compression[1] if len(compression) > 1 else None,
+                'P_sat': P_sat,
+                'phase_data': json.dumps(phase_data),
+                'user_point': {'temperature': temperature,
+                               'pressure': pressure * 0.098067} if pressure and temperature else None,
+                # Добавляем точку пользователя
+            })
 
         except Exception as e:
+
             logger.error(f"Calculation failed: {e}", exc_info=True)
+
+            context['error_message'] = "Ошибка при выполнении расчётов. Проверьте входные данные."
+
+            return render(request, 'multiphase.html', context)
 
     return render(request, 'multiphase.html', context)
 
@@ -554,20 +604,29 @@ def calc(pressure, temperature, results):
 
     def equilibrium_function(P_sat, f_Pc_list, f_omega_list, f_Tc_list, f_molar_fractions, temperature_k,
                              vapor_fraction=0):
-
-        # Расчёт коэффициентов равновесия K для каждого компонента
-        K_list = [
-            (Pc / P_sat) * math.exp(5.37 * (1 + omega) * (1 - Tc / temperature_k))
-            for Pc, omega, Tc in zip(f_Pc_list, f_omega_list, f_Tc_list)
-        ]
-
-        # Вычисление целевой функции
-        if vapor_fraction == 0:
-            target = sum(z * (K - 1) for z, K in zip(f_molar_fractions, K_list))
-        else:
-            target = sum(z * (K - 1) / (1 + vapor_fraction * (K - 1)) for z, K in zip(f_molar_fractions, K_list))
-
-        return abs(target)
+        try:
+            K_list = []
+            for Pc, omega, Tc in zip(f_Pc_list, f_omega_list, f_Tc_list):
+                if Pc <= 0 or Tc <= 0 or temperature_k <= 0:
+                    logger.warning(f"Invalid parameters: Pc={Pc}, Tc={Tc}, temperature_k={temperature_k}")
+                    return float('inf')
+                exponent = 5.37 * (1 + omega) * (1 - Tc / temperature_k)
+                if exponent > 700:  # Предотвращаем переполнение exp
+                    logger.warning(f"Exponent too large: {exponent} at T={temperature_k}")
+                    return float('inf')
+                K = (Pc / P_sat) * math.exp(exponent)
+                if not (0 < K < 1e10):  # Фильтруем нереалистичные K
+                    logger.warning(f"Unrealistic K value: {K} at T={temperature_k}")
+                    return float('inf')
+                K_list.append(K)
+            if vapor_fraction == 0:
+                target = sum(z * (K - 1) for z, K in zip(f_molar_fractions, K_list) if z is not None and K is not None)
+            else:
+                target = sum(z * (K - 1) / (1 + vapor_fraction * (K - 1)) for z, K in zip(f_molar_fractions, K_list) if z is not None and K is not None)
+            return abs(target)
+        except Exception as e:
+            logger.warning(f"Error in equilibrium_function: {e}")
+            return float('inf')
 
     (
         f_comp_names, f_molar_fractions, f_Tc_list, f_Pc_list, f_omega_list,
@@ -694,12 +753,15 @@ def calc(pressure, temperature, results):
 
     solution = minimize_scalar(
         equilibrium_function,
-        bounds=(1, 20000),
+        bounds=(0.1, 10000),
         method='bounded',
         args=(f_Pc_list, f_omega_list, f_Tc_list, f_molar_fractions, temperature_k, 0)
     )
 
     P_sat = solution.x  # в бар
+    if not (0.1 < P_sat < 5000):
+        logger.warning(f"Unrealistic P_sat value: {P_sat}")
+        P_sat = None
 
     result_data = {
         'name': ['Жидкость', 'Газ', 'Смесь'],
@@ -708,6 +770,10 @@ def calc(pressure, temperature, results):
         'heat_capasity': [heat_capacity_liquid, heat_capacity_gas, heat_capacity_mix],
         'compression_koef': [Z_liquid, Z_gas],
         'P_sat': float(P_sat),
+        'mass_fraction': [mass_liquid*100, mass_gas*100, 100],
+        'volume_fraction': [vol_liquid*100, vol_gas*100, 100],
     }
 
     return result_data
+
+
