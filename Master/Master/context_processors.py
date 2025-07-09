@@ -48,6 +48,11 @@ def menu_items_context(request):
                 'key': True,
             },
             {
+                'value': 'Двухвинтовой насос',
+                'url_name': "twinscrew",
+                'key': True,
+            },
+            {
                 'value': 'Мультифазные смеси',
                 'url_name': "multiphase",
                 'key': True,

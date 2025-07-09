@@ -1,0 +1,32 @@
+{% extends 'Master.html' %}
+{% load static %}
+{% block title %}
+    Двухвинтовой насос
+{% endblock %}
+{% block settings %}
+    <link rel="stylesheet" href="{% static 'menu_block/css/menu_block.css' %}">
+    <link rel="stylesheet" href="{% static 'Screw/css/Screw.css' %}"/>
+{% endblock %}
+{% block TwinScrew %}
+       <div>
+           <form action="{% url 'twinscrew' %}" method="post" class="container">
+               {% csrf_token %}
+               {% for cal in calc %}
+                   <div class="menu_select">
+                            <span class="Select">{{ cal.placeholder }}</span>
+                            <label class="Select">
+                                <input class="Select" name="{{ cal.name }}"
+                                       type="{% if cal.type == 'float' %}number{% else %}{{ cal.type }}{% endif %}"
+                                       value="{{ cal.value }}"
+                                       step="0.001">
+                            </label>
+                        </div>
+               {% endfor %}
+               <input class="button" type="submit" name="calculate_params" value="Вычислить параметры">
+               <input class="button" type="button" id="reset-button" value="Сброс значений">
+               <input class="button" type="submit" name="download_model" value="Скачать модель">
+           </form>
+       </div>
+
+{% endblock %}
+

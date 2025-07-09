@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'characteristics',
     'Screw',
     'Multiphase',
+    'TwinScrew',
 
 ]
 

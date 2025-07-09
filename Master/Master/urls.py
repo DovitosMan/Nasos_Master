@@ -10,5 +10,6 @@ urlpatterns = [
     path('calculations/', include('calculations.urls')),
     path('characteristics/', include('characteristics.urls')),
     path('screw/', include('Screw.urls')),
-    path('multiphase/', include('Multiphase.urls'))
+    path('multiphase/', include('Multiphase.urls')),
+    path('twinscrew/', include('TwinScrew.urls'))
 ]

@@ -117,15 +117,15 @@ def screw(request):
                     context['power_eff'] = float(power_eff_p)  # Эффективная мощность
                     context['power_nominal'] = float(power_nominal_p)  # Номинальная мощность
 
-                    result = twin_screw(flow_rate, pressure, rotation_speed, temperature)
-
-                    print("Лучшие параметры и вычисленные значения:")
-
-                    if result is None:
-                        raise ValueError("Не удалось получить результат из twin_screw, параметры не валидны")
-                    else:
-                        for key, value in result.items():
-                            print(f"{key}: {value}")
+                    # result = twin_screw(flow_rate, pressure, rotation_speed, temperature)
+                    #
+                    # print("Лучшие параметры и вычисленные значения:")
+                    #
+                    # if result is None:
+                    #     raise ValueError("Не удалось получить результат из twin_screw, параметры не валидны")
+                    # else:
+                    #     for key, value in result.items():
+                    #         print(f"{key}: {value}")
                     # twin_screw_feed_pressure(rotation_speed, temperature)
                     # twin_screw_rotation_temperature(flow_rate, pressure)
                 if 'download_model' in request.POST:
