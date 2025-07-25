@@ -607,10 +607,12 @@ def calc(pressure, temperature, results):
         try:
             K_list = []
             for Pc, omega, Tc in zip(f_Pc_list, f_omega_list, f_Tc_list):
+                if None in (Pc, omega, Tc):
+                    continue
                 if Pc <= 0 or Tc <= 0 or temperature_k <= 0:
                     logger.warning(f"Invalid parameters: Pc={Pc}, Tc={Tc}, temperature_k={temperature_k}")
                     return float('inf')
-                exponent = 5.37 * (1 + omega) * (1 - Tc / temperature_k)
+                exponent = max(min(5.37 * (1 + omega) * (1 - Tc / temperature_k), 700), -100)
                 if exponent > 700:  # Предотвращаем переполнение exp
                     logger.warning(f"Exponent too large: {exponent} at T={temperature_k}")
                     return float('inf')
@@ -753,7 +755,7 @@ def calc(pressure, temperature, results):
 
     solution = minimize_scalar(
         equilibrium_function,
-        bounds=(0.1, 10000),
+        bounds=(0.1, 5000),
         method='bounded',
         args=(f_Pc_list, f_omega_list, f_Tc_list, f_molar_fractions, temperature_k, 0)
     )

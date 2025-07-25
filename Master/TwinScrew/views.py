@@ -9,6 +9,7 @@ import pandas as pd
 import logging
 import cadquery as cq
 from cadquery import exporters, Compound
+from functools import reduce
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ def twin_screw(request):
             except ValueError:
                 input_data[name] = None
 
-        result, model = calculate(**input_data)
+        result = calculate(**input_data)
 
         print("Лучшие параметры и вычисленные значения:")
 
@@ -50,7 +51,8 @@ def twin_screw(request):
             for key, value in result.items():
                 print(f"{key}: {value}")
 
-        create_bodies(model)
+        # create_assembly(result)
+        create_stator(result)
 
     return render(request, 'twinscrew.html', context)
 
@@ -306,8 +308,8 @@ def calculate(flow_rate, pressure, rotation_speed, density, viscosity, temperatu
 
     kpd_mech = 1 / (1 + f_m * k_m)
 
-    power_gap = pressure_mpa * (feed_loss / 60 / 60) * 1000
-    power_theory = pressure_mpa * (flow_rate_theory / 60 / 60) * 1000
+    power_gap = pressure * (feed_loss / 60 / 60) * density * 9.81 / 1000
+    power_theory = pressure * (flow_rate_theory / 60 / 60) * density * 9.81 / 1000
     power_required = power_theory / kpd_mech
     power_full = power_required + power_gap
 
@@ -315,53 +317,42 @@ def calculate(flow_rate, pressure, rotation_speed, density, viscosity, temperatu
 
     # Возвращаем результаты
     results_dict = {
-        "flow_rate": flow_rate,
-        "pressure": pressure,
-        "rotation_speed": rotation_speed,
-        "temperature": temperature,
-        "flow_rate_real": flow_rate_real,
-        "kpd_vol": kpd_vol_2,
-        "kpd_mech": kpd_mech,
-        "kpd_total": kpd_total,
-        "delta_t_val": delta_t_val,
-        "stator_gap": stator_gap,
-        "screw_gap": screw_gap,
-        "side_gap": side_gap,
-        "power_full": power_full,
-        "effective_koef": power_full / flow_rate_real,
-        "r_ratio": r_ratio_b,
-        "t_ratio": t_ratio_b,
-        "alpha": alpha_b,
-        "ext_radius_mm": ext_r,
-        "int_radius_mm": int_r,
-        "t_mm": t,
-        "axis_dist": axis_dist,
-        "thread_length_mm": thread_length_mm,
-        "phi": phi,
-        "lambda_val": lambda_val,
-        "b_ext_top": b_ext_top,
-        "b_int_low": b_int_low,
-        "b_ext_low": b_ext_low,
-        "density": density,
-        "viscosity_dyn": viscosity,
-        "viscosity_kin": viscosity_kin,
-        "heat_capacity": heat_capacity,
-        "feed_loss": feed_loss,
-        "flow_rate_theory": flow_rate_theory,
-        "power_gap": power_gap,
-        "power_theory": power_theory,
-        "power_required": power_required,
-    }
-
-    results_model = {
+        "flow_rate": float(flow_rate),
+        "pressure": float(pressure),
+        "rotation_speed": float(rotation_speed),
+        "temperature": float(temperature),
+        "flow_rate_real": float(flow_rate_real),
+        "kpd_vol": float(kpd_vol_2),
+        "kpd_mech": float(kpd_mech),
+        "kpd_total": float(kpd_total),
+        "delta_t_val": float(delta_t_val),
+        "stator_gap": float(stator_gap),
+        "screw_gap": float(screw_gap),
+        "side_gap": float(side_gap),
+        "power_full": float(power_full),
+        "effective_koef": float(power_full / flow_rate_real),
+        "r_ratio": float(r_ratio_b),
+        "t_ratio": float(t_ratio_b),
         "alpha": float(alpha_b),
         "ext_radius_mm": float(ext_r),
         "int_radius_mm": float(int_r),
         "t_mm": float(t),
         "axis_dist": float(axis_dist),
         "thread_length_mm": float(thread_length_mm),
+        "phi": float(phi),
+        "lambda_val": float(lambda_val),
         "b_ext_top": float(b_ext_top),
         "b_int_low": float(b_int_low),
+        "b_ext_low": float(b_ext_low),
+        "density": float(density),
+        "viscosity_dyn": float(viscosity),
+        "viscosity_kin": float(viscosity_kin),
+        "heat_capacity": float(heat_capacity),
+        "feed_loss": float(feed_loss),
+        "flow_rate_theory": float(flow_rate_theory),
+        "power_gap": float(power_gap),
+        "power_theory": float(power_theory),
+        "power_required": float(power_required),
     }
 
     df = pd.DataFrame([results_dict])  # одна строка таблицы
@@ -374,76 +365,315 @@ def calculate(flow_rate, pressure, rotation_speed, density, viscosity, temperatu
     df.to_excel(filename, index=False)
     print(f"Результаты сохранены в файл: {filename}")
 
-    return results_dict, results_model
+    return results_dict
 
 
-def create_bodies(results_model):
-    alpha = results_model['alpha']
-    ext_radius_mm = results_model['ext_radius_mm']
-    int_radius_mm = results_model['int_radius_mm']
-    t_mm = results_model['t_mm']
-    axis_dist = results_model['axis_dist']
-    thread_length_mm = results_model['thread_length_mm']
-    b_ext_top = results_model['b_ext_top']
-    b_int_low = results_model['b_int_low']
+def create_stator(results_dict):
+    ext_radius_mm = results_dict['ext_radius_mm']
+    axis_dist = results_dict['axis_dist']
+    thread_length_mm = results_dict['thread_length_mm']
 
-    int_circle = cq.Workplane('XY').workplane(offset=-t_mm).circle(int_radius_mm)
-    int_circle_extruded = int_circle.extrude(thread_length_mm + 2 * t_mm)
+    radius_1 = radius_round(ext_radius_mm, factor=0.41)
+    radius_2 = radius_round(ext_radius_mm, round_base=1, factor=0.42)
+    radius_3 = radius_round(ext_radius_mm, round_base=1, factor=0.46)
+    radius_4 = radius_round(ext_radius_mm, round_base=1, factor=0.75)
+    radius_5 = radius_round(ext_radius_mm, factor=0.40)
+
+    dist_1 = int(thread_length_mm / 7.8)
+    dist_2 = int(thread_length_mm / 13.0)
+    dist_3 = int(thread_length_mm / 17.73)
+    dist_4 = int(thread_length_mm / 3.19)
+    dist_5 = int(thread_length_mm / 8.86)
+    dist_6 = int(thread_length_mm / 5.42)
+
+    base_offset = dist_1 + dist_2 + radius_1 - radius_2 + dist_3
+    final_offset = base_offset + dist_4 - dist_5 + int(axis_dist)
+
+    contour_1 = cq.Workplane('ZY').moveTo(dist_1, radius_1).polyline([
+        (dist_1 + dist_2, radius_1),
+        (dist_1 + dist_2 + radius_1 - radius_2, radius_2),
+        (dist_1 + dist_2 + radius_1 - radius_2 + dist_3, radius_2),
+        (dist_1 + dist_2 + radius_1 - radius_2 + dist_3, radius_3),
+        (dist_1, radius_3),
+        (dist_1, radius_1)
+    ]).close()
+
+    def create_arc_contour(r1, r2, sign=1):
+        return (cq.Workplane('XY').workplane(offset=base_offset).
+                moveTo(-r1 * math.cos(math.radians(45)), sign * r1 * math.sin(math.radians(45))).
+                radiusArc((r1 * math.cos(math.radians(45)), sign * r1 * math.sin(math.radians(45))), r1 * sign).
+                lineTo(r2 * math.cos(math.radians(45)), sign * r2 * math.sin(math.radians(45))).
+                radiusArc((-r2 * math.cos(math.radians(45)), sign * r2 * math.sin(math.radians(45))), -r2 * sign).
+                close()
+                )
+
+    contour_2 = create_arc_contour(radius_2, radius_3, 1)
+    contour_3 = create_arc_contour(radius_2, radius_3, -1)
+
+    def create_cap_contour(r1, sign=1):
+        return (cq.Workplane('XY').workplane(offset=base_offset + dist_4 - dist_5).
+                moveTo(-r1 * math.cos(math.radians(45)), r1 * math.sin(math.radians(45))).
+                radiusArc((r1 * math.cos(math.radians(45)), sign * r1 * math.sin(math.radians(45))), sign * r1).
+                lineTo(0, 0).close()
+                )
+
+    contour_4 = create_cap_contour(radius_2, 1)
+    contour_5 = create_cap_contour(radius_2, -1)
+
+    parts = [
+        create_cylinder(radius_1, dist_1, 0, 0, 0),
+        contour_1.revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(1, 0, 0)),
+        contour_2.extrude(dist_4),
+        contour_3.extrude(dist_4),
+        create_cylinder(radius_4, int(axis_dist), base_offset + dist_4 - dist_5, 0, axis_dist / 2),
+        create_cylinder(radius_4, int(axis_dist), base_offset + dist_4 - dist_5, 0, -axis_dist / 2),
+        contour_4.extrude(dist_5),
+        contour_5.extrude(dist_5),
+        create_cylinder(radius_5, dist_6, final_offset, 0, 0)
+    ]
+
+    exporters.export(combine_parts(parts), 'twin_stator.step')
+
+
+def create_assembly(results_dict):
+    alpha = results_dict['alpha']
+    ext_radius_mm = results_dict['ext_radius_mm']
+    int_radius_mm = results_dict['int_radius_mm']
+    t_mm = results_dict['t_mm']
+    axis_dist = results_dict['axis_dist']
+    b_int_low = results_dict['b_int_low']
+    thread_length_mm = results_dict['thread_length_mm']
+
+    add = (ext_radius_mm - int_radius_mm) * math.tan(math.radians(alpha))
+    dist_0 = int(thread_length_mm / 0.87)
+
+    driven = create_driven_screw(results_dict, 0, False, True)
+    lead = create_lead_screw(results_dict).rotate((0, 0, 0), (0, 0, 1), angleDegrees=360 * (b_int_low + add) / t_mm)
+
+    exporters.export(driven, 'driven_screw.step')
+    exporters.export(lead, 'lead_screw.step')
+    logger.info('Валы успешно созданы и экспортированы')
+
+    asm = cq.Assembly()
+    asm.add(cq.importers.importStep('driven_screw.step'), name='driven',
+            loc=cq.Location(cq.Vector(0, axis_dist / 2, 0)))
+    asm.add(cq.importers.importStep('lead_screw.step'), name='lead',
+            loc=cq.Location(cq.Vector(0, -axis_dist / 2, -dist_0)))
+    exporters.export(asm.toCompound(), 'twin_assembly.step')
+    logger.info('Сборка успешно создана и экспортирована')
+
+
+def calculate_min_diam(results_dict):
+    alpha = results_dict['alpha']
+    ext_radius_mm = results_dict['ext_radius_mm']
+    int_radius_mm = results_dict['int_radius_mm']
+    t_mm = results_dict['t_mm']
+    b_ext_top = results_dict['b_ext_top']
+    power_full = results_dict['power_full']
+    rotation_speed = results_dict['rotation_speed']
+    pressure = results_dict['pressure']
+    thread_length_mm = results_dict['thread_length_mm']
+
+    pressure_mpa = 0.009806649643957326 * pressure
+
+    add = (ext_radius_mm - int_radius_mm) * math.tan(math.radians(alpha))
+
+    trapezoid_contour = [
+        (0, int_radius_mm),
+        (add, ext_radius_mm),
+        (add + b_ext_top, ext_radius_mm),
+        (2 * add + b_ext_top, int_radius_mm)
+    ]
+
+    def interpolate_2d_segment(p1, p2, n_points):
+        x1, y1 = p1
+        x2, y2 = p2
+        return [
+            (
+                x1 + (x2 - x1) * i / (n_points - 1),
+                y1 + (y2 - y1) * i / (n_points - 1)
+            )
+            for i in range(n_points)
+        ]
+
+    points_per_segment = 500
+    all_points = []
+
+    for i in range(len(trapezoid_contour) - 1):
+        p1 = trapezoid_contour[i]
+        p2 = trapezoid_contour[i + 1]
+
+        segment_points = interpolate_2d_segment(p1, p2, points_per_segment)
+
+        if i != 0:
+            segment_points = segment_points[1:]
+
+        all_points.extend(segment_points)
+
+    angle_i = [2 * math.pi * (t_mm - x[0]) / t_mm for x in all_points]
+
+    new_points = []
+    for i, j in zip(all_points, angle_i):
+        x_proj = i[1] * math.cos(j)
+        y_proj = i[1] * math.sin(j)
+        new_points.append((x_proj, y_proj))
+
+    new_contour = cq.Workplane('XY').polyline(new_points).close().wire()
+    face = cq.Face.makeFromWires(new_contour.val())
+    area = face.Area()
+
+    distance = math.sqrt((new_points[0][0] - new_points[-1][0]) ** 2 + (new_points[0][1] - new_points[-1][1]) ** 2)
+    angle = math.acos(1 - distance ** 2 / (2 * int_radius_mm ** 2))
+    sector = int_radius_mm ** 2 / 2 * (angle - math.sin(angle))
+    middle = math.pi * int_radius_mm ** 2 - 2 * sector
+
+    total_area_screw = 2 * area + middle
+
+    total_moment = 30 * power_full / math.pi / rotation_speed  # в кН * м
+
+    axial_force_screw = power_full * 60000 / rotation_speed / t_mm  # в кН
+    axial_force_normal = total_area_screw * pressure_mpa / 1000
+
+    axial_force = axial_force_screw + axial_force_normal
+
+    border_angle_i = [2 * math.pi * (t_mm - x[0]) / t_mm for x in trapezoid_contour]
+    border_points = []
+    for i, j in zip(trapezoid_contour, border_angle_i):
+        x_proj = i[1] * math.cos(j)
+        y_proj = i[1] * math.sin(j)
+        border_points.append((x_proj, y_proj))
+
+    distance_c = math.sqrt(
+        (border_points[1][0] - border_points[2][0]) ** 2 + (border_points[1][1] - border_points[2][1]) ** 2)
+    distance_cd = distance_c / 2 + ext_radius_mm
+
+    radial_force_cyl = b_ext_top * distance_cd * pressure_mpa / 1000  # в кН
+
+    distance_l = math.sqrt(
+        (border_points[1][0] + border_points[2][0]) ** 2 + (border_points[1][1] + border_points[2][1]) ** 2)
+    radial_force_vpad = distance_l * t_mm * pressure_mpa / math.pi / 1000  # в кН
+
+    radial_force = radial_force_vpad + radial_force_cyl
+
+    b = 3 * thread_length_mm / 1000
+    max_reaction = radial_force / 2 + total_moment / b
+    min_reaction = radial_force / 2 - total_moment / b
+    max_moment = radial_force * b / 4 + total_moment / 2
+
+    temp_strength = 300
+    diam_force = math.sqrt(4 * radial_force / math.pi / temp_strength / 1000) * 1000
+    diam_moment = (32 * max_moment / temp_strength / 1000 / math.pi) ** (1 / 3) * 1000
+
+    return max(diam_force / 2, diam_moment / 2)
+
+
+def create_screw(results_dict, offset, lefthand):
+    alpha = results_dict['alpha']
+    ext_radius_mm = results_dict['ext_radius_mm']
+    int_radius_mm = results_dict['int_radius_mm']
+    t_mm = results_dict['t_mm']
+    thread_length_mm = results_dict['thread_length_mm']
+    b_ext_top = results_dict['b_ext_top']
 
     shift = 1
     add = (ext_radius_mm - int_radius_mm) * math.tan(math.radians(alpha))
     add_shift = shift / math.tan(math.radians(alpha))
+
     trapezoid = cq.Workplane('ZY').polyline([
-        (-t_mm - shift, int_radius_mm - add_shift),
-        (-t_mm + add + shift, ext_radius_mm + add_shift),
-        (-t_mm + add + b_ext_top - shift, ext_radius_mm + add_shift),
-        (-t_mm + 2 * add + b_ext_top + shift, int_radius_mm - add_shift)
+        (-t_mm - shift + offset, int_radius_mm - add_shift),
+        (-t_mm + add + shift + offset, ext_radius_mm + add_shift),
+        (-t_mm + add + b_ext_top - shift + offset, ext_radius_mm + add_shift),
+        (-t_mm + 2 * add + b_ext_top + shift + offset, int_radius_mm - add_shift)
     ]).close()
 
     spiral = cq.Wire.makeHelix(
         pitch=t_mm,
         height=thread_length_mm + 2 * t_mm,
         radius=ext_radius_mm,
-        lefthand=False,
-        center=(0, 0, -t_mm),
+        lefthand=lefthand,
+        center=(0, 0, -t_mm + offset),
         dir=(0, 0, 1)
     )
 
-    spiral_body_1 = trapezoid.sweep(spiral, isFrenet=True)
-    spiral_body_2 = spiral_body_1.rotate((0, 0, 0), (0, 0, 1), 180)
+    spiral_body = trapezoid.sweep(spiral, isFrenet=True)
+    spiral_body = (spiral_body.union(spiral_body.rotate((0, 0, 0), (0, 0, 1), 180))
+                   .union(create_cylinder(int_radius_mm, thread_length_mm + 2 * t_mm, offset - t_mm, 0, 0)))
 
-    ext_circle = cq.Workplane('XY').workplane(offset=-2 * t_mm).circle(ext_radius_mm).circle(ext_radius_mm * 1.5)
-    ext_circle_extruded = ext_circle.extrude(thread_length_mm + 4 * t_mm)
+    parts_to_cut = [
+        create_cylinder(2 * ext_radius_mm, -thread_length_mm, offset, 0, 0),
+        create_cylinder(2 * ext_radius_mm, thread_length_mm, offset + thread_length_mm, 0, 0)
+    ]
 
-    circle_cut_1 = cq.Workplane('XY').circle(2 * ext_radius_mm)
-    circle_cut_2 = cq.Workplane('XY').workplane(offset=thread_length_mm).circle(2 * ext_radius_mm)
-    circle_cut_1_extruded = circle_cut_1.extrude(-thread_length_mm)
-    circle_cut_2_extruded = circle_cut_2.extrude(thread_length_mm)
+    return spiral_body.cut(combine_parts(parts_to_cut)).cut(cq.Workplane('XY').workplane(offset=-2 * t_mm + offset).
+                                                            circle(ext_radius_mm).circle(ext_radius_mm * 1.5).
+                                                            extrude(thread_length_mm + 4 * t_mm))
 
-    body_1 = (
-        int_circle_extruded.
-        union(spiral_body_1).
-        union(spiral_body_2).
-        cut(ext_circle_extruded).
-        cut(circle_cut_1_extruded).
-        cut(circle_cut_2_extruded)
-    )
 
-    rotate_dist = b_int_low + add
-    rotate_angle = 360 * rotate_dist / t_mm
+def create_driven_screw(results_dict, offset, first, second):
+    ext_radius_mm = results_dict['ext_radius_mm']
+    int_radius_mm = results_dict['int_radius_mm']
+    thread_length_mm = results_dict['thread_length_mm']
 
-    body_2 = body_1.mirror('YZ').rotate((0, 0, 0), (0, 0, 1), angleDegrees=rotate_angle)
+    r_max = calculate_min_diam(results_dict)
 
-    exporters.export(body_1, 'first_screw.step')
-    logger.info('Первый вал успешно создан и экспортирован в first_screw.step')
-    exporters.export(body_2, 'second_screw.step')
-    logger.info('Второй вал успешно создан и экспортирован в second_screw.step')
+    dist = [int(thread_length_mm / d) for d in [1.5, 2.0, 2.8, 2.9, 0.95]]
 
-    first_screw = cq.importers.importStep('first_screw.step')
-    second_screw = cq.importers.importStep('second_screw.step')
+    radius = [
+        radius_check(ext_radius_mm, r_max, factor=1.1, label=1),
+        radius_check(ext_radius_mm, r_max, label=2),
+        radius_check(ext_radius_mm, r_max, factor=1.3, label=6)
+    ]
 
-    assembly = cq.Assembly()
-    assembly.add(first_screw, name='first_screw', loc=cq.Location(cq.Vector(0, axis_dist / 2, 0)))
-    assembly.add(second_screw, name='second_screw', loc=cq.Location(cq.Vector(0, -axis_dist / 2, 0)))
-    exporters.export(assembly.toCompound(), 'twin_assembly.step')
-    logger.info('Сборка успешно создана и экспортирована в twin_assembly.step')
+    parts = [
+        create_cylinder(radius[0], dist[0], offset, 0, 0),
+        create_cylinder(radius[1], dist[1], offset + dist[0], 0, 0),
+        create_screw(results_dict, offset + dist[0] + dist[1], first),
+        create_cylinder(int_radius_mm, dist[2], offset + dist[0] + dist[1] + thread_length_mm, 0, 0),
+        create_screw(results_dict, offset + thread_length_mm + dist[0] + dist[1] + dist[2], second),
+        create_cylinder(radius[1], dist[1], offset + 2 * thread_length_mm + sum(dist[:3]), 0, 0),
+        create_cylinder(radius[0], dist[3], offset + 2 * thread_length_mm + sum(dist[:3]) + dist[1], 0, 0),
+        create_cylinder(radius[2], dist[4], offset + 2 * thread_length_mm + sum(dist[:3]) + dist[1] + dist[3], 0, 0),
+    ]
+
+    return combine_parts(parts)
+
+
+def combine_parts(parts):
+    return reduce(lambda a, b: a.union(b), parts)
+
+
+def create_lead_screw(results_dict):
+    ext_radius_mm = results_dict['ext_radius_mm']
+    thread_length_mm = results_dict['thread_length_mm']
+
+    r_max = calculate_min_diam(results_dict)
+
+    dist_0 = int(thread_length_mm / 0.87)
+
+    radius_0 = radius_check(ext_radius_mm, r_max, factor=1.15, label=0)
+
+    parts = [
+        create_cylinder(radius_0, dist_0, 0, 0, 0),
+        create_driven_screw(results_dict, dist_0, True, False)
+    ]
+
+    return combine_parts(parts)
+
+
+def create_cylinder(radius, height, offset, center_x, center_y):
+    return cq.Workplane('XY').workplane(offset=offset).moveTo(center_x, center_y).circle(radius).extrude(height)
+
+
+def radius_check(radius_base, r_max, round_base=5, factor=1.0, label=None):
+    radius = radius_round(radius_base, round_base, factor) / 2
+    if radius >= r_max:
+        return radius
+    else:
+        radius = round_base * math.ceil(r_max / round_base)
+        if label:
+            print(f'⚠️ Радиус {label} меньше допустимого — установлен r_max')
+        return radius
+
+
+def radius_round(radius_base, round_base=5.0, factor=1.0):
+    return round_base * math.ceil(radius_base / factor / round_base)
