@@ -1,7 +1,7 @@
 from django.shortcuts import render
 import math
 import numpy as np
-from scipy.optimize import bisect
+from scipy.optimize import bisect, fsolve
 from functools import partial
 from tqdm import tqdm
 import itertools
@@ -51,8 +51,7 @@ def twin_screw(request):
             for key, value in result.items():
                 print(f"{key}: {value}")
 
-        # create_assembly(result)
-        create_stator(result)
+        create_assembly(result)
 
     return render(request, 'twinscrew.html', context)
 
@@ -372,12 +371,20 @@ def create_stator(results_dict):
     ext_radius_mm = results_dict['ext_radius_mm']
     axis_dist = results_dict['axis_dist']
     thread_length_mm = results_dict['thread_length_mm']
+    stator_gap = results_dict['stator_gap']
 
-    radius_1 = radius_round(ext_radius_mm, factor=0.41)
-    radius_2 = radius_round(ext_radius_mm, round_base=1, factor=0.42)
+    radius_1 = radius_round(ext_radius_mm, factor=0.407)
+    radius_2 = radius_round(ext_radius_mm, round_base=1, factor=0.418)
     radius_3 = radius_round(ext_radius_mm, round_base=1, factor=0.46)
     radius_4 = radius_round(ext_radius_mm, round_base=1, factor=0.75)
-    radius_5 = radius_round(ext_radius_mm, factor=0.40)
+    radius_5 = radius_1 + 2.5
+    radius_6 = radius_1 + 5.0
+    radius_7 = radius_1 + 7.5
+    radius_8 = radius_round(ext_radius_mm, round_base=1, factor=0.831)
+    radius_9 = radius_round(ext_radius_mm, round_base=1, factor=0.926)
+    radius_10 = radius_round(ext_radius_mm, round_base=1, factor=0.713)
+    radius_11 = ext_radius_mm + stator_gap
+    radius_12 = radius_round(ext_radius_mm, round_base=1, factor=0.82)
 
     dist_1 = int(thread_length_mm / 7.8)
     dist_2 = int(thread_length_mm / 13.0)
@@ -385,6 +392,12 @@ def create_stator(results_dict):
     dist_4 = int(thread_length_mm / 3.19)
     dist_5 = int(thread_length_mm / 8.86)
     dist_6 = int(thread_length_mm / 5.42)
+    dist_7 = int(thread_length_mm / 2.78)
+    dist_8 = int(dist_7/2)
+    dist_9 = int(thread_length_mm / 3.0)
+    dist_10 = int(thread_length_mm / 3.197)
+    dist_11 = int(thread_length_mm / 3.979)
+    dist_12 = int(thread_length_mm / 2.0)
 
     base_offset = dist_1 + dist_2 + radius_1 - radius_2 + dist_3
     final_offset = base_offset + dist_4 - dist_5 + int(axis_dist)
@@ -398,8 +411,8 @@ def create_stator(results_dict):
         (dist_1, radius_1)
     ]).close()
 
-    def create_arc_contour(r1, r2, sign=1):
-        return (cq.Workplane('XY').workplane(offset=base_offset).
+    def create_arc_contour(r1, r2, offset, sign=1):
+        return (cq.Workplane('XY').workplane(offset=offset).
                 moveTo(-r1 * math.cos(math.radians(45)), sign * r1 * math.sin(math.radians(45))).
                 radiusArc((r1 * math.cos(math.radians(45)), sign * r1 * math.sin(math.radians(45))), r1 * sign).
                 lineTo(r2 * math.cos(math.radians(45)), sign * r2 * math.sin(math.radians(45))).
@@ -407,32 +420,152 @@ def create_stator(results_dict):
                 close()
                 )
 
-    contour_2 = create_arc_contour(radius_2, radius_3, 1)
-    contour_3 = create_arc_contour(radius_2, radius_3, -1)
+    contour_2 = create_arc_contour(radius_2, radius_3, base_offset, 1)
+    contour_3 = create_arc_contour(radius_2, radius_3, base_offset, -1)
 
-    def create_cap_contour(r1, sign=1):
-        return (cq.Workplane('XY').workplane(offset=base_offset + dist_4 - dist_5).
-                moveTo(-r1 * math.cos(math.radians(45)), r1 * math.sin(math.radians(45))).
+    def create_cap_contour(r1, offset, sign=1):
+        return (cq.Workplane('XY').workplane(offset=offset).
+                moveTo(-r1 * math.cos(math.radians(45)), sign * r1 * math.sin(math.radians(45))).
                 radiusArc((r1 * math.cos(math.radians(45)), sign * r1 * math.sin(math.radians(45))), sign * r1).
                 lineTo(0, 0).close()
                 )
 
-    contour_4 = create_cap_contour(radius_2, 1)
-    contour_5 = create_cap_contour(radius_2, -1)
+    contour_4 = create_cap_contour(radius_2, base_offset + dist_4 - dist_5, 1)
+    contour_5 = create_cap_contour(radius_2, base_offset + dist_4 - dist_5, -1)
+
+    contour_6 = create_cap_contour(radius_2, final_offset - dist_5 + 2 * dist_6 + dist_7 + int(axis_dist), 1)
+    contour_7 = create_cap_contour(radius_2, final_offset - dist_5 + 2 * dist_6 + dist_7 + int(axis_dist), -1)
+
+    contour_8 = create_arc_contour(radius_2, radius_3, final_offset - dist_5 + 2 * dist_6 + dist_7 + int(axis_dist), 1)
+    contour_9 = create_arc_contour(radius_2, radius_3, final_offset - dist_5 + 2 * dist_6 + dist_7 + int(axis_dist), -1)
+
+    contour_10_offset = final_offset - dist_5 + 2 * dist_6 + dist_7 + int(axis_dist) + dist_4
+
+    contour_10 = (
+        cq.Workplane('ZY').moveTo(contour_10_offset, radius_2).
+        polyline([
+            (contour_10_offset, radius_2),
+            (contour_10_offset + dist_3/2, radius_2),
+            (contour_10_offset + dist_3/2 + radius_7 - radius_2, radius_7),
+            (contour_10_offset + dist_3/2 + radius_7 - radius_2 + dist_2, radius_7),
+            (contour_10_offset + dist_3 / 2 + radius_7 - radius_2 + dist_2, radius_3),
+            (contour_10_offset, radius_3)
+        ]).close()
+    )
+
+    middle_contour_1 = (
+        cq.Workplane('XY').workplane(offset=final_offset + dist_6).
+        moveTo(-dist_8/2, radius_3 * math.sin(math.acos(dist_8/(2*radius_3)))).
+        radiusArc((dist_8/2, radius_3 * math.sin(math.acos(dist_8/(2*radius_3)))), radius_3).
+        lineTo(dist_8/2, radius_8 * math.sin(math.acos(dist_8/(2*radius_8)))).
+        radiusArc((-dist_8 / 2, radius_8 * math.sin(math.acos(dist_8 / (2 * radius_8)))), -radius_8).
+        close()
+    )
+
+    middle_contour_2 = (
+        cq.Workplane('XY').workplane(offset=final_offset + dist_6).
+        moveTo(-dist_8 / 2, -radius_3 * math.sin(math.acos(dist_8 / (2 * radius_3)))).
+        radiusArc((dist_8 / 2, -radius_3 * math.sin(math.acos(dist_8 / (2 * radius_3)))), -radius_3).
+        lineTo(dist_8 / 2, -radius_8 * math.sin(math.acos(dist_8 / (2 * radius_8)))).
+        radiusArc((-dist_8 / 2, -radius_8 * math.sin(math.acos(dist_8 / (2 * radius_8)))), radius_8).
+        close()
+    )
+
+    def calc_some_points(r, a, d, x0, y0=0.0, upper=1):
+        c = (upper * a * math.sqrt(2) - d/2)
+        if y0 == 0 or 0.0 or None:
+            D = 2 * r**2 - (c + x0)**2
+            x = (-(c - x0) + math.sqrt(D)) / 2
+        else:
+            D = (c - x0 - y0)**2 - 2 * (x0**2 - r**2 + (y0 - c)**2)
+            x = (-(c - x0 - y0) + math.sqrt(D)) / 2
+        y = x + c
+        return x, y
+
+    x1, y1 = calc_some_points(radius_9, dist_10, axis_dist, axis_dist/2, 0, 1)
+    x2, y2 = calc_some_points(radius_9, dist_11, axis_dist, axis_dist / 2, 0, -1)
+    x3, y3 = calc_some_points(radius_10, dist_11, axis_dist, dist_9, dist_9*math.tan(math.radians(11.5)), -1)
+    x4, y4 = calc_some_points(radius_10, dist_10, axis_dist, dist_9, dist_9*math.tan(math.radians(11.5)), 1)
+
+    middle_contour_3 = (
+        cq.Workplane('XY').workplane(offset=final_offset + dist_6).
+        moveTo(x1, y1).
+        radiusArc((x2, y2), radius_9).
+        lineTo(x3, y3).
+        radiusArc((x4, y4), -radius_10).
+        close()
+    )
+
+    middle_contour_4 = (
+        cq.Workplane('XY').workplane(offset=final_offset + dist_6).
+        moveTo(-x1, y1).
+        radiusArc((-x2, y2), -radius_9).
+        lineTo(-x3, y3).
+        radiusArc((-x4, y4), radius_10).
+        close()
+    )
+
+    middle_contour_5 = (
+        cq.Workplane('XY').workplane(offset=final_offset + dist_6).
+        moveTo(x1, -y1).
+        radiusArc((x2, -y2), -radius_9).
+        lineTo(x3, -y3).
+        radiusArc((x4, -y4), radius_10).
+        close()
+    )
+
+    middle_contour_6 = (
+        cq.Workplane('XY').workplane(offset=final_offset + dist_6).
+        moveTo(-x1, -y1).
+        radiusArc((-x2, -y2), radius_9).
+        lineTo(-x3, -y3).
+        radiusArc((-x4, -y4), -radius_10).
+        close()
+    )
 
     parts = [
         create_cylinder(radius_1, dist_1, 0, 0, 0),
         contour_1.revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(1, 0, 0)),
         contour_2.extrude(dist_4),
         contour_3.extrude(dist_4),
-        create_cylinder(radius_4, int(axis_dist), base_offset + dist_4 - dist_5, 0, axis_dist / 2),
-        create_cylinder(radius_4, int(axis_dist), base_offset + dist_4 - dist_5, 0, -axis_dist / 2),
         contour_4.extrude(dist_5),
         contour_5.extrude(dist_5),
-        create_cylinder(radius_5, dist_6, final_offset, 0, 0)
+        create_cylinder(radius_4, int(axis_dist), base_offset + dist_4 - dist_5, 0, axis_dist / 2),
+        create_cylinder(radius_4, int(axis_dist), base_offset + dist_4 - dist_5, 0, -axis_dist / 2),
+        create_cylinder(radius_5, dist_6, final_offset, 0, 0),
+        middle_contour_1.extrude(dist_7).rotate(axisStartPoint=(0, 0, 0), axisEndPoint=(0, 0, 1), angleDegrees=90),
+        middle_contour_2.extrude(dist_7).rotate(axisStartPoint=(0, 0, 0), axisEndPoint=(0, 0, 1), angleDegrees=90),
+        middle_contour_3.extrude(dist_7).rotate(axisStartPoint=(0, 0, 0), axisEndPoint=(0, 0, 1), angleDegrees=90),
+        middle_contour_4.extrude(dist_7).rotate(axisStartPoint=(0, 0, 0), axisEndPoint=(0, 0, 1), angleDegrees=90),
+        middle_contour_5.extrude(dist_7).rotate(axisStartPoint=(0, 0, 0), axisEndPoint=(0, 0, 1), angleDegrees=90),
+        middle_contour_6.extrude(dist_7).rotate(axisStartPoint=(0, 0, 0), axisEndPoint=(0, 0, 1), angleDegrees=90),
+        create_cylinder(radius_6, dist_6, final_offset + dist_6 + dist_7, 0, 0),
+        create_cylinder(radius_4, int(axis_dist), final_offset + 2 * dist_6 + dist_7, 0, axis_dist / 2),
+        create_cylinder(radius_4, int(axis_dist), final_offset + 2 * dist_6 + dist_7, 0, -axis_dist / 2),
+        contour_6.extrude(dist_5),
+        contour_7.extrude(dist_5),
+        contour_8.extrude(dist_4),
+        contour_9.extrude(dist_4),
+        contour_10.revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(1, 0, 0)),
+        create_cylinder(radius_7, dist_1, contour_10_offset + dist_3 / 2 + radius_7 - radius_2 + dist_2, 0, 0),
     ]
 
-    exporters.export(combine_parts(parts), 'twin_stator.step')
+    stator_len = 2 * final_offset + dist_7 + 2 * dist_6
+
+    parts_1 = [
+        create_cylinder(radius_11, stator_len + 10, 0, 0, axis_dist / 2),
+        create_cylinder(radius_11, stator_len + 10, 0, 0, -axis_dist / 2),
+        create_cylinder(radius_12, dist_12 / 2, 0, 0, axis_dist / 2),
+        create_cylinder(radius_12, dist_12 / 2, 0, 0, -axis_dist / 2),
+        create_cylinder(radius_12, -dist_12 / 2, stator_len, 0, axis_dist / 2),
+        create_cylinder(radius_12, -dist_12 / 2, stator_len, 0, -axis_dist / 2),
+    ]
+
+    stator_1 = combine_parts(parts)
+    stator_2 = combine_parts(parts_1)
+    stator = stator_1.cut(stator_2)
+
+    return stator, stator_len
 
 
 def create_assembly(results_dict):
@@ -447,18 +580,25 @@ def create_assembly(results_dict):
     add = (ext_radius_mm - int_radius_mm) * math.tan(math.radians(alpha))
     dist_0 = int(thread_length_mm / 0.87)
 
-    driven = create_driven_screw(results_dict, 0, False, True)
+    driven = create_driven_screw(results_dict, 0, False, True)[0]
     lead = create_lead_screw(results_dict).rotate((0, 0, 0), (0, 0, 1), angleDegrees=360 * (b_int_low + add) / t_mm)
+    stator = create_stator(results_dict)[0]
+    stator_len = create_stator(results_dict)[1]
+    mid_position = create_driven_screw(results_dict, 0, False, True)[1]
+    stator_position = mid_position - stator_len/2
 
     exporters.export(driven, 'driven_screw.step')
     exporters.export(lead, 'lead_screw.step')
-    logger.info('Валы успешно созданы и экспортированы')
+    exporters.export(stator, 'stator.step')
+    logger.info('Валы и статор успешно созданы и экспортированы')
 
     asm = cq.Assembly()
     asm.add(cq.importers.importStep('driven_screw.step'), name='driven',
             loc=cq.Location(cq.Vector(0, axis_dist / 2, 0)))
     asm.add(cq.importers.importStep('lead_screw.step'), name='lead',
             loc=cq.Location(cq.Vector(0, -axis_dist / 2, -dist_0)))
+    asm.add(cq.importers.importStep('stator.step'), name='stator',
+            loc=cq.Location(cq.Vector(0, 0, stator_position)))
     exporters.export(asm.toCompound(), 'twin_assembly.step')
     logger.info('Сборка успешно создана и экспортирована')
 
@@ -635,7 +775,9 @@ def create_driven_screw(results_dict, offset, first, second):
         create_cylinder(radius[2], dist[4], offset + 2 * thread_length_mm + sum(dist[:3]) + dist[1] + dist[3], 0, 0),
     ]
 
-    return combine_parts(parts)
+    mid_position = dist[0] + dist[1] + thread_length_mm + dist[2]/2
+
+    return combine_parts(parts), mid_position
 
 
 def combine_parts(parts):
@@ -654,7 +796,7 @@ def create_lead_screw(results_dict):
 
     parts = [
         create_cylinder(radius_0, dist_0, 0, 0, 0),
-        create_driven_screw(results_dict, dist_0, True, False)
+        create_driven_screw(results_dict, dist_0, True, False)[0]
     ]
 
     return combine_parts(parts)
