@@ -11,5 +11,7 @@ urlpatterns = [
     path('characteristics/', include('characteristics.urls')),
     path('screw/', include('Screw.urls')),
     path('multiphase/', include('Multiphase.urls')),
-    path('twinscrew/', include('TwinScrew.urls'))
+    path('twinscrew/', include('TwinScrew.urls')),
+    path('flanges_calculations/', include('Flanges_calculations.urls')),
+    path('t_pipes/', include('T_pipes.urls')),
 ]

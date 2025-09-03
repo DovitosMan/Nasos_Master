@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'Screw',
     'Multiphase',
     'TwinScrew',
+    'Flanges_calculations',
+    'T_pipes',
 
 ]
 

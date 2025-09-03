@@ -139,7 +139,7 @@ def calculate(flow_rate, pressure, rotation_speed, density, viscosity, temperatu
         screw_gap = round(round(0.7 * delt_t / 0.05) * 0.05, 2)
         side_gap = round((b_int_low - b_ext_top) / 2, 2)
 
-        axis_dist = round((ext_r + int_r + screw_gap) / 0.1) * 0.1
+        axis_dist = round(round((ext_r + int_r + screw_gap) / 0.1) * 0.1, 1)
         # Если зазор отрицательный, уменьшать число заходов num
         return stator_gap, screw_gap, side_gap, b_ext_top, b_int_low, b_ext_low, axis_dist
 
@@ -186,7 +186,6 @@ def calculate(flow_rate, pressure, rotation_speed, density, viscosity, temperatu
             k = 0.94
             dp_per_turn = 0.71 * (viscosity_kin / 1) ** k
             dp_per_turn = max(0.5, min(dp_per_turn, 5))
-
             pressure_kgs_sm = 10.197162 * pressure_mpa
             turns_est = round(round(pressure_kgs_sm / dp_per_turn, 1) / 10, 2)
             thread_length_mm = round(turns_est * t, 1)
@@ -368,11 +367,12 @@ def calculate(flow_rate, pressure, rotation_speed, density, viscosity, temperatu
 
 
 def create_stator(results_dict):
-    ext_radius_mm = results_dict['ext_radius_mm']
-    axis_dist = results_dict['axis_dist']
-    thread_length_mm = results_dict['thread_length_mm']
-    stator_gap = results_dict['stator_gap']
+    ext_radius_mm = float(results_dict['ext_radius_mm'])
+    axis_dist = round(float(results_dict['axis_dist']), 1)
+    thread_length_mm = float(results_dict['thread_length_mm'])
+    stator_gap = float(results_dict['stator_gap'])
 
+    logger.info('Вычисляем размеры статора')
     radius_1 = radius_round(ext_radius_mm, factor=0.407)
     radius_2 = radius_round(ext_radius_mm, round_base=1, factor=0.418)
     radius_3 = radius_round(ext_radius_mm, round_base=1, factor=0.46)
@@ -402,6 +402,7 @@ def create_stator(results_dict):
     base_offset = dist_1 + dist_2 + radius_1 - radius_2 + dist_3
     final_offset = base_offset + dist_4 - dist_5 + int(axis_dist)
 
+    logger.info('Создаем контуры')
     contour_1 = cq.Workplane('ZY').moveTo(dist_1, radius_1).polyline([
         (dist_1 + dist_2, radius_1),
         (dist_1 + dist_2 + radius_1 - radius_2, radius_2),
@@ -475,11 +476,20 @@ def create_stator(results_dict):
         c = (upper * a * math.sqrt(2) - d/2)
         if y0 == 0 or 0.0 or None:
             D = 2 * r**2 - (c + x0)**2
-            x = (-(c - x0) + math.sqrt(D)) / 2
+            if D < 0.0:
+                x = 0.0
+                y = 0.0
+            else:
+                x = (-(c - x0) + math.sqrt(D)) / 2
+                y = x + c
         else:
             D = (c - x0 - y0)**2 - 2 * (x0**2 - r**2 + (y0 - c)**2)
-            x = (-(c - x0 - y0) + math.sqrt(D)) / 2
-        y = x + c
+            if D < 0.0:
+                x = 0.0
+                y = 0.0
+            else:
+                x = (-(c - x0 - y0) + math.sqrt(D)) / 2
+                y = x + c
         return x, y
 
     x1, y1 = calc_some_points(radius_9, dist_10, axis_dist, axis_dist/2, 0, 1)
@@ -522,7 +532,7 @@ def create_stator(results_dict):
         radiusArc((-x4, -y4), -radius_10).
         close()
     )
-
+    logger.info('Создаем тела статора')
     parts = [
         create_cylinder(radius_1, dist_1, 0, 0, 0),
         contour_1.revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(1, 0, 0)),
@@ -551,7 +561,7 @@ def create_stator(results_dict):
     ]
 
     stator_len = 2 * final_offset + dist_7 + 2 * dist_6
-
+    logger.info('Создаем тела для вырезания в статоре')
     parts_1 = [
         create_cylinder(radius_11, stator_len + 10, 0, 0, axis_dist / 2),
         create_cylinder(radius_11, stator_len + 10, 0, 0, -axis_dist / 2),
@@ -560,38 +570,44 @@ def create_stator(results_dict):
         create_cylinder(radius_12, -dist_12 / 2, stator_len, 0, axis_dist / 2),
         create_cylinder(radius_12, -dist_12 / 2, stator_len, 0, -axis_dist / 2),
     ]
-
+    logger.info('Объединяем тела в статоре')
     stator_1 = combine_parts(parts)
     stator_2 = combine_parts(parts_1)
+    logger.info('Создаем статор')
     stator = stator_1.cut(stator_2)
+    logger.info('Статор создан')
 
     return stator, stator_len
 
 
 def create_assembly(results_dict):
-    alpha = results_dict['alpha']
-    ext_radius_mm = results_dict['ext_radius_mm']
-    int_radius_mm = results_dict['int_radius_mm']
-    t_mm = results_dict['t_mm']
-    axis_dist = results_dict['axis_dist']
-    b_int_low = results_dict['b_int_low']
-    thread_length_mm = results_dict['thread_length_mm']
+    alpha = float(results_dict['alpha'])
+    ext_radius_mm = float(results_dict['ext_radius_mm'])
+    int_radius_mm = float(results_dict['int_radius_mm'])
+    t_mm = float(results_dict['t_mm'])
+    axis_dist = round(float(results_dict['axis_dist']), 1)
+    b_int_low = float(results_dict['b_int_low'])
+    thread_length_mm = float(results_dict['thread_length_mm'])
 
     add = (ext_radius_mm - int_radius_mm) * math.tan(math.radians(alpha))
     dist_0 = int(thread_length_mm / 0.87)
-
+    logger.info('Создаем ведомый винт')
     driven = create_driven_screw(results_dict, 0, False, True)[0]
+    logger.info('Создаем ведущий винт')
     lead = create_lead_screw(results_dict).rotate((0, 0, 0), (0, 0, 1), angleDegrees=360 * (b_int_low + add) / t_mm)
+    logger.info('Создаем статор')
     stator = create_stator(results_dict)[0]
     stator_len = create_stator(results_dict)[1]
     mid_position = create_driven_screw(results_dict, 0, False, True)[1]
     stator_position = mid_position - stator_len/2
 
+    logger.info('Экспортируем модели')
     exporters.export(driven, 'driven_screw.step')
     exporters.export(lead, 'lead_screw.step')
     exporters.export(stator, 'stator.step')
     logger.info('Валы и статор успешно созданы и экспортированы')
 
+    logger.info('Создаем сборку')
     asm = cq.Assembly()
     asm.add(cq.importers.importStep('driven_screw.step'), name='driven',
             loc=cq.Location(cq.Vector(0, axis_dist / 2, 0)))
@@ -604,17 +620,17 @@ def create_assembly(results_dict):
 
 
 def calculate_min_diam(results_dict):
-    alpha = results_dict['alpha']
-    ext_radius_mm = results_dict['ext_radius_mm']
-    int_radius_mm = results_dict['int_radius_mm']
-    t_mm = results_dict['t_mm']
-    b_ext_top = results_dict['b_ext_top']
-    power_full = results_dict['power_full']
-    rotation_speed = results_dict['rotation_speed']
-    pressure = results_dict['pressure']
-    thread_length_mm = results_dict['thread_length_mm']
+    alpha = float(results_dict['alpha'])
+    ext_radius_mm = float(results_dict['ext_radius_mm'])
+    int_radius_mm = float(results_dict['int_radius_mm'])
+    t_mm = float(results_dict['t_mm'])
+    b_ext_top = float(results_dict['b_ext_top'])
+    power_full = float(results_dict['power_full'])
+    rotation_speed = float(results_dict['rotation_speed'])
+    pressure = float(results_dict['pressure'])
+    thread_length_mm = float(results_dict['thread_length_mm'])
 
-    pressure_mpa = 0.009806649643957326 * pressure
+    pressure_mpa = 0.00980665 * pressure
 
     add = (ext_radius_mm - int_radius_mm) * math.tan(math.radians(alpha))
 
@@ -636,7 +652,7 @@ def calculate_min_diam(results_dict):
             for i in range(n_points)
         ]
 
-    points_per_segment = 500
+    points_per_segment = 100
     all_points = []
 
     for i in range(len(trapezoid_contour) - 1):
@@ -708,17 +724,17 @@ def calculate_min_diam(results_dict):
 
 
 def create_screw(results_dict, offset, lefthand):
-    alpha = results_dict['alpha']
-    ext_radius_mm = results_dict['ext_radius_mm']
-    int_radius_mm = results_dict['int_radius_mm']
-    t_mm = results_dict['t_mm']
-    thread_length_mm = results_dict['thread_length_mm']
-    b_ext_top = results_dict['b_ext_top']
+    alpha = float(results_dict['alpha'])
+    ext_radius_mm = float(results_dict['ext_radius_mm'])
+    int_radius_mm = float(results_dict['int_radius_mm'])
+    t_mm = float(results_dict['t_mm'])
+    thread_length_mm = float(results_dict['thread_length_mm'])
+    b_ext_top = float(results_dict['b_ext_top'])
 
     shift = 1
     add = (ext_radius_mm - int_radius_mm) * math.tan(math.radians(alpha))
     add_shift = shift / math.tan(math.radians(alpha))
-
+    logger.info('Создаем винтовое тело')
     trapezoid = cq.Workplane('ZY').polyline([
         (-t_mm - shift + offset, int_radius_mm - add_shift),
         (-t_mm + add + shift + offset, ext_radius_mm + add_shift),
@@ -738,21 +754,24 @@ def create_screw(results_dict, offset, lefthand):
     spiral_body = trapezoid.sweep(spiral, isFrenet=True)
     spiral_body = (spiral_body.union(spiral_body.rotate((0, 0, 0), (0, 0, 1), 180))
                    .union(create_cylinder(int_radius_mm, thread_length_mm + 2 * t_mm, offset - t_mm, 0, 0)))
-
+    logger.info('Винтовое тело готово для вырезания')
+    logger.info('Создаем тела для вырезания')
     parts_to_cut = [
         create_cylinder(2 * ext_radius_mm, -thread_length_mm, offset, 0, 0),
-        create_cylinder(2 * ext_radius_mm, thread_length_mm, offset + thread_length_mm, 0, 0)
+        create_cylinder(2 * ext_radius_mm, thread_length_mm, offset + thread_length_mm, 0, 0),
     ]
-
-    return spiral_body.cut(combine_parts(parts_to_cut)).cut(cq.Workplane('XY').workplane(offset=-2 * t_mm + offset).
+    body = spiral_body.cut(combine_parts(parts_to_cut)).cut(cq.Workplane('XY').workplane(offset=-2 * t_mm + offset).
                                                             circle(ext_radius_mm).circle(ext_radius_mm * 1.5).
                                                             extrude(thread_length_mm + 4 * t_mm))
+    logger.info('Винтовое тело создано')
+
+    return body
 
 
 def create_driven_screw(results_dict, offset, first, second):
-    ext_radius_mm = results_dict['ext_radius_mm']
-    int_radius_mm = results_dict['int_radius_mm']
-    thread_length_mm = results_dict['thread_length_mm']
+    ext_radius_mm = float(results_dict['ext_radius_mm'])
+    int_radius_mm = float(results_dict['int_radius_mm'])
+    thread_length_mm = float(results_dict['thread_length_mm'])
 
     r_max = calculate_min_diam(results_dict)
 
@@ -763,7 +782,7 @@ def create_driven_screw(results_dict, offset, first, second):
         radius_check(ext_radius_mm, r_max, label=2),
         radius_check(ext_radius_mm, r_max, factor=1.3, label=6)
     ]
-
+    logger.info('Создаем части ведомого винта')
     parts = [
         create_cylinder(radius[0], dist[0], offset, 0, 0),
         create_cylinder(radius[1], dist[1], offset + dist[0], 0, 0),
@@ -776,8 +795,11 @@ def create_driven_screw(results_dict, offset, first, second):
     ]
 
     mid_position = dist[0] + dist[1] + thread_length_mm + dist[2]/2
+    logger.info('Создаем ведомый винт'),
+    body = combine_parts(parts)
+    logger.info('Ведомый винт создан'),
 
-    return combine_parts(parts), mid_position
+    return body, mid_position
 
 
 def combine_parts(parts):
@@ -785,24 +807,27 @@ def combine_parts(parts):
 
 
 def create_lead_screw(results_dict):
-    ext_radius_mm = results_dict['ext_radius_mm']
-    thread_length_mm = results_dict['thread_length_mm']
+    ext_radius_mm = float(results_dict['ext_radius_mm'])
+    thread_length_mm = float(results_dict['thread_length_mm'])
 
     r_max = calculate_min_diam(results_dict)
 
     dist_0 = int(thread_length_mm / 0.87)
 
     radius_0 = radius_check(ext_radius_mm, r_max, factor=1.15, label=0)
-
+    logger.info('Создаем части ведущего винта')
     parts = [
         create_cylinder(radius_0, dist_0, 0, 0, 0),
         create_driven_screw(results_dict, dist_0, True, False)[0]
     ]
+    body = combine_parts(parts)
+    logger.info('Тело ведущего винта создано')
 
-    return combine_parts(parts)
+    return body
 
 
 def create_cylinder(radius, height, offset, center_x, center_y):
+    logger.info(f'Создаем цилиндр радиусом {radius}')
     return cq.Workplane('XY').workplane(offset=offset).moveTo(center_x, center_y).circle(radius).extrude(height)
 
 

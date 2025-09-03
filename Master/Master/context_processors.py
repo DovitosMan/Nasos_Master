@@ -57,6 +57,16 @@ def menu_items_context(request):
                 'url_name': "multiphase",
                 'key': True,
             },
+            {
+                'value': 'Фланцы',
+                'url_name': "flanges",
+                'key': True,
+            },
+            {
+                'value': 'Тройники',
+                'url_name': "t_pipes",
+                'key': True,
+            },
         ],
     }
     return menu_items
