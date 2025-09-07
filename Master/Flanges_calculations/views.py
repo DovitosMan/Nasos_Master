@@ -14,6 +14,8 @@ from .steel_prop_data import E_modulus_data, alpha_data, strength_data, yield_da
 from .graphs_data import (x_values_B_F, x_values_B_V, x_values_f,
                           B_F_values, B_V_values, f_values)
 from .report import generate_report
+from .new_calc import new_calc
+from .new_report import generate_new_report
 
 
 def flanges_calculations(request):
@@ -27,6 +29,10 @@ def flanges_calculations(request):
              'max': 380, 'min': -50},
             {'type': 'float', 'placeholder': 'Срок эксплуатации, лет', 'name': 'operating_time', 'value': '',
              'max': 15, 'min': 1},
+            {'type': 'float', 'placeholder': 'Число циклов сборки-разборки', 'name': 'num_cycles_c', 'value': '',
+             'max': 100_000, 'min': 1},
+            {'type': 'float', 'placeholder': 'Число циклов изменения режима эксплуатации', 'name': 'num_cycles_r',
+              'value': '', 'max': 100_000, 'min': 1},
             {'type': 'float', 'placeholder': 'Наружный диаметр фланца Dн, мм', 'name': 'D_ext_flange', 'value': '',
              'min': 1},
             {'type': 'float', 'placeholder': 'Внутренний диаметр фланца D, мм', 'name': 'D_int_flange', 'value': '',
@@ -43,7 +49,7 @@ def flanges_calculations(request):
              'name': 'd_pins_flange', 'value': '', 'min': 1},
             {'type': 'float', 'placeholder': 'Число болтов (шпилек) n, шт.', 'name': 'pins_quantity', 'value': '',
              'max': 50, 'min': 1},
-            {'type': 'float', 'placeholder': 'Диаметр болта (шпильки) М', 'name': 'pin_diam', 'value': '', 'max': 68,
+            {'type': 'float', 'placeholder': 'Диаметр болта (шпильки) М', 'name': 'pin_diam', 'value': '', 'max': 80,
              'min': 10},
             {'type': 'float', 'placeholder': 'Внешняя нагрузка F, кН', 'name': 'ext_force', 'value': ''},
             {'type': 'float', 'placeholder': 'Внешний момент M, кН*м', 'name': 'ext_moment', 'value': ''},
@@ -88,7 +94,7 @@ def flanges_calculations(request):
                  {'name': "18Х12ВМБФР", 'value': "18Х12ВМБФР"},
                  {'name': "12Х18Н10Т", 'value': "12Х18Н10Т"},
                  {'name': "ХН35ВТ", 'value': "ХН35ВТ"},
-                 # {'name': "Д16", 'value': "Д16"},
+                 {'name': "09Г2С", 'value': "09Г2С"},
              ],
              },
             {'type': 'option', 'placeholder': 'Марка стали болтов (шпилек)', 'name': 'bolt_steel', 'value': '',
@@ -108,7 +114,7 @@ def flanges_calculations(request):
                  {'name': "18Х12ВМБФР", 'value': "18Х12ВМБФР"},
                  {'name': "12Х18Н10Т", 'value': "12Х18Н10Т"},
                  {'name': "ХН35ВТ", 'value': "ХН35ВТ"},
-                 # {'name': "Д16", 'value': "Д16"},
+                 {'name': "09Г2С", 'value': "09Г2С"},
              ],
              },
         ]
@@ -139,8 +145,11 @@ def flanges_calculations(request):
 
         # multi_calc(input_data, input_select)
 
-        result, T_b = solo_calc(input_data, input_select)
-        generate_report(result, T_b, input_select_names)
+        # result, T_b = solo_calc(input_data, input_select)
+        # generate_report(result, T_b, input_select_names)
+
+        result_dict = new_calc(input_data, input_select)
+        generate_new_report(result_dict, input_select_names)
 
     return render(request, 'flanges.html', context)
 

@@ -1265,7 +1265,6 @@ def generate_report(result, T_b, input_select_names):
     sigma_r_r_formula = (r'σ_R^р = \frac{1.33 \cdot \beta_F \cdot H + l_0}{\lambda \cdot H^2 \cdot l_0 \cdot D_{вн}}'
                          r' \cdot M^Р')
     add_equation(doc, sigma_r_r_formula, number=f_counter, f_l_indent=5.75)
-    doc.add_paragraph("где: ", style="Normal")
     variables_sigma_r_r = {'beta_F': B_F, 'H': h_flange, 'l_0': l_0_calc, 'lambda': lambda_, 'D_{вн}': D_int_flange,
                            'M^Р': M_R_calc}
     sigma_r_r_py = '(1.33 * beta_F * H + l_0) / (lambda * H**2 * l_0 * D_{вн}) * M^Р * 1000000'
