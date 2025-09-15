@@ -1,8 +1,8 @@
 import math
-
+from types import SimpleNamespace
 from django.shortcuts import render
 import bisect
-from Flanges_calculations.steel_prop_data import strength_data, yield_data
+from Flanges_calculations.steel_prop_data import strength_data_1, yield_data_1, E_modulus_data_1, alpha_data_1
 from .data import class_data, k_n_values
 from .report_doc import generate_report
 
@@ -12,18 +12,18 @@ def t_pipes(request):
         'calc': [
             {'type': 'float', 'placeholder': 'Условный диаметр трубопровода DN, мм', 'name': 'D_N_pipe', 'value': '',
              'max': 1400, 'min': 10},
-            {'type': 'float', 'placeholder': 'Условный диаметр ответвления тройника DN, мм', 'name': 'D_N_b', 'value': '', 'max': 1400,
-             'min': 10},
+            {'type': 'float', 'placeholder': 'Условный диаметр ответвления тройника DN, мм', 'name': 'D_N_b',
+             'value': '', 'max': 1400, 'min': 10},
             {'type': 'float', 'placeholder': 'Рабочее давление, P, МПа', 'name': 'pressure', 'value': '', 'max': 32.0,
              'min': 0.1},
             {'type': 'float', 'placeholder': 'Температура эксплуатации C', 'name': 'temperature', 'value': '',
              'max': 380, 'min': 21},
-            {'type': 'float', 'placeholder': 'Наружный диаметр трубопровода Dn, мм', 'name': 'D_n', 'value': '', 'max': 1400,
-             'min': 10},
+            {'type': 'float', 'placeholder': 'Наружный диаметр трубопровода Dn, мм', 'name': 'D_n', 'value': '',
+             'max': 1400, 'min': 10},
             {'type': 'float', 'placeholder': 'Внутренний диаметр ответвления Db, мм', 'name': 'D_vn', 'value': '',
              'max': 1400, 'min': 10},
             {'type': 'float', 'placeholder': 'Полудлина тройника L, мм', 'name': 'L', 'value': '',
-             'max': 1400, 'min': 10},
+             'max': 2000, 'min': 10},
         ],
         'selects': [
             {'type': 'option', 'placeholder': 'Марка стали тройника', 'name': 'steel_grade', 'value': '',
@@ -41,9 +41,10 @@ def t_pipes(request):
                  {'name': "25Х2М1Ф", 'value': "25Х2М1Ф"},
                  {'name': "20Х13", 'value': "20Х13"},
                  {'name': "18Х12ВМБФР", 'value': "18Х12ВМБФР"},
-                 {'name': "12Х18Н10Т", 'value': "ХН35ВТ"},
+                 {'name': "12Х18Н10Т", 'value': "12Х18Н10Т"},
                  {'name': "ХН35ВТ", 'value': "ХН35ВТ"},
-                 {'name': "Д16", 'value': "Д16"},
+                 {'name': "09Г2С", 'value': "09Г2С"},
+                 {'name': "17Г1С", 'value': "17Г1С"},
              ],
              },
         ]
@@ -76,18 +77,32 @@ def t_pipes(request):
     return render(request, 't_pipes.html', context)
 
 
-def get_steel_class(steel_grade, temperature):
+def _ensure_float_attr(d: SimpleNamespace, name: str):
+    val = getattr(d, name, None)
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        raise ValueError(f"Поле '{name}' должно быть числом (значение: {val!r})")
 
-    sigma_b_T, sigma_y_T = get_steel_prop(steel_grade, temperature)
-    div = sigma_y_T / sigma_b_T
+
+def get_steel_class(steel_grade: str, temperature: float):
+
+    steel_prop = get_steel_prop(steel_grade, temperature)
+    print(steel_prop)
+    sp = SimpleNamespace(**steel_prop)
+
+    if sp.sigma_b_T == 0:
+        raise ValueError(f"sigma_b_T == 0 для марки {steel_grade} при T={temperature}°C — проверь таблицу свойств")
+
+    div = sp.sigma_y_T / sp.sigma_b_T
 
     best_class = None
     best_sigma_y_min = -1
 
     for steel_class, (sigma_b_range, sigma_y_min, max_ratio) in class_data.items():
         sigma_b_min, sigma_b_max = sigma_b_range
-        if (sigma_b_min <= sigma_b_T <= sigma_b_max and
-                sigma_y_T >= sigma_y_min and
+        if (sigma_b_min <= sp.sigma_b_T <= sigma_b_max and
+                sp.sigma_y_T >= sigma_y_min and
                 div <= max_ratio):
             if sigma_y_min > best_sigma_y_min:
                 best_sigma_y_min = sigma_y_min
@@ -96,155 +111,177 @@ def get_steel_class(steel_grade, temperature):
     return best_class
 
 
-def get_steel_prop(steel_grade, temperature: float):
-    key_3 = None
-    for grades in strength_data:
-        if any(g.strip() == steel_grade for g in grades.split(",")):
-            key_3 = grades
-            break
+def get_steel_prop(steel_grade: str, temperature: float):
+    steel_grade = str(steel_grade).strip()
+    properties = [
+        ("E", E_modulus_data_1, 1e5, 0),
+        ("alpha", alpha_data_1, 1e-6, 8),
+        ("sigma_b", strength_data_1, 1.0, 3),
+        ("sigma_y", yield_data_1, 1.0, 3)
+    ]
+    results = {}
+    for name, table, scale, round_digits in properties:
+        if steel_grade not in table:
+            raise ValueError(f"Марка стали '{steel_grade}' не найдена в таблице свойств ({name}).")
+        data = table[steel_grade]
 
-    if key_3 is None:
-        raise ValueError(f"Марка стали '{steel_grade}' не найдена в таблице.")
+        if 20 not in data:
+            raise ValueError(f"Для марки '{steel_grade}' в таблице '{name}' отсутствует значение при 20°C.")
 
-    temp_data_3 = strength_data[key_3]
-    sigma_b_20 = temp_data_3[20]
+        val20 = round(data[20] * scale, round_digits)
 
-    if temperature in temp_data_3:
-        return sigma_b_20, temp_data_3[temperature]
+        if temperature in data:
+            valT = data[temperature] * scale
+        else:
+            temps = sorted(k for k in data.keys() if isinstance(k, (int, float)))
+            if not temps:
+                raise ValueError(f"Нет температурных записей для марки {steel_grade} в таблице {name}.")
+            if temperature < temps[0] or temperature > temps[-1]:
+                raise ValueError(
+                    f"Температура {temperature}°C вне диапазона данных для {steel_grade} ({name}). "
+                    f"Допустимый диапазон: {temps[0]}..{temps[-1]} °C."
+                )
+            pos = bisect.bisect_left(temps, temperature)
+            t1, t2 = temps[pos - 1], temps[pos]
+            v1, v2 = data[t1], data[t2]
+            valT = round((v1 + (v2 - v1) * (temperature - t1) / (t2 - t1)) * scale, round_digits)
 
-    temps_3 = sorted(temp_data_3.keys())
-    if temperature < temps_3[0] or temperature > temps_3[-1]:
-        raise ValueError(f"Температура {temperature}°C вне диапазона данных для этой стали.")
+        results[f"{name}_20"] = val20
+        results[f"{name}_T"] = valT
 
-    pos_3 = bisect.bisect_left(temps_3, temperature)
-    t_1_3, t_2_3 = temps_3[pos_3 - 1], temps_3[pos_3]
-    sigma_b_1, sigma_b_2 = temp_data_3[t_1_3], temp_data_3[t_2_3]
-    sigma_b_T = round((sigma_b_1 + (sigma_b_2 - sigma_b_1) * (temperature - t_1_3) / (t_2_3 - t_1_3)), 3)
-
-    key_4 = None
-    for grades in yield_data:
-        if any(g.strip() == steel_grade for g in grades.split(",")):
-            key_4 = grades
-            break
-
-    if key_4 is None:
-        raise ValueError(f"Марка стали '{steel_grade}' не найдена в таблице.")
-
-    temp_data_4 = yield_data[key_4]
-    sigma_y_20 = temp_data_4[20]
-
-    if temperature in temp_data_4:
-        return sigma_y_20, temp_data_4[temperature]
-
-    temps_4 = sorted(temp_data_4.keys())
-    if temperature < temps_4[0] or temperature > temps_4[-1]:
-        raise ValueError(f"Температура {temperature}°C вне диапазона данных для этой стали.")
-
-    pos_4 = bisect.bisect_left(temps_4, temperature)
-    t_1_4, t_2_4 = temps_4[pos_4 - 1], temps_4[pos_4]
-    sigma_y_1, sigma_y_2 = temp_data_4[t_1_4], temp_data_4[t_2_4]
-    sigma_y_T = round((sigma_y_1 + (sigma_y_2 - sigma_y_1) * (temperature - t_1_4) / (t_2_4 - t_1_4)), 3)
-
-    return sigma_b_T, sigma_y_T
+    return results
 
 
 def calc(input_data, input_select, max_iter=100):
-    D_N_pipe = float(input_data['D_N_pipe'])
-    D_N_b = float(input_data['D_N_b'])
-    D_n = float(input_data['D_n']) + 4.0
-    D_vn = float(input_data['D_vn'])
-    L = float(input_data['L'])
-    steel_grade = input_select.get("steel_grade", None)
-    temperature = float(input_data.get("temperature", 20))
-    steel_class = get_steel_class(steel_grade, temperature)
-    pressure = float(input_data['pressure'])
-    if L < D_vn:
-        raise ValueError(f"Полудлина тройника должна быть не менее {D_vn} мм!")
+    all_data = {**input_data, **input_select}
+    d = SimpleNamespace(**all_data)
+
+    req_numeric = ["D_N_pipe", "D_N_b", "pressure", "temperature", "D_n", "D_vn", "L"]
+    for name in req_numeric:
+        setattr(d, name, _ensure_float_attr(d, name))
+
+    steel_grade = getattr(d, "steel_grade", None)
+    if not steel_grade:
+        raise ValueError("Не указана марка стали (steel_grade).")
+
+    steel_class = get_steel_class(steel_grade, d.temperature)
+    if steel_class is None:
+        raise ValueError(
+            f"Для стали '{steel_grade}' при температуре {d.temperature}°C не найден подходящий класс прочности."
+        )
+
+    if d.L < d.D_vn:
+        raise ValueError(f"Полудлина тройника должна быть не менее {d.D_vn} мм!")
     R_1_n = class_data[steel_class][0][0]
     sigma_b = R_1_n
     sigma_y = class_data[steel_class][1]
-    m = 0.825 if pressure <= 10 else 0.66
+    m = 0.825 if d.pressure <= 10 else 0.66
     k_1 = 1.47
     n = 1.1
 
-    k_n_key_d = min((d for d in k_n_values if D_N_b <= d), default=None)
-    if k_n_key_d is None:
-        raise ValueError(f"Номинальный диаметр '{D_N_b}' не найден в таблице.")
-    temp_data = k_n_values[k_n_key_d]
-    k_n_key_p = min((p for p in temp_data if pressure <= p), default=None)
-    if k_n_key_p is None:
-        raise ValueError(f"Нет К1 для давления '{pressure}' МПа.")
-    k_n = temp_data[k_n_key_p]
+    k_n = None
+    for diameter_limit in sorted(k_n_values.keys()):
+        if d.D_N_b <= diameter_limit:
+            pressures = k_n_values[diameter_limit]
+            for pressure_limit in sorted(pressures.keys()):
+                if d.pressure <= pressure_limit:
+                    k_n = pressures[pressure_limit]
+                    break
+            if k_n is not None:
+                break
+    if k_n is None:
+        raise ValueError(f"Не удалось определить коэффициент k_n для D_N_b={d.D_N_b}, P={d.pressure}")
+
+    if k_n == 0:
+        raise ValueError("k_n = 0 в таблице — проверь данные k_n_values.")
 
     R_1 = round(R_1_n * m / k_1 / k_n, 1)
 
-    sigma_pipeline = math.ceil(n * pressure * D_n / (2 * (R_1 + n * pressure)))
+    deno = (R_1 + n * d.pressure)
+    if deno == 0:
+        raise ValueError(f"Некорректная промежуточная величина (R_1 + n*P) == 0 (R_1={R_1}, P={d.pressure})")
 
-    D_h = D_n + 2 * sigma_pipeline
-    D_b = D_vn + 2 * sigma_pipeline
+    sigma_pipeline = round((n * d.pressure * d.D_n / (2 * deno)), 2)
 
-    t_h = math.ceil(n * pressure * D_h / (2 * (R_1 + n * pressure)))
-    t_b = math.ceil(n * pressure * D_b / (2 * (R_1 + n * pressure)))
+    if d.D_N_pipe < 1000:
+        D_n_ = d.D_n + 4.0
+    else:
+        D_n_ = d.D_n + 6.0
+
+    D_h = D_n_ + 2 * sigma_pipeline
+    D_b = d.D_vn + 2 * sigma_pipeline
+
+    t_h = round((n * d.pressure * D_h / (2 * deno)), 2)
+    t_b = round((n * d.pressure * D_b / (2 * deno)), 2)
+
+    T_h, T_b = None, None
 
     m_b = 1  # При условии, что КП одинаковые у тройника и трубопровода
-    ksi = L / D_vn
+    ksi = d.L / d.D_vn
     E = 0.45 + 0.55 * D_b / D_h
     counter = 0
-    for i in range(max_iter):
+    for iteration in range(max_iter):
         counter += 1
         a = (2 + 5 * m_b - 4 * ksi) * E * t_h
         b = (2 * ksi - 1) * D_b + 4 * ksi * E * t_h - 5 * m_b * t_b
         c = -2 * ksi * D_b
 
-        nu = (1 / (2 * a)) * (-b + math.sqrt(b**2 - 4 * a * c))
+        if a == 0:
+            raise ValueError(f"Невозможно вычислить ν: коэффициент a == 0 (a={a}). Проверь входные данные.")
+
+        discriminant = b ** 2 - 4 * a * c
+        if discriminant < 0:
+            raise ValueError(
+                f"Невозможно вычислить коэффициент ν: дискриминант < 0 "
+                f"(D_h={D_h}, D_b={D_b}, t_h={t_h}, t_b={t_b})"
+            )
+
+        nu = (-b + math.sqrt(discriminant)) / (2 * a)
         nu = max(nu, 1.0)
 
-        T_h_new = 6.0
-        T_b_new = 6.0
+        T_h_new = max(6.0, math.ceil(t_h * nu))
+        T_b_new = max(6.0, math.ceil(E * T_h_new))
 
-        if math.ceil(t_h * nu) > 6.0:
-            T_h_new = math.ceil(t_h * nu)
-
-        if math.ceil(E * T_h_new) > 6.0:
-            T_b_new = math.ceil(E * T_h_new)
-
-        if T_h_new == t_h and T_b_new == t_b:
+        if T_h_new == T_h and T_b_new == T_b:
             break
 
         T_h, T_b = T_h_new, T_b_new
+        D_h = D_n_ + 2 * T_h
+        D_b = d.D_vn + 2 * T_b
 
-        D_h = D_n + 2 * T_h
-        D_b = D_vn + 2 * T_b
-
-        t_h = math.ceil(n * pressure * D_h / (2 * (R_1 + n * pressure)))
-        t_b = math.ceil(n * pressure * D_b / (2 * (R_1 + n * pressure)))
+        t_h = math.ceil(n * d.pressure * D_h / (2 * (R_1 + n * d.pressure)))
+        t_b = math.ceil(n * d.pressure * D_b / (2 * (R_1 + n * d.pressure)))
 
         E = 0.45 + 0.55 * D_b / D_h
-    print(counter)
+    print(f"Сошлось за {counter} итераций")
     H_1 = 2.5 * T_h
     H_min = 0.5 * D_h + H_1
 
     d_h = D_h - 2 * T_h
     d_b = D_b - 2 * T_b
 
+    t_h = round((n * d.pressure * D_h / (2 * deno)), 2)
+    t_b = round((n * d.pressure * D_b / (2 * deno)), 2)
+
     A = d_b * t_h
-    A1 = (2 * L - d_b) * (T_h - t_h)
+    A1 = (2 * d.L - d_b) * (T_h - t_h)
     A2 = 2 * H_1 * (T_b - t_b)
+    print(A, A1, A2)
 
     L_min = max(d_b, 0.5 * D_b + 2 * T_h)
 
-    is_area = True if A1 + m_b * A2 >= A else False
-    is_thickness = True if T_b >= 6.0 and T_h >= 1.5 * sigma_pipeline else False
-    is_length = True if L >= d_b and L >= 0.5 * D_b + 2 * T_h else False
+    is_area = A1 + m_b * A2 >= A
+    is_thickness = (T_b >= 6.0) and (T_h >= 1.5 * sigma_pipeline)
+    is_length = (d.L >= d_b) and (d.L >= 0.5 * D_b + 2 * T_h)
 
     if is_area and is_thickness and is_length:
         result = {
             "steel_class": steel_class,
             "sigma_b": sigma_b,
             "sigma_y": sigma_y,
-            "pressure": pressure,
-            "temperature": temperature,
-            "D_n": D_n - 4,
+            "pressure": d.pressure,
+            "temperature": d.temperature,
+            "D_n": d.D_n,
             "D_h": D_h,
             "D_b": D_b,
             "T_h": T_h,
@@ -253,19 +290,19 @@ def calc(input_data, input_select, max_iter=100):
             "d_b": d_b,
             "H_min": H_min,
             "L_min": L_min,
-            "D_N_b": D_N_b,
-            "D_vn": D_vn,
-            "D_N_pipe": D_N_pipe,
+            "D_N_b": d.D_N_b,
+            "D_vn": d.D_vn,
+            "D_N_pipe": d.D_N_pipe,
             "m": m,
             "n": n,
             "k_1": k_1,
             "k_n": k_n,
             "m_b": m_b,
-            "L": L,
+            "L": d.L,
         }
         return result
     else:
-        raise ValueError(f"Условия площади, толщины, длины: '{is_area, is_thickness, is_length}'.")
+        raise ValueError(f"Условия (площадь, толщина, длина) не выполнены: {is_area, is_thickness, is_length}")
 
 
 def print_result(result):

@@ -95,6 +95,7 @@ def flanges_calculations(request):
                  {'name': "12Х18Н10Т", 'value': "12Х18Н10Т"},
                  {'name': "ХН35ВТ", 'value': "ХН35ВТ"},
                  {'name': "09Г2С", 'value': "09Г2С"},
+                 {'name': "17Г1С", 'value': "17Г1С"},
              ],
              },
             {'type': 'option', 'placeholder': 'Марка стали болтов (шпилек)', 'name': 'bolt_steel', 'value': '',
